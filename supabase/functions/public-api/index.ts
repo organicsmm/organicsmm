@@ -11,25 +11,22 @@ const supabase = createClient(
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-// ─── Parse request body — supports BOTH JSON and form-encoded ───────────────
+// ─── Parse body: JSON OR form-encoded ───────────────────────────────────────
 async function parseBody(req: Request): Promise<Record<string, string>> {
-    const contentType = req.headers.get('content-type') || ''
-
-    if (contentType.includes('application/json')) {
-        try {
-            return await req.json()
-        } catch {
-            return {}
-        }
-    }
-
-    // application/x-www-form-urlencoded (most SMM panels use this)
+    const ct = req.headers.get('content-type') || ''
     try {
+        if (ct.includes('application/json')) {
+            return await req.json()
+        }
+        // form-encoded: key=X&action=balance (what most SMM panels send)
         const text = await req.text()
         const params: Record<string, string> = {}
         for (const pair of text.split('&')) {
-            const [k, v] = pair.split('=')
-            if (k) params[decodeURIComponent(k)] = decodeURIComponent(v ?? '')
+            const idx = pair.indexOf('=')
+            if (idx === -1) continue
+            const k = decodeURIComponent(pair.slice(0, idx).trim())
+            const v = decodeURIComponent(pair.slice(idx + 1).trim())
+            if (k) params[k] = v
         }
         return params
     } catch {
@@ -37,23 +34,27 @@ async function parseBody(req: Request): Promise<Record<string, string>> {
     }
 }
 
-// ─── AUTH: look up user by API key ─────────────────────────────────────────
-async function getUserByApiKey(key: string) {
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('user_id, email, full_name')
-        .eq('api_key', key)
-        .single()
-    if (error || !data) return null
-    return data
-}
-
-// ─── Responses ──────────────────────────────────────────────────────────────
+// ─── JSON response helper ────────────────────────────────────────────────────
 function json(data: unknown, status = 200) {
     return new Response(JSON.stringify(data), {
         status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+}
+
+// ─── Error response (standard SMM API format) ────────────────────────────────
+function err(msg: string, status = 400) {
+    return json({ error: msg }, status)
+}
+
+// ─── Lookup user by API key ──────────────────────────────────────────────────
+async function getUserByKey(key: string) {
+    const { data } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('api_key', key.trim())
+        .single()
+    return data?.user_id ?? null
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -64,101 +65,85 @@ serve(async (req) => {
 
     try {
         const body = await parseBody(req)
-        const { key, action, ...params } = body
+        const { key, action } = body
 
-        console.log(`[public-api] action=${action} content-type=${req.headers.get('content-type')}`)
+        console.log(`[public-api] action="${action}" ct="${req.headers.get('content-type')}"`)
 
-        // ── Validate API key ────────────────────────────────────────────────────
-        if (!key) {
-            return json({ status: 'error', error: 'API key is required (field: key)' }, 400)
-        }
-        const profile = await getUserByApiKey(key)
-        if (!profile) {
-            return json({ status: 'error', error: 'Invalid API key' }, 401)
-        }
-        const userId = profile.user_id
+        // ── Auth ────────────────────────────────────────────────────────────────
+        if (!key) return err('API key required (field: key)', 401)
+        const userId = await getUserByKey(key)
+        if (!userId) return err('Invalid API key', 401)
 
-        // ── Route ───────────────────────────────────────────────────────────────
+        // ── Routes ──────────────────────────────────────────────────────────────
         switch (action) {
 
-            // ─── SERVICES ────────────────────────────────────────────────────────
+            // ─────────── BALANCE ───────────────────────────────────────────────
+            // Standard format: {"balance":"1.00","currency":"USD"}
+            case 'balance': {
+                const { data: w } = await supabase
+                    .from('wallets').select('balance').eq('user_id', userId).single()
+                if (!w) return err('Wallet not found', 404)
+                return json({ balance: w.balance.toFixed(2), currency: 'USD' })
+            }
+
+            // ─────────── SERVICES ──────────────────────────────────────────────
+            // Standard format: [{"service":1,"name":"...","rate":"0.50","min":100,"max":50000,...}]
             case 'services': {
                 const { data: services, error } = await supabase
                     .from('services')
                     .select('provider_service_id, name, category, price, min_quantity, max_quantity, drip_feed_enabled, description')
                     .eq('is_active', true)
                     .order('category')
-
                 if (error) throw error
-
-                return json({
-                    status: 'ok',
-                    services: services.map(s => ({
-                        service: parseInt(s.provider_service_id) || s.provider_service_id,
-                        name: s.name,
-                        category: s.category,
-                        rate: s.price.toFixed(4),
-                        min: s.min_quantity,
-                        max: s.max_quantity,
-                        dripfeed: s.drip_feed_enabled ?? false,
-                        description: s.description ?? '',
-                    }))
-                })
+                return json(services.map(s => ({
+                    service: parseInt(s.provider_service_id) || s.provider_service_id,
+                    name: s.name,
+                    category: s.category,
+                    rate: s.price.toFixed(4),
+                    min: s.min_quantity,
+                    max: s.max_quantity,
+                    dripfeed: s.drip_feed_enabled ?? false,
+                    description: s.description ?? '',
+                })))
             }
 
-            // ─── ADD ORDER ───────────────────────────────────────────────────────
+            // ─────────── ADD ORDER ─────────────────────────────────────────────
+            // Standard format: {"order":12345}
             case 'add': {
-                const providerServiceId = params.service
-                const link = params.link
-                const qty = Number(params.quantity)
+                const providerSvcId = body.service
+                const link = body.link
+                const qty = Number(body.quantity)
 
-                if (!providerServiceId) return json({ status: 'error', error: 'service is required' }, 400)
-                if (!link) return json({ status: 'error', error: 'link is required' }, 400)
-                if (!qty || isNaN(qty)) return json({ status: 'error', error: 'quantity must be a number' }, 400)
+                if (!providerSvcId) return err('service is required')
+                if (!link) return err('link is required')
+                if (!qty || isNaN(qty)) return err('quantity must be a number')
 
-                // Lookup service
-                const { data: service, error: serviceError } = await supabase
+                const { data: svc } = await supabase
                     .from('services')
                     .select('*')
-                    .eq('provider_service_id', String(providerServiceId))
+                    .eq('provider_service_id', String(providerSvcId))
                     .eq('is_active', true)
                     .single()
 
-                if (serviceError || !service) {
-                    return json({ status: 'error', error: 'Service not found or inactive' }, 404)
+                if (!svc) return err('Service not found or inactive', 404)
+                if (qty < svc.min_quantity || qty > svc.max_quantity) {
+                    return err(`Quantity must be between ${svc.min_quantity} and ${svc.max_quantity}`)
                 }
 
-                if (qty < service.min_quantity || qty > service.max_quantity) {
-                    return json({
-                        status: 'error',
-                        error: `Quantity must be between ${service.min_quantity} and ${service.max_quantity}`
-                    }, 400)
-                }
+                const totalPrice = (qty / 1000) * svc.price
 
-                const totalPrice = (qty / 1000) * service.price
-
-                // Get wallet
-                const { data: wallet, error: walletError } = await supabase
-                    .from('wallets')
-                    .select('*')
-                    .eq('user_id', userId)
-                    .single()
-
-                if (walletError || !wallet) return json({ status: 'error', error: 'Wallet not found' }, 404)
-
+                const { data: wallet } = await supabase
+                    .from('wallets').select('*').eq('user_id', userId).single()
+                if (!wallet) return err('Wallet not found', 404)
                 if (wallet.balance < totalPrice) {
-                    return json({
-                        status: 'error',
-                        error: `Insufficient balance. Required: $${totalPrice.toFixed(4)}, Available: $${wallet.balance.toFixed(4)}`
-                    }, 402)
+                    return err(`Insufficient balance. Need $${totalPrice.toFixed(4)}, have $${wallet.balance.toFixed(4)}`)
                 }
 
-                // Create order
-                const { data: order, error: orderError } = await supabase
+                const { data: order, error: oErr } = await supabase
                     .from('orders')
                     .insert({
                         user_id: userId,
-                        service_id: service.id,
+                        service_id: svc.id,
                         link,
                         quantity: qty,
                         price: totalPrice,
@@ -168,98 +153,71 @@ serve(async (req) => {
                         variance_percent: 25,
                         peak_hours_enabled: false,
                     })
-                    .select()
-                    .single()
+                    .select().single()
 
-                if (orderError || !order) throw orderError
+                if (oErr || !order) throw oErr
 
-                // Deduct wallet
-                const newBalance = wallet.balance - totalPrice
-                await supabase
-                    .from('wallets')
-                    .update({ balance: newBalance, total_spent: (wallet.total_spent || 0) + totalPrice })
+                const newBal = wallet.balance - totalPrice
+                await supabase.from('wallets')
+                    .update({ balance: newBal, total_spent: (wallet.total_spent || 0) + totalPrice })
                     .eq('user_id', userId)
 
-                // Transaction record
                 await supabase.from('transactions').insert({
                     user_id: userId,
                     type: 'order',
                     amount: -totalPrice,
-                    balance_after: newBalance,
+                    balance_after: newBal,
                     order_id: order.id,
-                    description: `API Order #${order.order_number} - ${service.name}`,
+                    description: `API Order #${order.order_number} - ${svc.name}`,
                     status: 'completed',
                 })
 
-                // Process order (non-blocking)
-                supabase.functions.invoke('process-order', {
-                    body: { order_id: order.id, run_id: null }
-                }).catch((e: Error) => console.error('process-order:', e.message))
+                // Fire & forget
+                supabase.functions.invoke('process-order', { body: { order_id: order.id } })
+                    .catch((e: Error) => console.error('process-order:', e.message))
 
-                return json({
-                    status: 'ok',
-                    order: order.order_number,
-                    service: service.name,
-                    quantity: qty,
-                    charge: totalPrice.toFixed(4),
-                    balance: newBalance.toFixed(4),
-                })
+                return json({ order: order.order_number })
             }
 
-            // ─── ORDER STATUS ─────────────────────────────────────────────────────
+            // ─────────── ORDER STATUS ──────────────────────────────────────────
+            // Standard format: {"charge":"0.50","start_count":"3572","status":"Partial","remains":"157","currency":"USD"}
             case 'status': {
-                const orderNumber = params.order
-                if (!orderNumber) return json({ status: 'error', error: 'order number is required' }, 400)
+                if (!body.order) return err('order is required')
 
-                const { data: order, error } = await supabase
+                const { data: order } = await supabase
                     .from('orders')
-                    .select('order_number, status, quantity, remains, start_count, service:services(name)')
-                    .eq('order_number', Number(orderNumber))
+                    .select('order_number, status, quantity, remains, start_count, price, service:services(name)')
+                    .eq('order_number', Number(body.order))
                     .eq('user_id', userId)
                     .single()
 
-                if (error || !order) return json({ status: 'error', error: 'Order not found' }, 404)
+                if (!order) return err('Order not found', 404)
+
+                // Map internal status to standard SMM status
+                const statusMap: Record<string, string> = {
+                    pending: 'Pending',
+                    processing: 'In progress',
+                    completed: 'Completed',
+                    failed: 'Canceled',
+                    partial: 'Partial',
+                }
 
                 return json({
-                    status: 'ok',
-                    order: {
-                        order_number: order.order_number,
-                        status: order.status,
-                        quantity: order.quantity,
-                        remains: order.remains ?? order.quantity,
-                        start_count: order.start_count ?? 0,
-                        service: (order.service as any)?.name ?? '',
-                    }
-                })
-            }
-
-            // ─── BALANCE ─────────────────────────────────────────────────────────
-            case 'balance': {
-                const { data: wallet, error } = await supabase
-                    .from('wallets')
-                    .select('balance')
-                    .eq('user_id', userId)
-                    .single()
-
-                if (error || !wallet) return json({ status: 'error', error: 'Wallet not found' }, 404)
-
-                return json({
-                    status: 'ok',
-                    balance: wallet.balance.toFixed(4),
+                    charge: order.price.toFixed(4),
+                    start_count: String(order.start_count ?? 0),
+                    status: statusMap[order.status ?? 'pending'] ?? order.status,
+                    remains: String(order.remains ?? order.quantity),
                     currency: 'USD',
                 })
             }
 
-            // ─── UNKNOWN ─────────────────────────────────────────────────────────
+            // ─────────── UNKNOWN ───────────────────────────────────────────────
             default:
-                return json({
-                    status: 'error',
-                    error: `Unknown action: "${action}". Valid: services, add, status, balance`
-                }, 400)
+                return err(`Unknown action "${action}". Valid: balance, services, add, status`)
         }
 
-    } catch (err: any) {
-        console.error('public-api error:', err)
-        return json({ status: 'error', error: err.message || 'Internal server error' }, 500)
+    } catch (e: any) {
+        console.error('[public-api]', e)
+        return err(e.message || 'Internal server error', 500)
     }
 })
