@@ -11,7 +11,33 @@ const supabase = createClient(
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-// Helper: look up user by API key
+// ─── Parse request body — supports BOTH JSON and form-encoded ───────────────
+async function parseBody(req: Request): Promise<Record<string, string>> {
+    const contentType = req.headers.get('content-type') || ''
+
+    if (contentType.includes('application/json')) {
+        try {
+            return await req.json()
+        } catch {
+            return {}
+        }
+    }
+
+    // application/x-www-form-urlencoded (most SMM panels use this)
+    try {
+        const text = await req.text()
+        const params: Record<string, string> = {}
+        for (const pair of text.split('&')) {
+            const [k, v] = pair.split('=')
+            if (k) params[decodeURIComponent(k)] = decodeURIComponent(v ?? '')
+        }
+        return params
+    } catch {
+        return {}
+    }
+}
+
+// ─── AUTH: look up user by API key ─────────────────────────────────────────
 async function getUserByApiKey(key: string) {
     const { data, error } = await supabase
         .from('profiles')
@@ -22,7 +48,7 @@ async function getUserByApiKey(key: string) {
     return data
 }
 
-// Helper: JSON response
+// ─── Responses ──────────────────────────────────────────────────────────────
 function json(data: unknown, status = 200) {
     return new Response(JSON.stringify(data), {
         status,
@@ -30,17 +56,19 @@ function json(data: unknown, status = 200) {
     })
 }
 
+// ────────────────────────────────────────────────────────────────────────────
 serve(async (req) => {
-    // CORS preflight
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }
 
     try {
-        const body = await req.json().catch(() => ({}))
+        const body = await parseBody(req)
         const { key, action, ...params } = body
 
-        // ── Validate API key ──────────────────────────────────────
+        console.log(`[public-api] action=${action} content-type=${req.headers.get('content-type')}`)
+
+        // ── Validate API key ────────────────────────────────────────────────────
         if (!key) {
             return json({ status: 'error', error: 'API key is required (field: key)' }, 400)
         }
@@ -50,10 +78,10 @@ serve(async (req) => {
         }
         const userId = profile.user_id
 
-        // ── Route actions ─────────────────────────────────────────
+        // ── Route ───────────────────────────────────────────────────────────────
         switch (action) {
 
-            // ─────────────── SERVICES LIST ───────────────
+            // ─── SERVICES ────────────────────────────────────────────────────────
             case 'services': {
                 const { data: services, error } = await supabase
                     .from('services')
@@ -69,7 +97,7 @@ serve(async (req) => {
                         service: parseInt(s.provider_service_id) || s.provider_service_id,
                         name: s.name,
                         category: s.category,
-                        rate: s.price.toFixed(4),   // price per 1000
+                        rate: s.price.toFixed(4),
                         min: s.min_quantity,
                         max: s.max_quantity,
                         dripfeed: s.drip_feed_enabled ?? false,
@@ -78,15 +106,15 @@ serve(async (req) => {
                 })
             }
 
-            // ─────────────── PLACE ORDER ───────────────
+            // ─── ADD ORDER ───────────────────────────────────────────────────────
             case 'add': {
-                const { service: providerServiceId, link, quantity } = params
+                const providerServiceId = params.service
+                const link = params.link
+                const qty = Number(params.quantity)
 
                 if (!providerServiceId) return json({ status: 'error', error: 'service is required' }, 400)
                 if (!link) return json({ status: 'error', error: 'link is required' }, 400)
-                if (!quantity || isNaN(Number(quantity))) return json({ status: 'error', error: 'quantity must be a number' }, 400)
-
-                const qty = Number(quantity)
+                if (!qty || isNaN(qty)) return json({ status: 'error', error: 'quantity must be a number' }, 400)
 
                 // Lookup service
                 const { data: service, error: serviceError } = await supabase
@@ -109,16 +137,14 @@ serve(async (req) => {
 
                 const totalPrice = (qty / 1000) * service.price
 
-                // Check wallet balance
+                // Get wallet
                 const { data: wallet, error: walletError } = await supabase
                     .from('wallets')
                     .select('*')
                     .eq('user_id', userId)
                     .single()
 
-                if (walletError || !wallet) {
-                    return json({ status: 'error', error: 'Wallet not found' }, 404)
-                }
+                if (walletError || !wallet) return json({ status: 'error', error: 'Wallet not found' }, 404)
 
                 if (wallet.balance < totalPrice) {
                     return json({
@@ -127,7 +153,7 @@ serve(async (req) => {
                     }, 402)
                 }
 
-                // Insert order
+                // Create order
                 const { data: order, error: orderError } = await supabase
                     .from('orders')
                     .insert({
@@ -147,14 +173,14 @@ serve(async (req) => {
 
                 if (orderError || !order) throw orderError
 
-                // Deduct balance
+                // Deduct wallet
                 const newBalance = wallet.balance - totalPrice
                 await supabase
                     .from('wallets')
                     .update({ balance: newBalance, total_spent: (wallet.total_spent || 0) + totalPrice })
                     .eq('user_id', userId)
 
-                // Create transaction record
+                // Transaction record
                 await supabase.from('transactions').insert({
                     user_id: userId,
                     type: 'order',
@@ -165,10 +191,10 @@ serve(async (req) => {
                     status: 'completed',
                 })
 
-                // Fire process-order in background (non-blocking)
+                // Process order (non-blocking)
                 supabase.functions.invoke('process-order', {
                     body: { order_id: order.id, run_id: null }
-                }).catch((e: Error) => console.error('process-order error:', e.message))
+                }).catch((e: Error) => console.error('process-order:', e.message))
 
                 return json({
                     status: 'ok',
@@ -180,10 +206,9 @@ serve(async (req) => {
                 })
             }
 
-            // ─────────────── ORDER STATUS ───────────────
+            // ─── ORDER STATUS ─────────────────────────────────────────────────────
             case 'status': {
-                const { order: orderNumber } = params
-
+                const orderNumber = params.order
                 if (!orderNumber) return json({ status: 'error', error: 'order number is required' }, 400)
 
                 const { data: order, error } = await supabase
@@ -193,9 +218,7 @@ serve(async (req) => {
                     .eq('user_id', userId)
                     .single()
 
-                if (error || !order) {
-                    return json({ status: 'error', error: 'Order not found' }, 404)
-                }
+                if (error || !order) return json({ status: 'error', error: 'Order not found' }, 404)
 
                 return json({
                     status: 'ok',
@@ -210,7 +233,7 @@ serve(async (req) => {
                 })
             }
 
-            // ─────────────── BALANCE ───────────────
+            // ─── BALANCE ─────────────────────────────────────────────────────────
             case 'balance': {
                 const { data: wallet, error } = await supabase
                     .from('wallets')
@@ -218,9 +241,7 @@ serve(async (req) => {
                     .eq('user_id', userId)
                     .single()
 
-                if (error || !wallet) {
-                    return json({ status: 'error', error: 'Wallet not found' }, 404)
-                }
+                if (error || !wallet) return json({ status: 'error', error: 'Wallet not found' }, 404)
 
                 return json({
                     status: 'ok',
@@ -229,11 +250,11 @@ serve(async (req) => {
                 })
             }
 
-            // ─────────────── UNKNOWN ACTION ───────────────
+            // ─── UNKNOWN ─────────────────────────────────────────────────────────
             default:
                 return json({
                     status: 'error',
-                    error: `Unknown action: "${action}". Valid actions: services, add, status, balance`
+                    error: `Unknown action: "${action}". Valid: services, add, status, balance`
                 }, 400)
         }
 
