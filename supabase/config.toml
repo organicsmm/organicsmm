@@ -1,0 +1,28 @@
+project_id = "uboeupkchwoxghufkgpk"
+
+[functions.import-services]
+verify_jwt = false
+
+[functions.process-order]
+verify_jwt = false
+
+[functions.execute-organic-runs]
+verify_jwt = false
+
+[functions.check-order-status]
+verify_jwt = false
+
+[functions.process-engagement-order]
+verify_jwt = false
+
+[functions.execute-all-runs]
+verify_jwt = false
+
+[functions.cron-status]
+verify_jwt = false
+
+[functions.send-admin-alert]
+verify_jwt = false
+
+[functions.verify-usdt-deposit]
+verify_jwt = false
