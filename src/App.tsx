@@ -24,6 +24,7 @@ const Orders = lazy(() => import("./pages/Orders"));
 const Wallet = lazy(() => import("./pages/Wallet"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Support = lazy(() => import("./pages/Support"));
+const ApiAccess = lazy(() => import("./pages/ApiAccess"));
 
 // Engagement pages - lazy loaded
 const EngagementOrder = lazy(() => import("./pages/EngagementOrder"));
@@ -120,6 +121,7 @@ const App = () => {
                       <Route path="/wallet" element={<Wallet />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/support" element={<Support />} />
+                      <Route path="/api-access" element={<ApiAccess />} />
 
                       {/* Engagement */}
                       <Route path="/engagement-order" element={<EngagementOrder />} />

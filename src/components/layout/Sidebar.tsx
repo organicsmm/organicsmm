@@ -1,9 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  Package, 
-  Wallet, 
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Package,
+  Wallet,
   ListOrdered,
   Settings,
   LifeBuoy,
@@ -15,7 +15,8 @@ import {
   X,
   Zap,
   Crown,
-  ChevronDown
+  ChevronDown,
+  Code2
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,6 +38,7 @@ const userNavItems = [
   { icon: ListOrdered, label: 'Single Orders', path: '/orders' },
   { icon: Package, label: 'Services', path: '/services' },
   { icon: Wallet, label: 'Wallet', path: '/wallet' },
+  { icon: Code2, label: 'API Access', path: '/api-access' },
   { icon: LifeBuoy, label: 'Support', path: '/support' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
@@ -111,7 +113,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <p className="text-[28px] font-bold text-white tracking-tight leading-none">
               {formatPrice(wallet?.balance || 0)}
             </p>
-            <Link 
+            <Link
               to="/wallet"
               onClick={handleNavClick}
               className="mt-3 inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-white transition-colors group/link font-medium"
@@ -130,7 +132,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           {userNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             const isHighlight = (item as any).highlight;
-            
+
             return (
               <Link
                 key={item.path}
@@ -138,15 +140,15 @@ export function Sidebar({ onClose }: SidebarProps) {
                 onClick={handleNavClick}
                 className={cn(
                   'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
-                  isActive 
-                    ? 'bg-white text-black shadow-lg shadow-white/5' 
+                  isActive
+                    ? 'bg-white text-black shadow-lg shadow-white/5'
                     : 'text-zinc-500 hover:text-white hover:bg-white/[0.04]',
                 )}
               >
                 <div className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200",
-                  isActive 
-                    ? "bg-black/10" 
+                  isActive
+                    ? "bg-black/10"
                     : "bg-white/[0.04] group-hover:bg-white/[0.08]"
                 )}>
                   <item.icon className={cn(
@@ -182,15 +184,15 @@ export function Sidebar({ onClose }: SidebarProps) {
                     onClick={handleNavClick}
                     className={cn(
                       'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
-                      isActive 
-                        ? 'bg-white text-black shadow-lg shadow-white/5' 
+                      isActive
+                        ? 'bg-white text-black shadow-lg shadow-white/5'
                         : 'text-zinc-500 hover:text-white hover:bg-white/[0.04]'
                     )}
                   >
                     <div className={cn(
                       "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200",
-                      isActive 
-                        ? "bg-black/10" 
+                      isActive
+                        ? "bg-black/10"
                         : "bg-white/[0.04] group-hover:bg-white/[0.08]"
                     )}>
                       <item.icon className={cn(
@@ -218,7 +220,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             </div>
             <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showCurrencyPicker && "rotate-180")} />
           </button>
-          
+
           {showCurrencyPicker && (
             <div className="absolute bottom-full left-3 right-3 mb-1 rounded-xl border border-white/[0.08] bg-zinc-950 shadow-2xl shadow-black/50 overflow-hidden z-50">
               {CURRENCIES.map((c) => (
@@ -230,8 +232,8 @@ export function Sidebar({ onClose }: SidebarProps) {
                   }}
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-2.5 text-[13px] transition-colors",
-                    currency === c.code 
-                      ? "bg-white/[0.08] text-white font-medium" 
+                    currency === c.code
+                      ? "bg-white/[0.08] text-white font-medium"
                       : "text-zinc-500 hover:text-white hover:bg-white/[0.04]"
                   )}
                 >
