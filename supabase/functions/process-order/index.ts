@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    // Auth check - verify user is authenticated via JWT claims (fast, no server roundtrip)
+    // Auth check - accept user JWT or internal service-role JWT (from public-api)
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -27,14 +27,20 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token)
-    if (claimsError || !claimsData?.claims?.sub) {
-      console.error('Auth failed:', claimsError?.message || 'No sub claim')
+    const { data: claimsData } = await supabase.auth.getClaims(token)
+
+    // Allow user JWT (has sub) OR service_role JWT (internal call from public-api)
+    const isUserJwt = !!claimsData?.claims?.sub
+    const isServiceRole = claimsData?.claims?.role === 'service_role'
+
+    if (!isUserJwt && !isServiceRole) {
+      console.error('Auth failed: not a user JWT or service_role JWT')
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-    const user = { id: claimsData.claims.sub as string }
+
+    const user = { id: claimsData?.claims?.sub as string ?? 'system' }
 
     const { order_id, run_id } = await req.json()
 
@@ -80,11 +86,11 @@ serve(async (req) => {
 
     if (providerError || !provider) {
       console.error('Provider not found:', providerError)
-      await supabase.from('orders').update({ 
-        status: 'failed', 
-        error_message: 'Provider not configured' 
+      await supabase.from('orders').update({
+        status: 'failed',
+        error_message: 'Provider not configured'
       }).eq('id', order_id)
-      
+
       return new Response(JSON.stringify({ error: 'Provider not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -117,8 +123,8 @@ serve(async (req) => {
       // Check if run is already being processed or completed
       if (run.status === 'started' || run.status === 'completed') {
         console.log(`Run ${run_id} already ${run.status}, skipping`)
-        return new Response(JSON.stringify({ 
-          success: true, 
+        return new Response(JSON.stringify({
+          success: true,
           message: `Run already ${run.status}`,
           skipped: true
         }), {
@@ -162,7 +168,7 @@ serve(async (req) => {
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
-    
+
     const response = await fetch(provider.api_url, {
       method: 'POST',
       headers: {
@@ -171,7 +177,7 @@ serve(async (req) => {
       body: formData.toString(),
       signal: controller.signal,
     })
-    
+
     clearTimeout(timeoutId)
 
     const responseText = await response.text()
@@ -190,7 +196,7 @@ serve(async (req) => {
     if (result.error) {
       const errorMsg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error)
       console.error('Provider returned error:', errorMsg)
-      
+
       if (run_id) {
         await supabase.from('organic_run_schedule').update({
           status: 'failed',
@@ -204,9 +210,9 @@ serve(async (req) => {
         }).eq('id', order_id)
       }
 
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: errorMsg 
+      return new Response(JSON.stringify({
+        success: false,
+        error: errorMsg
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -252,8 +258,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Process order error:', error)
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Internal server error' 
+    return new Response(JSON.stringify({
+      error: error.message || 'Internal server error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
