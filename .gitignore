@@ -12,10 +12,10 @@ dist
 dist-ssr
 *.local
 
-# Environment variables - NEVER commit these
-.env
-.env.*
-!.env.example
+# .env committed intentionally - repo is PRIVATE
+# .env.local and .env.*.local are still ignored
+.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
