@@ -1027,6 +1027,7 @@ function ProviderMappingDialog({
 
   // Auto-match: find the best provider_service_id PER PROVIDER ACCOUNT
   // Each provider account belongs to a different provider with different service IDs
+  // If all accounts share the same provider_id, skip auto-fill (can't differentiate)
   const autoMatchPerAccount = useMemo(() => {
     const result: Record<string, string> = {};
     if (!allServices?.length || !providerAccounts?.length) return result;
@@ -1045,8 +1046,15 @@ function ProviderMappingDialog({
     };
     const keywords = typeKeywords[engType] || [engType];
 
-    // If a service is already linked, find its provider_service_id for the linked provider
-    // and also find matching services for OTHER providers
+    // Check if all accounts share the same provider_id
+    const uniqueProviderIds = new Set(providerAccounts.map((a: any) => a.provider_id));
+    const allSameProvider = uniqueProviderIds.size === 1 && providerAccounts.length > 1;
+
+    if (allSameProvider) {
+      console.log(`[ProviderMapping] All ${providerAccounts.length} accounts share same provider_id — skipping auto-fill (user must set IDs manually per account)`);
+      return result;
+    }
+
     providerAccounts.forEach(account => {
       // Find services imported from THIS account's provider
       const providerServices = allServices.filter((s: any) => s.provider_id === account.provider_id);
@@ -1070,16 +1078,17 @@ function ProviderMappingDialog({
 
   // Initialize mappings when dialog opens and data loads
   const initMappings = () => {
-    console.log('[ProviderMapping] initMappings:', { autoMatchPerAccount, providerAccountsCount: providerAccounts.length });
+    console.log('[ProviderMapping] initMappings:', { autoMatchPerAccount, existingMappingsCount: existingMappings?.length });
     const newMappings: Record<string, { checked: boolean; serviceId: string; sortOrder: number }> = {};
     providerAccounts.forEach(account => {
       const existing = existingMappings?.find(m => m.provider_account_id === account.id);
       newMappings[account.id] = {
         checked: !!existing,
-        // Use existing mapping, OR per-provider auto-matched service ID
+        // Priority: 1) existing saved mapping, 2) per-provider auto-match, 3) empty
         serviceId: existing?.provider_service_id || autoMatchPerAccount[account.id] || '',
         sortOrder: existing?.sort_order || account.priority,
       };
+      console.log(`[ProviderMapping] ${account.name}: saved=${existing?.provider_service_id || 'none'}, auto=${autoMatchPerAccount[account.id] || 'none'}, final=${newMappings[account.id].serviceId}`);
     });
     setMappings(newMappings);
     setHasChanges(false);
