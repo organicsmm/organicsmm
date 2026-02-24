@@ -62,6 +62,7 @@ import {
   Clock,
   Repeat,
   RefreshCw,
+  RefreshCcw,
   Brain,
   Sparkle,
   Settings2,
@@ -108,7 +109,7 @@ export default function AdminBundles() {
           *,
           items:bundle_items(
             *,
-            service:services(id, name, price, min_quantity)
+            service:services(id, name, price, min_quantity, provider_id, provider_service_id)
           )
         `
         )
@@ -385,6 +386,64 @@ export default function AdminBundles() {
     return <Navigate to="/dashboard" replace />;
   }
 
+  // Sync all service prices from provider API
+  const [isSyncing, setIsSyncing] = useState(false);
+  const syncAllPrices = async () => {
+    setIsSyncing(true);
+    try {
+      // Get all bundle items with services
+      const allItems = bundles?.flatMap(b => b.items || []) || [];
+      const servicesWithProvider: Record<string, Set<string>> = {};
+
+      for (const item of allItems) {
+        if (!item.service_id || !item.service) continue;
+        const svc = item.service as any;
+        if (!svc?.provider_id || !svc?.provider_service_id) continue;
+        if (!servicesWithProvider[svc.provider_id]) {
+          servicesWithProvider[svc.provider_id] = new Set();
+        }
+        servicesWithProvider[svc.provider_id].add(svc.provider_service_id);
+      }
+
+      const providers = Object.entries(servicesWithProvider);
+      if (providers.length === 0) {
+        toast({ title: 'No services linked to bundle items', variant: 'destructive' });
+        setIsSyncing(false);
+        return;
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const [providerId, serviceIds] of providers) {
+        const { data: result, error } = await supabase.functions.invoke('import-services', {
+          body: {
+            provider_id: providerId,
+            action: 'import',
+            service_ids: Array.from(serviceIds),
+          },
+        });
+
+        if (error || result?.error) {
+          console.error(`Sync failed for provider ${providerId}:`, error || result?.error);
+          failCount += serviceIds.size;
+        } else {
+          successCount += serviceIds.size;
+          console.log(`Synced ${serviceIds.size} services from provider ${providerId}`);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-services-active'] });
+      queryClient.invalidateQueries({ queryKey: ['bundles'] });
+      toast({ title: `Synced ${successCount} services with provider prices${failCount > 0 ? ` (${failCount} failed)` : ''}` });
+    } catch (err: any) {
+      toast({ title: 'Sync failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const filteredBundles =
     bundles?.filter((b) => b.platform === selectedPlatform) || [];
 
@@ -408,121 +467,131 @@ export default function AdminBundles() {
               Create platform bundles with engagement types
             </p>
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="rounded-xl gap-2">
-                <Plus className="h-4 w-4" />
-                Create Bundle
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-primary" />
-                  Create New Bundle
-                </DialogTitle>
-              </DialogHeader>
-              <CreateBundleForm
-                onSubmit={(data) => createBundleMutation.mutate(data)}
-                isLoading={createBundleMutation.isPending}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Platform Tabs */}
-        <Tabs value={selectedPlatform} onValueChange={setSelectedPlatform}>
-          <TabsList className="h-11 p-1 rounded-xl bg-muted/50">
-            {Object.entries(PLATFORM_CONFIG).map(([key, config]) => (
-              <TabsTrigger
-                key={key}
-                value={key}
-                className="rounded-lg capitalize data-[state=active]:bg-background"
-              >
-                {config.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <TabsContent value={selectedPlatform} className="mt-6 space-y-4">
-            {filteredBundles.length === 0 ? (
-              <Card className="glass-card p-12 text-center">
-                <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold text-lg mb-2">No bundles yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Create your first bundle for{' '}
-                  {
-                    PLATFORM_CONFIG[selectedPlatform as keyof typeof PLATFORM_CONFIG]
-                      ?.label
-                  }
-                </p>
-                <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="rounded-xl gap-2"
+              onClick={syncAllPrices}
+              disabled={isSyncing}
+            >
+              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+              {isSyncing ? 'Syncing...' : 'Sync Prices'}
+            </Button>
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button className="rounded-xl gap-2">
                   <Plus className="h-4 w-4" />
-                  Create First Bundle
+                  Create Bundle
                 </Button>
-              </Card>
-            ) : (
-              filteredBundles.map((bundle) => (
-                <BundleCard
-                  key={bundle.id}
-                  bundle={bundle}
-                  services={services || []}
-                  mappedServices={allServices}
-                  providerAccounts={providerAccounts || []}
-                  onToggle={(active) =>
-                    toggleBundleMutation.mutate({ id: bundle.id, is_active: active })
-                  }
-                  onToggleCustomRatios={(use_custom_ratios) =>
-                    toggleCustomRatiosMutation.mutate({ id: bundle.id, use_custom_ratios })
-                  }
-                  onToggleAiOrganic={(ai_organic_enabled) =>
-                    toggleAiOrganicMutation.mutate({ id: bundle.id, ai_organic_enabled })
-                  }
-                  onDelete={() => setDeleteBundle(bundle.id)}
-                  onAddItem={(data) =>
-                    addItemMutation.mutate({ ...data, bundle_id: bundle.id })
-                  }
-                  onDeleteItem={(id) => deleteItemMutation.mutate(id)}
-                  onUpdateItem={(id, service_id) =>
-                    updateItemMutation.mutate({ id, service_id })
-                  }
-                  onUpdateRatio={(id, ratio_percent) =>
-                    updateItemRatioMutation.mutate({ id, ratio_percent })
-                  }
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5 text-primary" />
+                    Create New Bundle
+                  </DialogTitle>
+                </DialogHeader>
+                <CreateBundleForm
+                  onSubmit={(data) => createBundleMutation.mutate(data)}
+                  isLoading={createBundleMutation.isPending}
                 />
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-        {/* Delete Confirmation */}
-        <AlertDialog
-          open={!!deleteBundle}
-          onOpenChange={(open) => !open && setDeleteBundle(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                Delete Bundle
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this bundle? This will also delete
-                all items within it. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteBundle && deleteBundleMutation.mutate(deleteBundle)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+          {/* Platform Tabs */}
+          <Tabs value={selectedPlatform} onValueChange={setSelectedPlatform}>
+            <TabsList className="h-11 p-1 rounded-xl bg-muted/50">
+              {Object.entries(PLATFORM_CONFIG).map(([key, config]) => (
+                <TabsTrigger
+                  key={key}
+                  value={key}
+                  className="rounded-lg capitalize data-[state=active]:bg-background"
+                >
+                  {config.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <TabsContent value={selectedPlatform} className="mt-6 space-y-4">
+              {filteredBundles.length === 0 ? (
+                <Card className="glass-card p-12 text-center">
+                  <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">No bundles yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create your first bundle for{' '}
+                    {
+                      PLATFORM_CONFIG[selectedPlatform as keyof typeof PLATFORM_CONFIG]
+                        ?.label
+                    }
+                  </p>
+                  <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create First Bundle
+                  </Button>
+                </Card>
+              ) : (
+                filteredBundles.map((bundle) => (
+                  <BundleCard
+                    key={bundle.id}
+                    bundle={bundle}
+                    services={services || []}
+                    mappedServices={allServices}
+                    providerAccounts={providerAccounts || []}
+                    onToggle={(active) =>
+                      toggleBundleMutation.mutate({ id: bundle.id, is_active: active })
+                    }
+                    onToggleCustomRatios={(use_custom_ratios) =>
+                      toggleCustomRatiosMutation.mutate({ id: bundle.id, use_custom_ratios })
+                    }
+                    onToggleAiOrganic={(ai_organic_enabled) =>
+                      toggleAiOrganicMutation.mutate({ id: bundle.id, ai_organic_enabled })
+                    }
+                    onDelete={() => setDeleteBundle(bundle.id)}
+                    onAddItem={(data) =>
+                      addItemMutation.mutate({ ...data, bundle_id: bundle.id })
+                    }
+                    onDeleteItem={(id) => deleteItemMutation.mutate(id)}
+                    onUpdateItem={(id, service_id) =>
+                      updateItemMutation.mutate({ id, service_id })
+                    }
+                    onUpdateRatio={(id, ratio_percent) =>
+                      updateItemRatioMutation.mutate({ id, ratio_percent })
+                    }
+                  />
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+
+          {/* Delete Confirmation */}
+          <AlertDialog
+            open={!!deleteBundle}
+            onOpenChange={(open) => !open && setDeleteBundle(null)}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  Delete Bundle
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this bundle? This will also delete
+                  all items within it. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteBundle && deleteBundleMutation.mutate(deleteBundle)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
     </DashboardLayout>
   );
 }
