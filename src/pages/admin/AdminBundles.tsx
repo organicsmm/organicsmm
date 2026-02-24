@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -938,23 +938,7 @@ function BundleCard({
                     bundleItemId={item.id}
                     serviceName={item.service_id ? (services.find(s => s.id === item.service_id)?.name || 'Service') : item.engagement_type}
                     providerAccounts={providerAccounts}
-                    defaultProviderServiceId={
-                      item.service_id
-                        ? services.find(s => s.id === item.service_id)?.provider_service_id
-                        : (() => {
-                          // Auto-find a matching service by platform + engagement type
-                          const platform = bundle.platform?.toLowerCase() || '';
-                          const engType = item.engagement_type?.toLowerCase() || '';
-                          const match = mappedServices.find(s => {
-                            const name = s.name?.toLowerCase() || '';
-                            const cat = (s.category || '').toLowerCase();
-                            return (name.includes(platform) || cat.includes(platform)) &&
-                              (name.includes(engType) || cat.includes(engType));
-                          });
-                          console.log('[BundleCard] Auto-match for', platform, engType, ':', match?.provider_service_id, match?.name);
-                          return match?.provider_service_id;
-                        })()
-                    }
+                    allServices={mappedServices}
                     engagementType={item.engagement_type}
                     platform={bundle.platform}
                     onServiceLinked={(id, sid) => onUpdateItem(id, sid)}
@@ -981,7 +965,7 @@ function ProviderMappingDialog({
   bundleItemId,
   serviceName,
   providerAccounts,
-  defaultProviderServiceId,
+  allServices,
   engagementType,
   platform,
   onServiceLinked,
@@ -990,7 +974,7 @@ function ProviderMappingDialog({
   bundleItemId: string;
   serviceName: string;
   providerAccounts: any[];
-  defaultProviderServiceId?: string;
+  allServices?: any[];
   engagementType?: string;
   platform?: string;
   onServiceLinked?: (bundleItemId: string, serviceId: string) => void;
@@ -1034,22 +1018,46 @@ function ProviderMappingDialog({
   // Count of configured accounts
   const configuredCount = existingMappings?.length || 0;
 
+  // Auto-match: find the best provider_service_id from imported services
+  const autoMatchedServiceId = useMemo(() => {
+    // If service is already linked, use its provider_service_id
+    if (serviceId && allServices?.length) {
+      const linked = allServices.find((s: any) => s.id === serviceId);
+      if (linked?.provider_service_id) return linked.provider_service_id;
+    }
+    // Otherwise auto-match by platform + engagement type keywords
+    if (!allServices?.length || !platform || !engagementType) return '';
+    const platName = platform.toLowerCase();
+    const engType = engagementType.toLowerCase();
+    const typeKeywords: Record<string, string[]> = {
+      views: ['view'],
+      likes: ['like'],
+      comments: ['comment'],
+      saves: ['save'],
+      shares: ['share'],
+      reposts: ['repost'],
+      followers: ['follow'],
+      watch_hours: ['watch', 'hour'],
+    };
+    const keywords = typeKeywords[engType] || [engType];
+    const match = allServices.find((s: any) => {
+      const name = s.name?.toLowerCase() || '';
+      return name.includes(platName) && keywords.some((kw: string) => name.includes(kw));
+    });
+    console.log('[ProviderMapping] Auto-match for', platName, engType, ':', match?.provider_service_id, match?.name);
+    return match?.provider_service_id || '';
+  }, [serviceId, allServices, platform, engagementType]);
+
   // Initialize mappings when dialog opens and data loads
   const initMappings = () => {
-    console.log('[ProviderMapping] initMappings called with:', {
-      defaultProviderServiceId,
-      existingMappingsCount: existingMappings?.length || 0,
-      providerAccountsCount: providerAccounts.length,
-    });
+    console.log('[ProviderMapping] initMappings:', { autoMatchedServiceId, providerAccountsCount: providerAccounts.length });
     const newMappings: Record<string, { checked: boolean; serviceId: string; sortOrder: number }> = {};
     providerAccounts.forEach(account => {
       const existing = existingMappings?.find(m => m.provider_account_id === account.id);
-      const fillValue = existing?.provider_service_id || defaultProviderServiceId || '';
-      console.log(`[ProviderMapping] Account ${account.name}: existing=${existing?.provider_service_id}, default=${defaultProviderServiceId}, fill=${fillValue}`);
       newMappings[account.id] = {
         checked: !!existing,
-        // Use existing mapping value, OR auto-fill from linked service's provider_service_id
-        serviceId: fillValue,
+        // Use existing mapping, OR auto-matched service ID
+        serviceId: existing?.provider_service_id || autoMatchedServiceId || '',
         sortOrder: existing?.sort_order || account.priority,
       };
     });
@@ -1062,7 +1070,7 @@ function ProviderMappingDialog({
     if (isOpen && providerAccounts?.length && existingMappings !== undefined) {
       initMappings();
     }
-  }, [isOpen, existingMappings, providerAccounts, defaultProviderServiceId]);
+  }, [isOpen, existingMappings, providerAccounts, autoMatchedServiceId]);
 
   // Save mutation
   const saveMutation = useMutation({
