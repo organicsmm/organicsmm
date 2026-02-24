@@ -143,9 +143,8 @@ export default function EngagementOrder() {
     if (!bundles || bundles.length === 0) return [];
     const bundle = bundles[0];
     if (!bundle?.items) return [];
-    // Return unique engagement types from bundle items that have a service
+    // Return unique engagement types from bundle items
     const types = bundle.items
-      .filter(item => item.service_id)
       .map(item => item.engagement_type as EngagementType);
     return [...new Set(types)];
   }, [bundles]);
@@ -187,9 +186,8 @@ export default function EngagementOrder() {
     const bundle = bundles[0];
     if (!bundle?.items) return;
 
-    // Get all engagement types from bundle that have a service configured
+    // Get all engagement types from bundle items
     const bundleTypes = bundle.items
-      .filter(item => item.service_id)
       .map(item => item.engagement_type as EngagementType);
 
     const uniqueBundleTypes = [...new Set(bundleTypes)];

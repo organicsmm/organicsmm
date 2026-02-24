@@ -914,7 +914,23 @@ function BundleCard({
                     bundleItemId={item.id}
                     serviceName={item.service_id ? (services.find(s => s.id === item.service_id)?.name || 'Service') : item.engagement_type}
                     providerAccounts={providerAccounts}
-                    defaultProviderServiceId={item.service_id ? services.find(s => s.id === item.service_id)?.provider_service_id : undefined}
+                    defaultProviderServiceId={
+                      item.service_id
+                        ? services.find(s => s.id === item.service_id)?.provider_service_id
+                        : (() => {
+                          // Auto-find a matching service by platform + engagement type
+                          const platform = bundle.platform?.toLowerCase() || '';
+                          const engType = item.engagement_type?.toLowerCase() || '';
+                          const match = mappedServices.find(s => {
+                            const name = s.name?.toLowerCase() || '';
+                            const cat = (s.category || '').toLowerCase();
+                            return (name.includes(platform) || cat.includes(platform)) &&
+                              (name.includes(engType) || cat.includes(engType));
+                          });
+                          console.log('[BundleCard] Auto-match for', platform, engType, ':', match?.provider_service_id, match?.name);
+                          return match?.provider_service_id;
+                        })()
+                    }
                     engagementType={item.engagement_type}
                     platform={bundle.platform}
                     onServiceLinked={(id, sid) => onUpdateItem(id, sid)}
