@@ -854,122 +854,42 @@ function BundleCard({
                 {/* Service Link + Provider Config */}
                 <div className="flex items-center gap-2 pl-12">
                   {(() => {
-                    // Filter services by engagement type - smart matching
-                    const engType = item.engagement_type.toLowerCase();
-                    const platform = bundle.platform.toLowerCase();
-
-                    // Build keyword patterns for this engagement type
-                    const mustMatch: string[] = [];
-
-                    switch (engType) {
-                      case 'views':
-                        mustMatch.push('view', 'reel view', 'video view');
-                        break;
-                      case 'likes':
-                        mustMatch.push('like', 'heart');
-                        break;
-                      case 'comments':
-                        mustMatch.push('comment');
-                        break;
-                      case 'saves':
-                        mustMatch.push('save');
-                        break;
-                      case 'shares':
-                        mustMatch.push('share');
-                        break;
-                      case 'reposts':
-                        mustMatch.push('repost');
-                        break;
-                      case 'followers':
-                        mustMatch.push('follower', 'follow');
-                        break;
-                      case 'subscribers':
-                        mustMatch.push('subscriber', 'sub');
-                        break;
-                      case 'watch_hours':
-                        mustMatch.push('watch hour', 'watchhour', 'watch_hour');
-                        break;
-                      case 'retweets':
-                        mustMatch.push('retweet');
-                        break;
-                      default:
-                        mustMatch.push(engType);
-                    }
-
-                    // Try matching by platform + engagement type first
-                    let filteredServices = mappedServices.filter((s) => {
-                      const cat = (s.category || '').toLowerCase();
-                      const name = (s.name || '').toLowerCase();
-                      const combined = cat + ' ' + name;
-
-                      const matchesPlatform = combined.includes(platform);
-                      const hasMatch = mustMatch.some(p => combined.includes(p));
-
-                      return matchesPlatform && hasMatch;
-                    });
-
-                    // If no results, try matching by engagement type only (provider services may not mention platform)
-                    if (filteredServices.length === 0) {
-                      filteredServices = mappedServices.filter((s) => {
-                        const cat = (s.category || '').toLowerCase();
-                        const name = (s.name || '').toLowerCase();
-                        const combined = cat + ' ' + name;
-                        return mustMatch.some(p => combined.includes(p));
-                      });
-                    }
-
-                    // If STILL no results, show ALL services so admin can always link something
-                    if (filteredServices.length === 0) {
-                      filteredServices = mappedServices;
-                    }
-
                     const selectedService = item.service_id
                       ? services.find(s => s.id === item.service_id)
                       : null;
-                    const isMismatch = !!item.service_id && !filteredServices.some(s => s.id === item.service_id);
 
+                    // If service linked, show dropdown with ALL services for changing
+                    // If not linked, show prompt to use Provider button
                     return (
                       <div className="flex items-center gap-2 flex-1">
-                        <Select
-                          value={item.service_id || ""}
-                          onValueChange={(v) => onUpdateItem(item.id, v)}
-                        >
-                          <SelectTrigger className="flex-1 h-9 rounded-lg text-xs bg-background">
-                            <SelectValue placeholder="Link service...">
-                              {item.service_id
-                                ? isMismatch
-                                  ? `⚠ Wrong service linked (${selectedService?.name?.slice(0, 18) || 'Service'}...)`
-                                  : (selectedService?.name?.slice(0, 35) || 'Service') + '...'
-                                : 'Link service...'
-                              }
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover border border-border shadow-xl z-50 max-h-60">
-                            {filteredServices.length > 0 ? (
-                              filteredServices.map((s) => (
-                                <SelectItem key={s.id} value={s.id} className="text-xs">
-                                  {s.name.slice(0, 40)}... (${s.price})
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <div className="px-3 py-2 text-xs text-muted-foreground">
-                                No {engType} services imported yet
-                              </div>
-                            )}
-                          </SelectContent>
-                        </Select>
-
-                        {isMismatch && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 px-2"
-                            onClick={() => onUpdateItem(item.id, null)}
-                            title="Remove wrong link"
+                        {mappedServices.length > 0 ? (
+                          <Select
+                            value={item.service_id || ""}
+                            onValueChange={(v) => onUpdateItem(item.id, v)}
                           >
-                            <AlertTriangle className="h-4 w-4 text-destructive" />
-                          </Button>
+                            <SelectTrigger className="flex-1 h-9 rounded-lg text-xs bg-background">
+                              <SelectValue placeholder="Select a service...">
+                                {item.service_id
+                                  ? (selectedService?.name?.slice(0, 35) || 'Service') + ` ($${selectedService?.price || '?'})`
+                                  : 'Select a service...'
+                                }
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border border-border shadow-xl z-50 max-h-60">
+                              {mappedServices.map((s) => (
+                                <SelectItem key={s.id} value={s.id} className="text-xs">
+                                  {s.name.slice(0, 45)} (${s.price})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex-1 h-9 px-3 rounded-lg bg-muted/50 flex items-center text-xs text-muted-foreground">
+                            {item.service_id
+                              ? (selectedService?.name?.slice(0, 30) || 'Service linked')
+                              : '← Use Providers button to import & link →'
+                            }
+                          </div>
                         )}
                       </div>
                     );
