@@ -1025,17 +1025,14 @@ function ProviderMappingDialog({
   // Count of configured accounts
   const configuredCount = existingMappings?.length || 0;
 
-  // Auto-match: find the best provider_service_id from imported services
-  const autoMatchedServiceId = useMemo(() => {
-    // If service is already linked, use its provider_service_id
-    if (serviceId && allServices?.length) {
-      const linked = allServices.find((s: any) => s.id === serviceId);
-      if (linked?.provider_service_id) return linked.provider_service_id;
-    }
-    // Otherwise auto-match by platform + engagement type keywords
-    if (!allServices?.length || !platform || !engagementType) return '';
-    const platName = platform.toLowerCase();
-    const engType = engagementType.toLowerCase();
+  // Auto-match: find the best provider_service_id PER PROVIDER ACCOUNT
+  // Each provider account belongs to a different provider with different service IDs
+  const autoMatchPerAccount = useMemo(() => {
+    const result: Record<string, string> = {};
+    if (!allServices?.length || !providerAccounts?.length) return result;
+
+    const platName = (platform || '').toLowerCase();
+    const engType = (engagementType || '').toLowerCase();
     const typeKeywords: Record<string, string[]> = {
       views: ['view'],
       likes: ['like'],
@@ -1047,24 +1044,40 @@ function ProviderMappingDialog({
       watch_hours: ['watch', 'hour'],
     };
     const keywords = typeKeywords[engType] || [engType];
-    const match = allServices.find((s: any) => {
-      const name = s.name?.toLowerCase() || '';
-      return name.includes(platName) && keywords.some((kw: string) => name.includes(kw));
+
+    // If a service is already linked, find its provider_service_id for the linked provider
+    // and also find matching services for OTHER providers
+    providerAccounts.forEach(account => {
+      // Find services imported from THIS account's provider
+      const providerServices = allServices.filter((s: any) => s.provider_id === account.provider_id);
+
+      // Try to match by platform + engagement type keywords
+      const match = providerServices.find((s: any) => {
+        const name = (s.name || '').toLowerCase();
+        return name.includes(platName) && keywords.some((kw: string) => name.includes(kw));
+      });
+
+      if (match?.provider_service_id) {
+        result[account.id] = match.provider_service_id;
+        console.log(`[ProviderMapping] Auto-match for ${account.name}: ${match.provider_service_id} (${match.name})`);
+      } else {
+        console.log(`[ProviderMapping] No match for ${account.name} (provider_id: ${account.provider_id}), tried ${providerServices.length} services`);
+      }
     });
-    console.log('[ProviderMapping] Auto-match for', platName, engType, ':', match?.provider_service_id, match?.name);
-    return match?.provider_service_id || '';
-  }, [serviceId, allServices, platform, engagementType]);
+
+    return result;
+  }, [allServices, providerAccounts, platform, engagementType]);
 
   // Initialize mappings when dialog opens and data loads
   const initMappings = () => {
-    console.log('[ProviderMapping] initMappings:', { autoMatchedServiceId, providerAccountsCount: providerAccounts.length });
+    console.log('[ProviderMapping] initMappings:', { autoMatchPerAccount, providerAccountsCount: providerAccounts.length });
     const newMappings: Record<string, { checked: boolean; serviceId: string; sortOrder: number }> = {};
     providerAccounts.forEach(account => {
       const existing = existingMappings?.find(m => m.provider_account_id === account.id);
       newMappings[account.id] = {
         checked: !!existing,
-        // Use existing mapping, OR auto-matched service ID
-        serviceId: existing?.provider_service_id || autoMatchedServiceId || '',
+        // Use existing mapping, OR per-provider auto-matched service ID
+        serviceId: existing?.provider_service_id || autoMatchPerAccount[account.id] || '',
         sortOrder: existing?.sort_order || account.priority,
       };
     });
@@ -1077,7 +1090,7 @@ function ProviderMappingDialog({
     if (isOpen && providerAccounts?.length && existingMappings !== undefined) {
       initMappings();
     }
-  }, [isOpen, existingMappings, providerAccounts, autoMatchedServiceId]);
+  }, [isOpen, existingMappings, providerAccounts, autoMatchPerAccount]);
 
   // Save mutation
   const saveMutation = useMutation({
