@@ -1196,6 +1196,43 @@ function ProviderMappingDialog({
             .eq('id', u.id)
         )
       );
+
+      // Refresh service prices from provider API for all checked accounts
+      // This ensures we always have the real provider rate (not stale/placeholder prices)
+      const checkedEntries = Object.entries(mappings).filter(([_, v]) => v.checked && v.serviceId.trim());
+      const reimportByProvider: Record<string, { providerId: string; serviceIds: Set<string> }> = {};
+
+      for (const [accountId, data] of checkedEntries) {
+        const acct = providerAccounts.find(a => a.id === accountId);
+        if (!acct) continue;
+        if (!reimportByProvider[acct.provider_id]) {
+          reimportByProvider[acct.provider_id] = { providerId: acct.provider_id, serviceIds: new Set() };
+        }
+        reimportByProvider[acct.provider_id].serviceIds.add(data.serviceId.trim());
+      }
+
+      // Build category override for proper categorization
+      const categoryOverride = platform && engagementType
+        ? `${platform.charAt(0).toUpperCase() + platform.slice(1)} ${engagementType.charAt(0).toUpperCase() + engagementType.slice(1)}`
+        : undefined;
+
+      // Reimport services from each provider (updates existing services with real prices)
+      await Promise.all(
+        Object.values(reimportByProvider).map(({ providerId, serviceIds }) =>
+          supabase.functions.invoke('import-services', {
+            body: {
+              provider_id: providerId,
+              action: 'import',
+              service_ids: Array.from(serviceIds),
+              category_override: categoryOverride,
+            },
+          }).then(res => {
+            console.log(`[ProviderMapping] Price refresh for provider ${providerId}:`, res.data);
+          }).catch(err => {
+            console.warn(`[ProviderMapping] Price refresh failed for ${providerId}:`, err);
+          })
+        )
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-mappings-bundle'] });
