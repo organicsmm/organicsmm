@@ -98,12 +98,15 @@ export default function EngagementOrder() {
 
   // Get unique platforms that have active bundles with engagement items
   const availablePlatforms = useMemo(() => {
+    console.log('[EngagementOrder] allBundles:', allBundles);
     if (!allBundles) return [];
     // Show platforms that have at least one bundle with items configured
     const platforms = allBundles
       .filter(b => b.items && b.items.length > 0)
       .map(b => b.platform);
-    return [...new Set(platforms)];
+    const result = [...new Set(platforms)];
+    console.log('[EngagementOrder] availablePlatforms:', result);
+    return result;
   }, [allBundles]);
 
   // Auto-select first available platform if current selection has no bundles

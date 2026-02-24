@@ -996,13 +996,20 @@ function ProviderMappingDialog({
 
   // Initialize mappings when dialog opens and data loads
   const initMappings = () => {
+    console.log('[ProviderMapping] initMappings called with:', {
+      defaultProviderServiceId,
+      existingMappingsCount: existingMappings?.length || 0,
+      providerAccountsCount: providerAccounts.length,
+    });
     const newMappings: Record<string, { checked: boolean; serviceId: string; sortOrder: number }> = {};
     providerAccounts.forEach(account => {
       const existing = existingMappings?.find(m => m.provider_account_id === account.id);
+      const fillValue = existing?.provider_service_id || defaultProviderServiceId || '';
+      console.log(`[ProviderMapping] Account ${account.name}: existing=${existing?.provider_service_id}, default=${defaultProviderServiceId}, fill=${fillValue}`);
       newMappings[account.id] = {
         checked: !!existing,
         // Use existing mapping value, OR auto-fill from linked service's provider_service_id
-        serviceId: existing?.provider_service_id || defaultProviderServiceId || '',
+        serviceId: fillValue,
         sortOrder: existing?.sort_order || account.priority,
       };
     });
@@ -1015,7 +1022,7 @@ function ProviderMappingDialog({
     if (isOpen && providerAccounts?.length && existingMappings !== undefined) {
       initMappings();
     }
-  }, [isOpen, existingMappings, providerAccounts]);
+  }, [isOpen, existingMappings, providerAccounts, defaultProviderServiceId]);
 
   // Save mutation
   const saveMutation = useMutation({
