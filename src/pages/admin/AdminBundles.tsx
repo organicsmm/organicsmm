@@ -854,14 +854,13 @@ function BundleCard({
                 {/* Service Link + Provider Config */}
                 <div className="flex items-center gap-2 pl-12">
                   {(() => {
-                    // Filter services by engagement type - positive matching only
+                    // Filter services by engagement type - smart matching
                     const engType = item.engagement_type.toLowerCase();
                     const platform = bundle.platform.toLowerCase();
 
-                    // Build MUST-HAVE patterns (at least one must match)
+                    // Build keyword patterns for this engagement type
                     const mustMatch: string[] = [];
 
-                    // Define patterns per engagement type
                     switch (engType) {
                       case 'views':
                         mustMatch.push('view', 'reel view', 'video view');
@@ -897,20 +896,32 @@ function BundleCard({
                         mustMatch.push(engType);
                     }
 
-                    const filteredServices = mappedServices.filter((s) => {
+                    // Try matching by platform + engagement type first
+                    let filteredServices = mappedServices.filter((s) => {
                       const cat = (s.category || '').toLowerCase();
                       const name = (s.name || '').toLowerCase();
                       const combined = cat + ' ' + name;
 
-                      // Must match platform
-                      if (!combined.includes(platform)) return false;
-
-                      // Must contain at least one mustMatch pattern
+                      const matchesPlatform = combined.includes(platform);
                       const hasMatch = mustMatch.some(p => combined.includes(p));
-                      if (!hasMatch) return false;
 
-                      return true;
+                      return matchesPlatform && hasMatch;
                     });
+
+                    // If no results, try matching by engagement type only (provider services may not mention platform)
+                    if (filteredServices.length === 0) {
+                      filteredServices = mappedServices.filter((s) => {
+                        const cat = (s.category || '').toLowerCase();
+                        const name = (s.name || '').toLowerCase();
+                        const combined = cat + ' ' + name;
+                        return mustMatch.some(p => combined.includes(p));
+                      });
+                    }
+
+                    // If STILL no results, show ALL services so admin can always link something
+                    if (filteredServices.length === 0) {
+                      filteredServices = mappedServices;
+                    }
 
                     const selectedService = item.service_id
                       ? services.find(s => s.id === item.service_id)
