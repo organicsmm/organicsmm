@@ -282,6 +282,7 @@ export default function AdminBundles() {
       id: string;
       service_id: string | null;
     }) => {
+      console.log('[AdminBundles] Linking service:', { id, service_id });
       const { error } = await supabase
         .from('bundle_items')
         .update({ service_id })
@@ -290,7 +291,12 @@ export default function AdminBundles() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
-      toast({ title: 'Service link updated!' });
+      queryClient.invalidateQueries({ queryKey: ['all-bundles-with-items'] });
+      toast({ title: 'Service linked successfully!' });
+    },
+    onError: (error: any) => {
+      console.error('[AdminBundles] Service link failed:', error);
+      toast({ title: 'Failed to link service', description: error?.message || 'Unknown error', variant: 'destructive' });
     },
   });
 
@@ -995,8 +1001,8 @@ function ProviderMappingDialog({
       const existing = existingMappings?.find(m => m.provider_account_id === account.id);
       newMappings[account.id] = {
         checked: !!existing,
-        // Only use existing value if already mapped, otherwise empty - user must fill manually
-        serviceId: existing?.provider_service_id || '',
+        // Use existing mapping value, OR auto-fill from linked service's provider_service_id
+        serviceId: existing?.provider_service_id || defaultProviderServiceId || '',
         sortOrder: existing?.sort_order || account.priority,
       };
     });
