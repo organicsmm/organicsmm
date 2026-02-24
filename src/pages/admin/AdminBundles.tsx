@@ -498,100 +498,101 @@ export default function AdminBundles() {
               </DialogContent>
             </Dialog>
           </div>
-
-          {/* Platform Tabs */}
-          <Tabs value={selectedPlatform} onValueChange={setSelectedPlatform}>
-            <TabsList className="h-11 p-1 rounded-xl bg-muted/50">
-              {Object.entries(PLATFORM_CONFIG).map(([key, config]) => (
-                <TabsTrigger
-                  key={key}
-                  value={key}
-                  className="rounded-lg capitalize data-[state=active]:bg-background"
-                >
-                  {config.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            <TabsContent value={selectedPlatform} className="mt-6 space-y-4">
-              {filteredBundles.length === 0 ? (
-                <Card className="glass-card p-12 text-center">
-                  <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold text-lg mb-2">No bundles yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create your first bundle for{' '}
-                    {
-                      PLATFORM_CONFIG[selectedPlatform as keyof typeof PLATFORM_CONFIG]
-                        ?.label
-                    }
-                  </p>
-                  <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create First Bundle
-                  </Button>
-                </Card>
-              ) : (
-                filteredBundles.map((bundle) => (
-                  <BundleCard
-                    key={bundle.id}
-                    bundle={bundle}
-                    services={services || []}
-                    mappedServices={allServices}
-                    providerAccounts={providerAccounts || []}
-                    onToggle={(active) =>
-                      toggleBundleMutation.mutate({ id: bundle.id, is_active: active })
-                    }
-                    onToggleCustomRatios={(use_custom_ratios) =>
-                      toggleCustomRatiosMutation.mutate({ id: bundle.id, use_custom_ratios })
-                    }
-                    onToggleAiOrganic={(ai_organic_enabled) =>
-                      toggleAiOrganicMutation.mutate({ id: bundle.id, ai_organic_enabled })
-                    }
-                    onDelete={() => setDeleteBundle(bundle.id)}
-                    onAddItem={(data) =>
-                      addItemMutation.mutate({ ...data, bundle_id: bundle.id })
-                    }
-                    onDeleteItem={(id) => deleteItemMutation.mutate(id)}
-                    onUpdateItem={(id, service_id) =>
-                      updateItemMutation.mutate({ id, service_id })
-                    }
-                    onUpdateRatio={(id, ratio_percent) =>
-                      updateItemRatioMutation.mutate({ id, ratio_percent })
-                    }
-                  />
-                ))
-              )}
-            </TabsContent>
-          </Tabs>
-
-          {/* Delete Confirmation */}
-          <AlertDialog
-            open={!!deleteBundle}
-            onOpenChange={(open) => !open && setDeleteBundle(null)}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  Delete Bundle
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this bundle? This will also delete
-                  all items within it. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => deleteBundle && deleteBundleMutation.mutate(deleteBundle)}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
+
+        {/* Platform Tabs */}
+        <Tabs value={selectedPlatform} onValueChange={setSelectedPlatform}>
+          <TabsList className="h-11 p-1 rounded-xl bg-muted/50">
+            {Object.entries(PLATFORM_CONFIG).map(([key, config]) => (
+              <TabsTrigger
+                key={key}
+                value={key}
+                className="rounded-lg capitalize data-[state=active]:bg-background"
+              >
+                {config.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value={selectedPlatform} className="mt-6 space-y-4">
+            {filteredBundles.length === 0 ? (
+              <Card className="glass-card p-12 text-center">
+                <Package className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-semibold text-lg mb-2">No bundles yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first bundle for{' '}
+                  {
+                    PLATFORM_CONFIG[selectedPlatform as keyof typeof PLATFORM_CONFIG]
+                      ?.label
+                  }
+                </p>
+                <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create First Bundle
+                </Button>
+              </Card>
+            ) : (
+              filteredBundles.map((bundle) => (
+                <BundleCard
+                  key={bundle.id}
+                  bundle={bundle}
+                  services={services || []}
+                  mappedServices={allServices}
+                  providerAccounts={providerAccounts || []}
+                  onToggle={(active) =>
+                    toggleBundleMutation.mutate({ id: bundle.id, is_active: active })
+                  }
+                  onToggleCustomRatios={(use_custom_ratios) =>
+                    toggleCustomRatiosMutation.mutate({ id: bundle.id, use_custom_ratios })
+                  }
+                  onToggleAiOrganic={(ai_organic_enabled) =>
+                    toggleAiOrganicMutation.mutate({ id: bundle.id, ai_organic_enabled })
+                  }
+                  onDelete={() => setDeleteBundle(bundle.id)}
+                  onAddItem={(data) =>
+                    addItemMutation.mutate({ ...data, bundle_id: bundle.id })
+                  }
+                  onDeleteItem={(id) => deleteItemMutation.mutate(id)}
+                  onUpdateItem={(id, service_id) =>
+                    updateItemMutation.mutate({ id, service_id })
+                  }
+                  onUpdateRatio={(id, ratio_percent) =>
+                    updateItemRatioMutation.mutate({ id, ratio_percent })
+                  }
+                />
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Delete Confirmation */}
+        <AlertDialog
+          open={!!deleteBundle}
+          onOpenChange={(open) => !open && setDeleteBundle(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                Delete Bundle
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this bundle? This will also delete
+                all items within it. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteBundle && deleteBundleMutation.mutate(deleteBundle)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </DashboardLayout>
   );
 }
