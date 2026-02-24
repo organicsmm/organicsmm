@@ -351,7 +351,7 @@ export default function AdminBundles() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
-      toast({ 
+      toast({
         title: 'AI Organic Mode Updated',
         description: 'Each order will now get unique AI-generated organic patterns',
       });
@@ -659,11 +659,10 @@ function BundleCard({
       </CardHeader>
       <CardContent className="p-4 space-y-4">
         {/* AI Organic Mode Toggle - MAIN FEATURE */}
-        <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-          aiOrganicEnabled 
-            ? 'bg-gradient-to-r from-green-500/10 via-emerald-500/5 to-teal-500/10 border-green-500/40' 
-            : 'bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-yellow-500/10 border-orange-500/40'
-        }`}>
+        <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${aiOrganicEnabled
+          ? 'bg-gradient-to-r from-green-500/10 via-emerald-500/5 to-teal-500/10 border-green-500/40'
+          : 'bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-yellow-500/10 border-orange-500/40'
+          }`}>
           <div className="flex items-center gap-3">
             {aiOrganicEnabled ? (
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
@@ -679,7 +678,7 @@ function BundleCard({
                 <p className="font-bold text-base">
                   {aiOrganicEnabled ? '🤖 AI Organic Mode' : '⚡ Manual Mode'}
                 </p>
-                <Badge 
+                <Badge
                   variant={aiOrganicEnabled ? 'default' : 'secondary'}
                   className={aiOrganicEnabled ? 'bg-green-500 text-white text-[10px]' : 'text-[10px]'}
                 >
@@ -687,8 +686,8 @@ function BundleCard({
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {aiOrganicEnabled 
-                  ? 'AI generates UNIQUE organic patterns for each order automatically' 
+                {aiOrganicEnabled
+                  ? 'AI generates UNIQUE organic patterns for each order automatically'
                   : 'Users configure their own organic settings per order'
                 }
               </p>
@@ -731,8 +730,8 @@ function BundleCard({
                 {useCustomRatios ? 'Custom Ratios' : 'AI Organic Ratios'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {useCustomRatios 
-                  ? 'Using your custom % for each type' 
+                {useCustomRatios
+                  ? 'Using your custom % for each type'
                   : 'AI automatically calculates organic engagement ratios'
                 }
               </p>
@@ -774,10 +773,10 @@ function BundleCard({
               ENGAGEMENT_ICONS[item.engagement_type as keyof typeof ENGAGEMENT_ICONS] ||
               Eye;
             const isBase = item.is_base || item.engagement_type === 'views';
-            const displayRatio = useCustomRatios 
-              ? item.ratio_percent 
+            const displayRatio = useCustomRatios
+              ? item.ratio_percent
               : DEFAULT_RATIOS[item.engagement_type as EngagementType] || item.ratio_percent;
-            
+
             return (
               <div
                 key={item.id}
@@ -794,8 +793,8 @@ function BundleCard({
                     </span>
                     {/* Only show % badge when custom ratios is ON */}
                     {useCustomRatios && (
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className={`text-xs font-bold ${isBase ? 'bg-primary/20 text-primary' : ''}`}
                       >
                         {displayRatio}%
@@ -855,80 +854,64 @@ function BundleCard({
                 {/* Service Link + Provider Config */}
                 <div className="flex items-center gap-2 pl-12">
                   {(() => {
-                    // Filter services by engagement type - STRICT matching
+                    // Filter services by engagement type - positive matching only
                     const engType = item.engagement_type.toLowerCase();
                     const platform = bundle.platform.toLowerCase();
-                    
+
                     // Build MUST-HAVE patterns (at least one must match)
                     const mustMatch: string[] = [];
-                    // Build MUST-NOT patterns (none should match - for exclusion)
-                    const mustNotMatch: string[] = [];
-                    
-                    // Define strict patterns per engagement type
+
+                    // Define patterns per engagement type
                     switch (engType) {
                       case 'views':
                         mustMatch.push('view', 'reel view', 'video view');
-                        mustNotMatch.push('like', 'comment', 'save', 'share', 'follow', 'repost');
                         break;
                       case 'likes':
                         mustMatch.push('like', 'heart');
-                        mustNotMatch.push('view', 'comment', 'save', 'share', 'follow', 'repost');
                         break;
                       case 'comments':
                         mustMatch.push('comment');
-                        mustNotMatch.push('view', 'like', 'save', 'share', 'follow', 'repost');
                         break;
                       case 'saves':
                         mustMatch.push('save');
-                        mustNotMatch.push('view', 'like', 'comment', 'share', 'follow', 'repost');
                         break;
                       case 'shares':
                         mustMatch.push('share');
-                        mustNotMatch.push('view', 'like', 'comment', 'save', 'follow', 'repost');
                         break;
                       case 'reposts':
                         mustMatch.push('repost');
-                        mustNotMatch.push('view', 'like', 'comment', 'save', 'share', 'follow');
                         break;
                       case 'followers':
                         mustMatch.push('follower', 'follow');
-                        mustNotMatch.push('view', 'like', 'comment', 'save', 'share', 'repost');
                         break;
                       case 'subscribers':
                         mustMatch.push('subscriber', 'sub');
-                        mustNotMatch.push('view', 'like', 'comment', 'save', 'share', 'repost');
                         break;
                       case 'watch_hours':
                         mustMatch.push('watch hour', 'watchhour', 'watch_hour');
-                        mustNotMatch.push('view', 'like', 'comment', 'save', 'share', 'repost');
                         break;
                       case 'retweets':
                         mustMatch.push('retweet');
-                        mustNotMatch.push('view', 'like', 'comment', 'save', 'share', 'repost');
                         break;
                       default:
                         mustMatch.push(engType);
                     }
-                    
+
                     const filteredServices = mappedServices.filter((s) => {
                       const cat = (s.category || '').toLowerCase();
                       const name = (s.name || '').toLowerCase();
                       const combined = cat + ' ' + name;
-                      
+
                       // Must match platform
                       if (!combined.includes(platform)) return false;
-                      
+
                       // Must contain at least one mustMatch pattern
                       const hasMatch = mustMatch.some(p => combined.includes(p));
                       if (!hasMatch) return false;
-                      
-                      // Must NOT contain any mustNotMatch patterns (strict exclusion)
-                      const hasExclusion = mustNotMatch.some(p => combined.includes(p));
-                      if (hasExclusion) return false;
-                      
+
                       return true;
                     });
-                    
+
                     const selectedService = item.service_id
                       ? services.find(s => s.id === item.service_id)
                       : null;
@@ -942,7 +925,7 @@ function BundleCard({
                         >
                           <SelectTrigger className="flex-1 h-9 rounded-lg text-xs bg-background">
                             <SelectValue placeholder="Link service...">
-                              {item.service_id 
+                              {item.service_id
                                 ? isMismatch
                                   ? `⚠ Wrong service linked (${selectedService?.name?.slice(0, 18) || 'Service'}...)`
                                   : (selectedService?.name?.slice(0, 35) || 'Service') + '...'
@@ -980,7 +963,7 @@ function BundleCard({
                       </div>
                     );
                   })()}
-                  
+
                   {/* Provider config - always show, linked badge only when service is linked */}
                   {item.service_id && (
                     <Badge className="bg-success/20 text-success text-[10px] gap-1 shrink-0">
@@ -1036,7 +1019,7 @@ function ProviderMappingDialog({
   onServiceLinked?: (bundleItemId: string, serviceId: string) => void;
 }) {
   const [serviceId, setServiceId] = useState(initialServiceId);
-  
+
   // Sync with prop changes
   useEffect(() => {
     setServiceId(initialServiceId);
@@ -1118,7 +1101,7 @@ function ProviderMappingDialog({
         }
 
         // Build category name for auto-import
-        const categoryOverride = platform && engagementType 
+        const categoryOverride = platform && engagementType
           ? `${platform.charAt(0).toUpperCase() + platform.slice(1)} ${engagementType.charAt(0).toUpperCase() + engagementType.slice(1)}`
           : undefined;
 
@@ -1225,6 +1208,7 @@ function ProviderMappingDialog({
       refetch();
       toast({ title: 'Provider mappings saved!' });
       setHasChanges(false);
+      setIsOpen(false);
     },
     onError: (error: any) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -1294,13 +1278,13 @@ function ProviderMappingDialog({
                     serviceId: '',
                     sortOrder: account.priority,
                   };
-                  
+
                   return (
                     <TableRow key={account.id}>
                       <TableCell>
                         <Checkbox
                           checked={mapping.checked}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked) =>
                             handleMappingChange(account.id, 'checked', checked)
                           }
                         />
@@ -1316,11 +1300,11 @@ function ProviderMappingDialog({
                       <TableCell>
                         <Input
                           value={mapping.serviceId}
-                          onChange={(e) => 
+                          onChange={(e) =>
                             handleMappingChange(account.id, 'serviceId', e.target.value)
                           }
                           placeholder="Service ID"
-                          className="h-8 w-24 text-xs"
+                          className="h-8 w-32 text-xs"
                           disabled={!mapping.checked}
                         />
                       </TableCell>
@@ -1330,7 +1314,7 @@ function ProviderMappingDialog({
                           min={1}
                           max={100}
                           value={mapping.sortOrder}
-                          onChange={(e) => 
+                          onChange={(e) =>
                             handleMappingChange(account.id, 'sortOrder', parseInt(e.target.value) || 1)
                           }
                           className="h-8 w-14 text-xs"
@@ -1355,7 +1339,7 @@ function ProviderMappingDialog({
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={() => saveMutation.mutate()}
             disabled={!hasChanges || saveMutation.isPending}
           >
