@@ -864,11 +864,35 @@ function BundleCard({
                       ? services.find(s => s.id === item.service_id)
                       : null;
 
-                    // If service linked, show dropdown with ALL services for changing
-                    // If not linked, show prompt to use Provider button
+                    // Smart filter: match services by platform + engagement type
+                    const engType = item.engagement_type?.toLowerCase() || '';
+                    const platName = bundle.platform?.toLowerCase() || '';
+                    // Map engagement types to search keywords
+                    const typeKeywords: Record<string, string[]> = {
+                      views: ['view'],
+                      likes: ['like'],
+                      comments: ['comment'],
+                      saves: ['save'],
+                      shares: ['share'],
+                      reposts: ['repost'],
+                      followers: ['follow'],
+                      watch_hours: ['watch', 'hour'],
+                    };
+                    const keywords = typeKeywords[engType] || [engType];
+
+                    const filteredServices = mappedServices.filter(s => {
+                      const name = s.name?.toLowerCase() || '';
+                      const matchesPlatform = name.includes(platName);
+                      const matchesType = keywords.some(kw => name.includes(kw));
+                      return matchesPlatform && matchesType;
+                    });
+
+                    // Use filtered list if matches found, otherwise show all
+                    const displayServices = filteredServices.length > 0 ? filteredServices : mappedServices;
+
                     return (
                       <div className="flex items-center gap-2 flex-1">
-                        {mappedServices.length > 0 ? (
+                        {displayServices.length > 0 ? (
                           <Select
                             value={item.service_id || ""}
                             onValueChange={(v) => onUpdateItem(item.id, v)}
@@ -882,7 +906,7 @@ function BundleCard({
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent className="bg-popover border border-border shadow-xl z-50 max-h-60">
-                              {mappedServices.map((s) => (
+                              {displayServices.map((s) => (
                                 <SelectItem key={s.id} value={s.id} className="text-xs">
                                   {s.name.slice(0, 45)} (${s.price})
                                 </SelectItem>
