@@ -153,9 +153,16 @@ export default function AdminBundles() {
     enabled: !!user && isAdmin,
   });
 
-  // Show ALL services in dropdown (not just mapped ones)
-  // Admin can link any service and then configure provider mappings
-  const allServices = services || [];
+  // Show ALL services in dropdown (not just mapped ones), deduplicated by provider_service_id
+  const allServices = (() => {
+    if (!services) return [];
+    const seen = new Set<string>();
+    return services.filter(s => {
+      if (seen.has(s.provider_service_id)) return false;
+      seen.add(s.provider_service_id);
+      return true;
+    });
+  })();
 
   // Fetch provider accounts for rotation - always get fresh data
   const { data: providerAccounts, refetch: refetchAccounts } = useQuery({

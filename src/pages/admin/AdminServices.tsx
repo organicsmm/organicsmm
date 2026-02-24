@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -21,9 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Package, 
-  Plus, 
+import {
+  Package,
+  Plus,
   Edit2,
   Trash2,
   Search,
@@ -66,7 +66,7 @@ export default function AdminServices() {
         .from('services')
         .select('*')
         .order('category', { ascending: true });
-      
+
       if (error) throw error;
       return data as Service[];
     },
@@ -89,7 +89,7 @@ export default function AdminServices() {
           drip_feed_enabled: formData.drip_feed_enabled,
           is_active: formData.is_active,
         });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -106,7 +106,7 @@ export default function AdminServices() {
   const updateServiceMutation = useMutation({
     mutationFn: async () => {
       if (!editingService) return;
-      
+
       const { error } = await supabase
         .from('services')
         .update({
@@ -123,7 +123,7 @@ export default function AdminServices() {
           is_active: formData.is_active,
         })
         .eq('id', editingService.id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -158,6 +158,13 @@ export default function AdminServices() {
         .eq('service_id', id);
       if (ordersError) throw ordersError;
 
+      // Delete provider mappings for this service
+      const { error: mappingsError } = await supabase
+        .from('service_provider_mapping')
+        .delete()
+        .eq('service_id', id);
+      if (mappingsError) throw mappingsError;
+
       // Finally delete the service
       const { error } = await supabase
         .from('services')
@@ -169,6 +176,8 @@ export default function AdminServices() {
     onSuccess: () => {
       toast.success('Service deleted successfully!');
       queryClient.invalidateQueries({ queryKey: ['admin-all-services'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-services-active'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -181,7 +190,7 @@ export default function AdminServices() {
         .from('services')
         .update({ is_active: !is_active })
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -250,8 +259,8 @@ export default function AdminServices() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="gap-2"
               disabled={isSyncingPrices}
               onClick={async () => {
@@ -274,8 +283,8 @@ export default function AdminServices() {
               {isSyncingPrices ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Sync Prices
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="gap-2"
               onClick={() => setShowImportDialog(true)}
             >
