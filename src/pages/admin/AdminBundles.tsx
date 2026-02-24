@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -1025,70 +1025,17 @@ function ProviderMappingDialog({
   // Count of configured accounts
   const configuredCount = existingMappings?.length || 0;
 
-  // Auto-match: find the best provider_service_id PER PROVIDER ACCOUNT
-  // Each provider account belongs to a different provider with different service IDs
-  // If all accounts share the same provider_id, skip auto-fill (can't differentiate)
-  const autoMatchPerAccount = useMemo(() => {
-    const result: Record<string, string> = {};
-    if (!allServices?.length || !providerAccounts?.length) return result;
-
-    const platName = (platform || '').toLowerCase();
-    const engType = (engagementType || '').toLowerCase();
-    const typeKeywords: Record<string, string[]> = {
-      views: ['view'],
-      likes: ['like'],
-      comments: ['comment'],
-      saves: ['save'],
-      shares: ['share'],
-      reposts: ['repost'],
-      followers: ['follow'],
-      watch_hours: ['watch', 'hour'],
-    };
-    const keywords = typeKeywords[engType] || [engType];
-
-    // Check if all accounts share the same provider_id
-    const uniqueProviderIds = new Set(providerAccounts.map((a: any) => a.provider_id));
-    const allSameProvider = uniqueProviderIds.size === 1 && providerAccounts.length > 1;
-
-    if (allSameProvider) {
-      console.log(`[ProviderMapping] All ${providerAccounts.length} accounts share same provider_id — skipping auto-fill (user must set IDs manually per account)`);
-      return result;
-    }
-
-    providerAccounts.forEach(account => {
-      // Find services imported from THIS account's provider
-      const providerServices = allServices.filter((s: any) => s.provider_id === account.provider_id);
-
-      // Try to match by platform + engagement type keywords
-      const match = providerServices.find((s: any) => {
-        const name = (s.name || '').toLowerCase();
-        return name.includes(platName) && keywords.some((kw: string) => name.includes(kw));
-      });
-
-      if (match?.provider_service_id) {
-        result[account.id] = match.provider_service_id;
-        console.log(`[ProviderMapping] Auto-match for ${account.name}: ${match.provider_service_id} (${match.name})`);
-      } else {
-        console.log(`[ProviderMapping] No match for ${account.name} (provider_id: ${account.provider_id}), tried ${providerServices.length} services`);
-      }
-    });
-
-    return result;
-  }, [allServices, providerAccounts, platform, engagementType]);
-
   // Initialize mappings when dialog opens and data loads
+  // Only show SAVED mappings from DB — no auto-fill
   const initMappings = () => {
-    console.log('[ProviderMapping] initMappings:', { autoMatchPerAccount, existingMappingsCount: existingMappings?.length });
     const newMappings: Record<string, { checked: boolean; serviceId: string; sortOrder: number }> = {};
     providerAccounts.forEach(account => {
       const existing = existingMappings?.find(m => m.provider_account_id === account.id);
       newMappings[account.id] = {
         checked: !!existing,
-        // Priority: 1) existing saved mapping, 2) per-provider auto-match, 3) empty
-        serviceId: existing?.provider_service_id || autoMatchPerAccount[account.id] || '',
+        serviceId: existing?.provider_service_id || '',
         sortOrder: existing?.sort_order || account.priority,
       };
-      console.log(`[ProviderMapping] ${account.name}: saved=${existing?.provider_service_id || 'none'}, auto=${autoMatchPerAccount[account.id] || 'none'}, final=${newMappings[account.id].serviceId}`);
     });
     setMappings(newMappings);
     setHasChanges(false);
@@ -1099,7 +1046,7 @@ function ProviderMappingDialog({
     if (isOpen && providerAccounts?.length && existingMappings !== undefined) {
       initMappings();
     }
-  }, [isOpen, existingMappings, providerAccounts, autoMatchPerAccount]);
+  }, [isOpen, existingMappings, providerAccounts]);
 
   // Save mutation
   const saveMutation = useMutation({
