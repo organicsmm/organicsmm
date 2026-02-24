@@ -1111,6 +1111,12 @@ function ProviderMappingDialog({
           return;
         }
 
+        console.log('[ProviderMapping] Auto-importing service:', {
+          provider_id: acct.provider_id,
+          service_id: data.serviceId.trim(),
+          account_name: acct.name,
+        });
+
         // Build category name for auto-import
         const categoryOverride = platform && engagementType
           ? `${platform.charAt(0).toUpperCase() + platform.slice(1)} ${engagementType.charAt(0).toUpperCase() + engagementType.slice(1)}`
@@ -1126,22 +1132,45 @@ function ProviderMappingDialog({
           },
         });
 
+        console.log('[ProviderMapping] Import result:', importResult, 'Error:', importError);
+
+        // Check BOTH SDK error AND edge function response error
         if (importError) {
-          console.error('Auto-import failed:', importError);
+          console.error('Auto-import SDK error:', importError);
           toast({ title: 'Service import failed', description: importError.message, variant: 'destructive' });
           return;
         }
 
+        if (importResult?.error) {
+          console.error('Auto-import edge function error:', importResult.error);
+          toast({ title: 'Service import failed', description: importResult.error, variant: 'destructive' });
+          return;
+        }
+
+        if (!importResult?.success) {
+          console.error('Auto-import unexpected response:', importResult);
+          toast({ title: 'Service import failed', description: 'Unexpected response from import function', variant: 'destructive' });
+          return;
+        }
+
+        console.log('[ProviderMapping] Import success, looking up service in DB...');
+
         // Find the newly imported service
-        const { data: importedService } = await supabase
+        const { data: importedService, error: lookupError } = await supabase
           .from('services')
           .select('id')
           .eq('provider_id', acct.provider_id)
           .eq('provider_service_id', data.serviceId.trim())
           .single();
 
+        console.log('[ProviderMapping] DB lookup result:', importedService, 'Error:', lookupError);
+
         if (!importedService) {
-          toast({ title: 'Service import succeeded but could not find it in DB', variant: 'destructive' });
+          toast({
+            title: 'Service not found in database',
+            description: `Imported OK but couldn't find service ${data.serviceId.trim()} for provider ${acct.provider_id}. Check provider_id matches.`,
+            variant: 'destructive'
+          });
           return;
         }
 
@@ -1152,6 +1181,7 @@ function ProviderMappingDialog({
           onServiceLinked(bundleItemId, currentServiceId);
         }
         setServiceId(currentServiceId);
+        toast({ title: `Service #${data.serviceId.trim()} imported & linked!` });
       }
 
       // Get current mappings
