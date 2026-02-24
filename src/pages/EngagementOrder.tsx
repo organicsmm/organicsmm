@@ -19,17 +19,17 @@ import { EngagementTypeCard } from "@/components/engagement/EngagementTypeCard";
 import { DeliveryPreview } from "@/components/engagement/DeliveryPreview";
 import { LiveGrowthChart } from "@/components/engagement/LiveGrowthChart";
 import { DrawableGrowthChart } from "@/components/engagement/DrawableGrowthChart";
-import { 
-  EngagementType, 
-  EngagementConfig, 
+import {
+  EngagementType,
+  EngagementConfig,
   DEFAULT_RATIOS,
   DEFAULT_ORGANIC_SETTINGS,
   EngagementBundle,
   BundleItem
 } from "@/lib/engagement-types";
-import { 
-  ControlPoint, 
-  DrawModeState, 
+import {
+  ControlPoint,
+  DrawModeState,
   createInitialPoints,
   curveToSchedule,
   calculateQuantitiesFromCurve,
@@ -68,7 +68,7 @@ export default function EngagementOrder() {
   // Debounce base quantity for expensive recalculations
   const debouncedBaseQuantity = useDebounce(baseQuantity, 200);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
-  
+
   // Draw mode state for custom curve editing
   const [drawModeState, setDrawModeState] = useState<DrawModeState>({
     isEnabled: false,
@@ -96,12 +96,12 @@ export default function EngagementOrder() {
     },
   });
 
-  // Get unique platforms that have active bundles WITH services configured
+  // Get unique platforms that have active bundles with engagement items
   const availablePlatforms = useMemo(() => {
     if (!allBundles) return [];
-    // Only include platforms where bundle has at least one item with a service
+    // Show platforms that have at least one bundle with items configured
     const platforms = allBundles
-      .filter(b => b.items && b.items.length > 0 && b.items.some(item => item.service_id))
+      .filter(b => b.items && b.items.length > 0)
       .map(b => b.platform);
     return [...new Set(platforms)];
   }, [allBundles]);
@@ -162,7 +162,7 @@ export default function EngagementOrder() {
     if (!bundles || bundles.length === 0) return {};
     const bundle = bundles[0];
     if (!bundle?.items) return {};
-    
+
     const prices: Record<string, { pricePerK: number; serviceId: string; minQuantity: number }> = {};
     bundle.items.forEach(item => {
       if (item.service) {
@@ -188,12 +188,12 @@ export default function EngagementOrder() {
     const bundleTypes = bundle.items
       .filter(item => item.service_id)
       .map(item => item.engagement_type as EngagementType);
-    
+
     const uniqueBundleTypes = [...new Set(bundleTypes)];
 
     setEngagements((prev) => {
       const updated: EngagementConfigs = {};
-      
+
       uniqueBundleTypes.forEach((type) => {
         const ratioPercent = DEFAULT_RATIOS[type] ?? 1;
         const ratioQuantity = Math.round(debouncedBaseQuantity * (ratioPercent / 100));
@@ -356,7 +356,7 @@ export default function EngagementOrder() {
                 // -1 means "Custom" was selected but no value stored - treat as Auto
                 effectiveTimeLimit = 0;
               }
-              
+
               return {
                 type,
                 quantity: config.quantity,
@@ -419,7 +419,7 @@ export default function EngagementOrder() {
 
   // INSTANT RENDER - No loading state blocking UI
   // Redirect happens via useEffect in DashboardLayout if not authenticated
-  
+
   if (!user && !authLoading) {
     navigate('/auth');
     return null;
@@ -500,13 +500,13 @@ export default function EngagementOrder() {
       placeOrderMutation.mutate();
       return;
     }
-    
+
     // STEP 1: Check subscription FIRST (before balance)
     if (!hasActiveSubscription) {
       setShowSubscriptionDialog(true);
       return;
     }
-    
+
     // STEP 2: After subscription is confirmed, check balance
     if (!wallet || wallet.balance <= 0) {
       toast({
@@ -527,7 +527,7 @@ export default function EngagementOrder() {
       navigate('/wallet');
       return;
     }
-    
+
     placeOrderMutation.mutate();
   };
 
@@ -559,9 +559,9 @@ export default function EngagementOrder() {
             <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5">
               <Label className="text-base sm:text-lg font-bold tracking-tight text-foreground">Select Platform</Label>
             </div>
-            <PlatformSelector 
-              selected={platform} 
-              onSelect={setPlatform} 
+            <PlatformSelector
+              selected={platform}
+              onSelect={setPlatform}
               availablePlatforms={availablePlatforms}
             />
           </CardContent>
@@ -644,8 +644,8 @@ export default function EngagementOrder() {
 
         {/* Live Growth Chart - Real-time visualization (shown when not drawing) */}
         {!drawModeState.isEnabled && activeEngagementTypes.length > 0 && (
-          <LiveGrowthChart 
-            engagements={engagements as Record<EngagementType, EngagementConfig>} 
+          <LiveGrowthChart
+            engagements={engagements as Record<EngagementType, EngagementConfig>}
             refreshKey={previewRefreshKey}
             onRefresh={() => setPreviewRefreshKey(k => k + 1)}
             platform={platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook'}
@@ -654,9 +654,9 @@ export default function EngagementOrder() {
 
         {/* Delivery Timeline Preview - Detailed schedule */}
         {activeEngagementTypes.length > 0 && (
-          <DeliveryPreview 
-            engagements={engagements as Record<EngagementType, EngagementConfig>} 
-            refreshKey={previewRefreshKey} 
+          <DeliveryPreview
+            engagements={engagements as Record<EngagementType, EngagementConfig>}
+            refreshKey={previewRefreshKey}
             platform={platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook'}
             customCurvePoints={drawModeState.isEnabled ? drawModeState.points : undefined}
           />
