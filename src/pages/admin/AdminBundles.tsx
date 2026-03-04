@@ -97,6 +97,7 @@ export default function AdminBundles() {
   const [selectedPlatform, setSelectedPlatform] = useState('instagram');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteBundle, setDeleteBundle] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Fetch bundles
   const { data: bundles, isLoading } = useQuery({
@@ -387,7 +388,6 @@ export default function AdminBundles() {
   }
 
   // Sync all service prices from provider API
-  const [isSyncing, setIsSyncing] = useState(false);
   const syncAllPrices = async () => {
     setIsSyncing(true);
     try {
@@ -934,75 +934,37 @@ function BundleCard({
                   </div>
                 )}
 
-                {/* Service Link + Provider Config */}
+                {/* Service Info + Provider Config */}
                 <div className="flex items-center gap-2 pl-12">
                   {(() => {
-                    const selectedService = item.service_id
-                      ? services.find(s => s.id === item.service_id)
+                    // Use the JOIN data (item.service) as primary source
+                    const joinedService = item.service as any;
+                    const linkedService = item.service_id
+                      ? (joinedService || services.find(s => s.id === item.service_id))
                       : null;
-
-                    // Smart filter: match services by platform + engagement type
-                    const engType = item.engagement_type?.toLowerCase() || '';
-                    const platName = bundle.platform?.toLowerCase() || '';
-                    // Map engagement types to search keywords
-                    const typeKeywords: Record<string, string[]> = {
-                      views: ['view'],
-                      likes: ['like'],
-                      comments: ['comment'],
-                      saves: ['save'],
-                      shares: ['share'],
-                      reposts: ['repost'],
-                      followers: ['follow'],
-                      watch_hours: ['watch', 'hour'],
-                    };
-                    const keywords = typeKeywords[engType] || [engType];
-
-                    const filteredServices = mappedServices.filter(s => {
-                      const name = s.name?.toLowerCase() || '';
-                      const matchesPlatform = name.includes(platName);
-                      const matchesType = keywords.some(kw => name.includes(kw));
-                      return matchesPlatform && matchesType;
-                    });
-
-                    // Use filtered list if matches found, otherwise show all
-                    const displayServices = filteredServices.length > 0 ? filteredServices : mappedServices;
+                    const displayPrice = linkedService?.price ?? null;
 
                     return (
-                      <div className="flex items-center gap-2 flex-1">
-                        {displayServices.length > 0 ? (
-                          <Select
-                            value={item.service_id || ""}
-                            onValueChange={(v) => onUpdateItem(item.id, v)}
-                          >
-                            <SelectTrigger className="flex-1 h-9 rounded-lg text-xs bg-background">
-                              <SelectValue placeholder="Select a service...">
-                                {item.service_id
-                                  ? (selectedService?.name?.slice(0, 35) || 'Service') + ` ($${selectedService?.price || '?'})`
-                                  : 'Select a service...'
-                                }
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover border border-border shadow-xl z-50 max-h-60">
-                              {displayServices.map((s) => (
-                                <SelectItem key={s.id} value={s.id} className="text-xs">
-                                  {s.name.slice(0, 45)} (${s.price})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      <div className="flex-1 h-9 px-3 rounded-lg border border-border bg-background flex items-center text-xs gap-2">
+                        {linkedService ? (
+                          <>
+                            <span className="text-foreground font-medium truncate">
+                              {linkedService.name?.slice(0, 40)}
+                            </span>
+                            <Badge variant="outline" className="text-[10px] shrink-0 font-bold border-primary/30 text-primary">
+                              ${displayPrice ?? '?'}/1K
+                            </Badge>
+                          </>
                         ) : (
-                          <div className="flex-1 h-9 px-3 rounded-lg bg-muted/50 flex items-center text-xs text-muted-foreground">
-                            {item.service_id
-                              ? (selectedService?.name?.slice(0, 30) || 'Service linked')
-                              : '← Use Providers button to import & link →'
-                            }
-                          </div>
+                          <span className="text-muted-foreground italic">
+                            Not linked — use Providers to import &amp; link
+                          </span>
                         )}
                       </div>
                     );
                   })()}
 
-                  {/* Provider config - always show, linked badge only when service is linked */}
+                  {/* Linked badge */}
                   {item.service_id && (
                     <Badge className="bg-success/20 text-success text-[10px] gap-1 shrink-0">
                       <Link2 className="h-3 w-3" />

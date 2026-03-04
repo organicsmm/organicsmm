@@ -158,15 +158,78 @@ export default function EngagementOrder() {
     });
     return base;
   }, [debouncedBaseQuantity, activeEngagementTypes]);
+  // Fetch ALL active services as fallback for price lookup
+  const { data: allServices } = useQuery({
+    queryKey: ['all-active-services'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('services')
+        .select('id, name, price, min_quantity, max_quantity, category')
+        .eq('is_active', true)
+        .order('price', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // Get service prices from bundle
+  // Get service prices from bundle — with auto-match fallback for unlinked items
   const servicePrices = useMemo(() => {
     if (!bundles || bundles.length === 0) return {};
     const bundle = bundles[0];
     if (!bundle?.items) return {};
 
+    // Keywords to match engagement types in service names
+    const typeKeywords: Record<string, string[]> = {
+      views: ['view'],
+      likes: ['like'],
+      comments: ['comment'],
+      saves: ['save'],
+      shares: ['share'],
+      reposts: ['repost'],
+      followers: ['follow'],
+      subscribers: ['subscrib'],
+      watch_hours: ['watch'],
+      retweets: ['retweet'],
+    };
+
     const prices: Record<string, { pricePerK: number; serviceId: string; minQuantity: number }> = {};
     bundle.items.forEach(item => {
+      // 1) Try the linked service first
+      if (item.service && item.service.price > 0) {
+        prices[item.engagement_type] = {
+          pricePerK: applyMarkup(item.service.price),
+          serviceId: item.service.id,
+          minQuantity: item.service.min_quantity,
+        };
+        return;
+      }
+
+      // 2) Fallback: auto-match from all active services by platform + engagement type
+      if (allServices && allServices.length > 0) {
+        const keywords = typeKeywords[item.engagement_type] || [item.engagement_type];
+        const platName = platform.toLowerCase();
+
+        // Find best matching service (cheapest non-zero price)
+        const match = allServices.find(s => {
+          const name = s.name?.toLowerCase() || '';
+          const cat = s.category?.toLowerCase() || '';
+          const matchesPlatform = name.includes(platName) || cat.includes(platName);
+          const matchesType = keywords.some(kw => name.includes(kw));
+          return matchesPlatform && matchesType && s.price > 0;
+        });
+
+        if (match) {
+          prices[item.engagement_type] = {
+            pricePerK: applyMarkup(match.price),
+            serviceId: match.id,
+            minQuantity: match.min_quantity,
+          };
+          return;
+        }
+      }
+
+      // 3) Even if linked but price=0, still register the service for order routing
       if (item.service) {
         prices[item.engagement_type] = {
           pricePerK: applyMarkup(item.service.price),
@@ -176,7 +239,7 @@ export default function EngagementOrder() {
       }
     });
     return prices;
-  }, [bundles, applyMarkup]);
+  }, [bundles, applyMarkup, allServices, platform]);
 
   // Update engagement configs when bundle or base quantity changes
   // Use debounced value to prevent excessive recalculations
