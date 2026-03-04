@@ -161,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) { }
       await new Promise(r => setTimeout(r, 100));
 
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/engagement-order`;
 
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),

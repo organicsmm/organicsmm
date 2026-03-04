@@ -52,6 +52,7 @@ const features = [
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [showVerifyEmail, setShowVerifyEmail] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -111,14 +112,15 @@ export default function Auth() {
           else setError(error.message || 'Signup failed.');
           setIsSubmitting(false); return;
         }
-        navigate('/engagement-order', { replace: true });
+        // Show email verification screen instead of navigating
+        setShowVerifyEmail(true);
       }
     } catch (err: any) {
       if (!err?.message?.includes('abort')) setError('Something went wrong.');
     } finally { setIsSubmitting(false); }
   };
 
-  const reset = () => { setError(''); setSuccessMessage(''); };
+  const reset = () => { setError(''); setSuccessMessage(''); setShowVerifyEmail(false); };
 
   return (
     <div className="min-h-screen flex" style={{ background: 'hsl(150 25% 4%)' }}>
@@ -209,134 +211,185 @@ export default function Auth() {
           {/* Form card */}
           <div className="rounded-2xl p-7 sm:p-8" style={{ background: 'hsl(150 20% 7% / 0.95)', border: '1px solid hsl(145 72% 52% / 0.1)', boxShadow: '0 1px 0 0 hsl(145 72% 52% / 0.06) inset, 0 30px 80px -20px hsl(150 30% 3% / 0.8)' }}>
 
-            {/* Top accent line */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px rounded-full" style={{ background: 'linear-gradient(90deg, transparent, hsl(145 72% 52% / 0.3), transparent)' }} />
-
-            {/* Header */}
-            <div className="mb-7">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl mx-auto mb-5" style={{ background: 'hsl(145 72% 52% / 0.08)', border: '1px solid hsl(145 72% 52% / 0.12)', boxShadow: '0 0 20px -6px hsl(145 72% 52% / 0.15)' }}>
-                {isForgotPassword
-                  ? <KeyRound className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
-                  : isLogin
-                    ? <Fingerprint className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
-                    : <Star className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
-                }
+            {/* ──── Email Verification Screen ──── */}
+            {showVerifyEmail ? (
+              <div className="text-center py-4">
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl mx-auto mb-5" style={{ background: 'hsl(145 72% 52% / 0.1)', border: '1px solid hsl(145 72% 52% / 0.15)', boxShadow: '0 0 30px -8px hsl(145 72% 52% / 0.2)' }}>
+                  <Mail className="h-7 w-7" style={{ color: 'hsl(145 72% 52%)' }} />
+                </div>
+                <h2 className="text-2xl font-black tracking-tight mb-2" style={{ color: 'hsl(140 60% 95%)' }}>
+                  Verify Your Email
+                </h2>
+                <p className="text-sm leading-relaxed mb-4" style={{ color: 'hsl(145 15% 50%)' }}>
+                  We've sent a verification link to
+                </p>
+                <div className="px-4 py-2.5 rounded-xl mb-5" style={{ background: 'hsl(145 72% 52% / 0.06)', border: '1px solid hsl(145 72% 52% / 0.12)' }}>
+                  <span className="text-sm font-bold" style={{ color: 'hsl(145 72% 60%)' }}>{email}</span>
+                </div>
+                <div className="space-y-3 text-left mb-6">
+                  <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'hsl(145 72% 52% / 0.04)', border: '1px solid hsl(145 72% 52% / 0.08)' }}>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(145 72% 52% / 0.15)' }}>
+                      <span className="text-xs font-bold" style={{ color: 'hsl(145 72% 52%)' }}>1</span>
+                    </div>
+                    <p className="text-xs" style={{ color: 'hsl(145 15% 50%)' }}>
+                      Open your <strong style={{ color: 'hsl(140 60% 90%)' }}>email inbox</strong> and find the verification email from OrganicSMM
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'hsl(145 72% 52% / 0.04)', border: '1px solid hsl(145 72% 52% / 0.08)' }}>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(145 72% 52% / 0.15)' }}>
+                      <span className="text-xs font-bold" style={{ color: 'hsl(145 72% 52%)' }}>2</span>
+                    </div>
+                    <p className="text-xs" style={{ color: 'hsl(145 15% 50%)' }}>
+                      Click the <strong style={{ color: 'hsl(140 60% 90%)' }}>verification link</strong> — you'll be redirected and logged in automatically
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
+                  <span className="text-[10px] uppercase tracking-widest" style={{ color: 'hsl(145 15% 30%)' }}>didn't get it?</span>
+                  <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
+                </div>
+                <p className="text-[11px] mb-4" style={{ color: 'hsl(145 15% 40%)' }}>
+                  Check your spam/junk folder. The email may take 1-2 minutes.
+                </p>
+                <button type="button" onClick={() => { setShowVerifyEmail(false); setIsLogin(true); reset(); }}
+                  className="text-xs font-medium" style={{ color: 'hsl(145 72% 52% / 0.6)' }}>
+                  ← Back to Sign In
+                </button>
               </div>
-              <h2 className="text-2xl font-black text-center tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>
-                {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Start Free Trial'}
-              </h2>
-              <p className="text-sm text-center mt-1" style={{ color: 'hsl(145 15% 45%)' }}>
-                {isForgotPassword
-                  ? 'Enter your email for a reset link'
-                  : isLogin
-                    ? 'Sign in to your account'
-                    : 'Get 7 days free — all features unlocked'}
-              </p>
-              {!isLogin && !isForgotPassword && (
-                <div className="mt-3 flex items-center justify-center gap-2 py-1.5 px-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit mx-auto">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[11px] font-bold text-emerald-400 tracking-wide">7 DAYS FREE · NO CARD NEEDED</span>
-                </div>
-              )}
-            </div>
-
-            {/* ──── Forgot Password Form ──── */}
-            {isForgotPassword ? (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
-                    <Mail className="h-3 w-3" /> Email
-                  </Label>
-                  <Input id="email" type="email" placeholder="you@example.com"
-                    value={email} onChange={e => setEmail(e.target.value)}
-                    className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
-                </div>
-
-                {error && <ErrorBox msg={error} />}
-                {successMessage && <SuccessBox msg={successMessage} />}
-
-                <Button type="submit" disabled={isSubmitting}
-                  className="w-full h-11 rounded-xl font-bold text-sm" style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}>
-                  {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</> : <><Mail className="h-4 w-4 mr-2" />Send Reset Link</>}
-                </Button>
-
-                <div className="text-center">
-                  <button type="button" onClick={() => { setIsForgotPassword(false); reset(); }}
-                    className="text-xs font-medium" style={{ color: 'hsl(145 15% 45%)' }}>
-                    ← Back to Sign In
-                  </button>
-                </div>
-              </form>
-
             ) : (
-              /* ──── Main Login / Signup Form ──── */
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLogin && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="fullName" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
-                      <User className="h-3 w-3" /> Full Name
-                    </Label>
-                    <Input id="fullName" type="text" placeholder="Your name"
-                      value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name"
-                      className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
-                  </div>
-                )}
+              <>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
-                    <Mail className="h-3 w-3" /> Email
-                  </Label>
-                  <Input id="email" type="email" placeholder="you@example.com"
-                    value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
-                    className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
+                {/* Top accent line */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px rounded-full" style={{ background: 'linear-gradient(90deg, transparent, hsl(145 72% 52% / 0.3), transparent)' }} />
+
+                {/* Header */}
+                <div className="mb-7">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl mx-auto mb-5" style={{ background: 'hsl(145 72% 52% / 0.08)', border: '1px solid hsl(145 72% 52% / 0.12)', boxShadow: '0 0 20px -6px hsl(145 72% 52% / 0.15)' }}>
+                    {isForgotPassword
+                      ? <KeyRound className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
+                      : isLogin
+                        ? <Fingerprint className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
+                        : <Star className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
+                    }
+                  </div>
+                  <h2 className="text-2xl font-black text-center tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>
+                    {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Start Free Trial'}
+                  </h2>
+                  <p className="text-sm text-center mt-1" style={{ color: 'hsl(145 15% 45%)' }}>
+                    {isForgotPassword
+                      ? 'Enter your email for a reset link'
+                      : isLogin
+                        ? 'Sign in to your account'
+                        : 'Get 7 days free — all features unlocked'}
+                  </p>
+                  {!isLogin && !isForgotPassword && (
+                    <div className="mt-3 flex items-center justify-center gap-2 py-1.5 px-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit mx-auto">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span className="text-[11px] font-bold text-emerald-400 tracking-wide">7 DAYS FREE · NO CARD NEEDED</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
-                      <Lock className="h-3 w-3" /> Password
-                    </Label>
-                    {isLogin && (
-                      <button type="button" onClick={() => { setIsForgotPassword(true); reset(); }}
-                        className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'hsl(145 72% 52% / 0.5)' }}>
-                        Forgot?
+                {/* ──── Forgot Password Form ──── */}
+                {isForgotPassword ? (
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
+                        <Mail className="h-3 w-3" /> Email
+                      </Label>
+                      <Input id="email" type="email" placeholder="you@example.com"
+                        value={email} onChange={e => setEmail(e.target.value)}
+                        className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
+                    </div>
+
+                    {error && <ErrorBox msg={error} />}
+                    {successMessage && <SuccessBox msg={successMessage} />}
+
+                    <Button type="submit" disabled={isSubmitting}
+                      className="w-full h-11 rounded-xl font-bold text-sm" style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}>
+                      {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</> : <><Mail className="h-4 w-4 mr-2" />Send Reset Link</>}
+                    </Button>
+
+                    <div className="text-center">
+                      <button type="button" onClick={() => { setIsForgotPassword(false); reset(); }}
+                        className="text-xs font-medium" style={{ color: 'hsl(145 15% 45%)' }}>
+                        ← Back to Sign In
                       </button>
+                    </div>
+                  </form>
+
+                ) : (
+                  /* ──── Main Login / Signup Form ──── */
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {!isLogin && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="fullName" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
+                          <User className="h-3 w-3" /> Full Name
+                        </Label>
+                        <Input id="fullName" type="text" placeholder="Your name"
+                          value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name"
+                          className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
+                      </div>
                     )}
-                  </div>
-                  <div className="relative">
-                    <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
-                      value={password} onChange={e => setPassword(e.target.value)}
-                      autoComplete={isLogin ? 'current-password' : 'new-password'}
-                      className="h-11 rounded-xl text-sm placeholder:text-white/20 pr-10" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'hsl(145 15% 40%)' }}>
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
 
-                {error && <ErrorBox msg={error} />}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
+                        <Mail className="h-3 w-3" /> Email
+                      </Label>
+                      <Input id="email" type="email" placeholder="you@example.com"
+                        value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
+                        className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
+                    </div>
 
-                <Button type="submit" disabled={isSubmitting}
-                  className="w-full h-11 rounded-xl font-bold text-sm disabled:opacity-50" style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 -1px 0 0 hsl(150 70% 30% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}>
-                  {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Please wait...</> : isLogin ? 'Sign In' : 'Create Account'}
-                </Button>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
+                          <Lock className="h-3 w-3" /> Password
+                        </Label>
+                        {isLogin && (
+                          <button type="button" onClick={() => { setIsForgotPassword(true); reset(); }}
+                            className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'hsl(145 72% 52% / 0.5)' }}>
+                            Forgot?
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
+                          value={password} onChange={e => setPassword(e.target.value)}
+                          autoComplete={isLogin ? 'current-password' : 'new-password'}
+                          className="h-11 rounded-xl text-sm placeholder:text-white/20 pr-10" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'hsl(145 15% 40%)' }}>
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
 
-                <div className="pt-1">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
-                    <span className="text-[10px] uppercase tracking-widest" style={{ color: 'hsl(145 15% 30%)' }}>or</span>
-                    <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
-                  </div>
-                  <div className="text-center">
-                    <button type="button" onClick={() => { setIsLogin(!isLogin); reset(); }}
-                      className="text-sm font-medium" style={{ color: 'hsl(145 15% 45%)' }}>
-                      {isLogin ? "Don't have an account? " : 'Already have an account? '}
-                      <span className="font-bold" style={{ color: 'hsl(145 72% 60%)' }}>{isLogin ? 'Sign up free' : 'Sign in'}</span>
-                    </button>
-                  </div>
-                </div>
-              </form>
+                    {error && <ErrorBox msg={error} />}
+
+                    <Button type="submit" disabled={isSubmitting}
+                      className="w-full h-11 rounded-xl font-bold text-sm disabled:opacity-50" style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 -1px 0 0 hsl(150 70% 30% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}>
+                      {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Please wait...</> : isLogin ? 'Sign In' : 'Create Account'}
+                    </Button>
+
+                    <div className="pt-1">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
+                        <span className="text-[10px] uppercase tracking-widest" style={{ color: 'hsl(145 15% 30%)' }}>or</span>
+                        <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
+                      </div>
+                      <div className="text-center">
+                        <button type="button" onClick={() => { setIsLogin(!isLogin); reset(); }}
+                          className="text-sm font-medium" style={{ color: 'hsl(145 15% 45%)' }}>
+                          {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                          <span className="font-bold" style={{ color: 'hsl(145 72% 60%)' }}>{isLogin ? 'Sign up free' : 'Sign in'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </>
             )}
           </div>
 
