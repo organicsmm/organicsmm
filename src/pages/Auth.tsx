@@ -121,14 +121,14 @@ export default function Auth() {
   const reset = () => { setError(''); setSuccessMessage(''); };
 
   return (
-    <div className="min-h-screen bg-[hsl(0,0%,2%)] flex">
+    <div className="min-h-screen flex" style={{ background: 'hsl(150 25% 4%)' }}>
 
       {/* ───── LEFT PANEL — Brand ───── */}
-      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-12 xl:p-16 border-r border-white/[0.06] relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-12 xl:p-16 relative overflow-hidden" style={{ borderRight: '1px solid hsl(145 72% 52% / 0.08)' }}>
 
         {/* Subtle grid texture */}
-        <div className="absolute inset-0 opacity-[0.025]"
-          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '60px 60px' }}
+        <div className="absolute inset-0 opacity-[0.03]"
+          style={{ backgroundImage: 'linear-gradient(hsl(145 72% 52% / 0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(145 72% 52% / 0.3) 1px, transparent 1px)', backgroundSize: '60px 60px' }}
         />
 
         <div className="relative z-10">
@@ -136,18 +136,18 @@ export default function Auth() {
           <div className="flex items-center gap-3 mb-14">
             <LogoMark size={44} />
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">OrganicSMM</h1>
-              <p className="text-[11px] text-white/30 font-medium tracking-[0.15em] uppercase">World's First AI-Organic Panel</p>
+              <h1 className="text-xl font-bold tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>OrganicSMM</h1>
+              <p className="text-[11px] font-medium tracking-[0.15em] uppercase" style={{ color: 'hsl(145 72% 52% / 0.5)' }}>World's First AI-Organic Panel</p>
             </div>
           </div>
 
           {/* Headline */}
           <div className="mb-10">
-            <h2 className="text-4xl xl:text-5xl font-black text-white leading-[1.1] tracking-tight mb-3">
+            <h2 className="text-4xl xl:text-5xl font-black leading-[1.1] tracking-tight mb-3" style={{ color: 'hsl(140 60% 95%)' }}>
               Features No Other<br />
-              <span className="text-white/35">SMM Panel Has</span>
+              <span style={{ color: 'hsl(145 72% 52%)' }}>SMM Panel Has</span>
             </h2>
-            <p className="text-sm text-white/40 leading-relaxed max-w-sm">
+            <p className="text-sm leading-relaxed max-w-sm" style={{ color: 'hsl(145 15% 45%)' }}>
               The only panel with AI-organic delivery — human-like patterns, IST peak hours, and zero detection risk.
             </p>
           </div>
@@ -155,16 +155,16 @@ export default function Auth() {
           {/* Feature list */}
           <div className="space-y-2">
             {features.map((f, i) => (
-              <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                <div className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0 mt-0.5">
-                  <f.icon className="h-4 w-4 text-white/60" />
+              <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl" style={{ border: '1px solid hsl(145 72% 52% / 0.08)', background: 'hsl(145 72% 52% / 0.03)' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(145 72% 52% / 0.08)', border: '1px solid hsl(145 72% 52% / 0.12)' }}>
+                  <f.icon className="h-4 w-4" style={{ color: 'hsl(145 72% 52%)' }} />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[13px] font-semibold text-white/90">{f.title}</span>
-                    <span className="text-[9px] font-bold text-white/30 tracking-widest">{f.badge}</span>
+                    <span className="text-[13px] font-semibold" style={{ color: 'hsl(140 60% 90%)' }}>{f.title}</span>
+                    <span className="text-[9px] font-bold tracking-widest" style={{ color: 'hsl(145 72% 52% / 0.4)' }}>{f.badge}</span>
                   </div>
-                  <p className="text-[11px] text-white/30 leading-relaxed">{f.desc}</p>
+                  <p className="text-[11px] leading-relaxed" style={{ color: 'hsl(145 15% 40%)' }}>{f.desc}</p>
                 </div>
               </div>
             ))}
@@ -172,7 +172,7 @@ export default function Auth() {
         </div>
 
         {/* Stats bar */}
-        <div className="relative z-10 flex items-center justify-between px-5 py-4 rounded-xl border border-white/[0.06] bg-white/[0.015] mt-8">
+        <div className="relative z-10 flex items-center justify-between px-5 py-4 rounded-xl mt-8" style={{ border: '1px solid hsl(145 72% 52% / 0.08)', background: 'hsl(145 72% 52% / 0.03)' }}>
           {[
             { value: '50K+', label: 'Orders' },
             { value: '0', label: 'Bans' },
@@ -181,10 +181,10 @@ export default function Auth() {
           ].map((s, i, arr) => (
             <div key={i} className="flex items-center gap-4">
               <div className="text-center">
-                <div className="text-xl font-black text-white">{s.value}</div>
-                <div className="text-[10px] text-white/25 uppercase tracking-widest mt-0.5">{s.label}</div>
+                <div className="text-xl font-black" style={{ color: 'hsl(145 72% 60%)' }}>{s.value}</div>
+                <div className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: 'hsl(145 15% 35%)' }}>{s.label}</div>
               </div>
-              {i < arr.length - 1 && <div className="w-px h-7 bg-white/[0.06]" />}
+              {i < arr.length - 1 && <div className="w-px h-7" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />}
             </div>
           ))}
         </div>
@@ -195,7 +195,7 @@ export default function Auth() {
         <div className="w-full max-w-[420px]">
 
           {/* Back to home */}
-          <Link to="/" className="inline-flex items-center gap-2 text-white/30 hover:text-white/60 mb-8 text-sm font-medium">
+          <Link to="/" className="inline-flex items-center gap-2 mb-8 text-sm font-medium" style={{ color: 'hsl(145 15% 40%)' }}>
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to home
           </Link>
@@ -203,29 +203,29 @@ export default function Auth() {
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <LogoMark size={36} />
-            <span className="text-lg font-bold text-white">OrganicSMM</span>
+            <span className="text-lg font-bold" style={{ color: 'hsl(140 60% 95%)' }}>OrganicSMM</span>
           </div>
 
           {/* Form card */}
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-7 sm:p-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
+          <div className="rounded-2xl p-7 sm:p-8" style={{ background: 'hsl(150 20% 7% / 0.95)', border: '1px solid hsl(145 72% 52% / 0.1)', boxShadow: '0 1px 0 0 hsl(145 72% 52% / 0.06) inset, 0 30px 80px -20px hsl(150 30% 3% / 0.8)' }}>
 
             {/* Top accent line */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent rounded-full" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px rounded-full" style={{ background: 'linear-gradient(90deg, transparent, hsl(145 72% 52% / 0.3), transparent)' }} />
 
             {/* Header */}
             <div className="mb-7">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/[0.05] border border-white/[0.08] mx-auto mb-5">
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl mx-auto mb-5" style={{ background: 'hsl(145 72% 52% / 0.08)', border: '1px solid hsl(145 72% 52% / 0.12)', boxShadow: '0 0 20px -6px hsl(145 72% 52% / 0.15)' }}>
                 {isForgotPassword
-                  ? <KeyRound className="h-5 w-5 text-white/60" />
+                  ? <KeyRound className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
                   : isLogin
-                    ? <Fingerprint className="h-5 w-5 text-white/60" />
-                    : <Star className="h-5 w-5 text-white/60" />
+                    ? <Fingerprint className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
+                    : <Star className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
                 }
               </div>
-              <h2 className="text-2xl font-black text-white text-center tracking-tight">
+              <h2 className="text-2xl font-black text-center tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>
                 {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Start Free Trial'}
               </h2>
-              <p className="text-sm text-white/35 text-center mt-1">
+              <p className="text-sm text-center mt-1" style={{ color: 'hsl(145 15% 45%)' }}>
                 {isForgotPassword
                   ? 'Enter your email for a reset link'
                   : isLogin
@@ -244,25 +244,25 @@ export default function Auth() {
             {isForgotPassword ? (
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs font-semibold text-white/40 uppercase tracking-wider flex items-center gap-1.5">
+                  <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
                     <Mail className="h-3 w-3" /> Email
                   </Label>
                   <Input id="email" type="email" placeholder="you@example.com"
                     value={email} onChange={e => setEmail(e.target.value)}
-                    className="h-11 bg-white/[0.04] border-white/[0.08] focus:border-white/25 rounded-xl text-sm text-white placeholder:text-white/20" />
+                    className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
                 </div>
 
                 {error && <ErrorBox msg={error} />}
                 {successMessage && <SuccessBox msg={successMessage} />}
 
                 <Button type="submit" disabled={isSubmitting}
-                  className="w-full h-11 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-sm">
+                  className="w-full h-11 rounded-xl font-bold text-sm" style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}>
                   {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</> : <><Mail className="h-4 w-4 mr-2" />Send Reset Link</>}
                 </Button>
 
                 <div className="text-center">
                   <button type="button" onClick={() => { setIsForgotPassword(false); reset(); }}
-                    className="text-xs text-white/30 hover:text-white/60 font-medium">
+                    className="text-xs font-medium" style={{ color: 'hsl(145 15% 45%)' }}>
                     ← Back to Sign In
                   </button>
                 </div>
@@ -273,32 +273,32 @@ export default function Auth() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="fullName" className="text-xs font-semibold text-white/40 uppercase tracking-wider flex items-center gap-1.5">
+                    <Label htmlFor="fullName" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
                       <User className="h-3 w-3" /> Full Name
                     </Label>
                     <Input id="fullName" type="text" placeholder="Your name"
                       value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name"
-                      className="h-11 bg-white/[0.04] border-white/[0.08] focus:border-white/25 rounded-xl text-sm text-white placeholder:text-white/20" />
+                      className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
                   </div>
                 )}
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs font-semibold text-white/40 uppercase tracking-wider flex items-center gap-1.5">
+                  <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
                     <Mail className="h-3 w-3" /> Email
                   </Label>
                   <Input id="email" type="email" placeholder="you@example.com"
                     value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
-                    className="h-11 bg-white/[0.04] border-white/[0.08] focus:border-white/25 rounded-xl text-sm text-white placeholder:text-white/20" />
+                    className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
                 </div>
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-xs font-semibold text-white/40 uppercase tracking-wider flex items-center gap-1.5">
+                    <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
                       <Lock className="h-3 w-3" /> Password
                     </Label>
                     {isLogin && (
                       <button type="button" onClick={() => { setIsForgotPassword(true); reset(); }}
-                        className="text-[10px] text-white/30 hover:text-white/60 font-medium uppercase tracking-wider">
+                        className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'hsl(145 72% 52% / 0.5)' }}>
                         Forgot?
                       </button>
                     )}
@@ -307,9 +307,9 @@ export default function Auth() {
                     <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
                       value={password} onChange={e => setPassword(e.target.value)}
                       autoComplete={isLogin ? 'current-password' : 'new-password'}
-                      className="h-11 bg-white/[0.04] border-white/[0.08] focus:border-white/25 rounded-xl text-sm text-white placeholder:text-white/20 pr-10" />
+                      className="h-11 rounded-xl text-sm placeholder:text-white/20 pr-10" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50">
+                      className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'hsl(145 15% 40%)' }}>
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
@@ -318,21 +318,21 @@ export default function Auth() {
                 {error && <ErrorBox msg={error} />}
 
                 <Button type="submit" disabled={isSubmitting}
-                  className="w-full h-11 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-sm disabled:opacity-50">
+                  className="w-full h-11 rounded-xl font-bold text-sm disabled:opacity-50" style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 -1px 0 0 hsl(150 70% 30% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}>
                   {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Please wait...</> : isLogin ? 'Sign In' : 'Create Account'}
                 </Button>
 
                 <div className="pt-1">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-1 h-px bg-white/[0.06]" />
-                    <span className="text-[10px] text-white/20 uppercase tracking-widest">or</span>
-                    <div className="flex-1 h-px bg-white/[0.06]" />
+                    <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
+                    <span className="text-[10px] uppercase tracking-widest" style={{ color: 'hsl(145 15% 30%)' }}>or</span>
+                    <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
                   </div>
                   <div className="text-center">
                     <button type="button" onClick={() => { setIsLogin(!isLogin); reset(); }}
-                      className="text-sm text-white/35 hover:text-white/60 font-medium">
+                      className="text-sm font-medium" style={{ color: 'hsl(145 15% 45%)' }}>
                       {isLogin ? "Don't have an account? " : 'Already have an account? '}
-                      <span className="text-white/80 font-bold">{isLogin ? 'Sign up free' : 'Sign in'}</span>
+                      <span className="font-bold" style={{ color: 'hsl(145 72% 60%)' }}>{isLogin ? 'Sign up free' : 'Sign in'}</span>
                     </button>
                   </div>
                 </div>
@@ -341,10 +341,10 @@ export default function Auth() {
           </div>
 
           {/* Trust badges */}
-          <div className="mt-6 flex items-center justify-center gap-5 text-[10px] text-white/20 uppercase tracking-widest">
-            <span className="flex items-center gap-1.5"><Shield className="h-3 w-3 text-white/30" />Secured</span>
-            <span className="flex items-center gap-1.5"><Zap className="h-3 w-3 text-white/30" />Instant</span>
-            <span className="flex items-center gap-1.5"><Globe className="h-3 w-3 text-white/30" />Global</span>
+          <div className="mt-6 flex items-center justify-center gap-5 text-[10px] uppercase tracking-widest" style={{ color: 'hsl(145 15% 30%)' }}>
+            <span className="flex items-center gap-1.5"><Shield className="h-3 w-3" style={{ color: 'hsl(145 72% 52% / 0.3)' }} />Secured</span>
+            <span className="flex items-center gap-1.5"><Zap className="h-3 w-3" style={{ color: 'hsl(145 72% 52% / 0.3)' }} />Instant</span>
+            <span className="flex items-center gap-1.5"><Globe className="h-3 w-3" style={{ color: 'hsl(145 72% 52% / 0.3)' }} />Global</span>
           </div>
         </div>
       </div>

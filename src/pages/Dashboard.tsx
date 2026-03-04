@@ -4,10 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCurrency } from '@/hooks/useCurrency';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  Wallet, 
-  ShoppingCart, 
-  TrendingUp, 
+import {
+  Wallet,
+  ShoppingCart,
+  TrendingUp,
   Clock,
   ArrowUpRight,
   Leaf,
@@ -70,20 +70,20 @@ export default function Dashboard() {
         .from('orders')
         .select('status, price')
         .eq('user_id', user?.id);
-      
+
       const { data: engOrders } = await supabase
         .from('engagement_orders')
         .select('status, total_price')
         .eq('user_id', user?.id);
-      
+
       const totalOrders = (orders?.length || 0) + (engOrders?.length || 0);
-      const completedOrders = (orders?.filter(o => o.status === 'completed').length || 0) + 
-                               (engOrders?.filter(o => o.status === 'completed').length || 0);
-      const activeOrders = (orders?.filter(o => o.status === 'processing' || o.status === 'pending').length || 0) + 
-                            (engOrders?.filter(o => o.status === 'processing' || o.status === 'pending').length || 0);
+      const completedOrders = (orders?.filter(o => o.status === 'completed').length || 0) +
+        (engOrders?.filter(o => o.status === 'completed').length || 0);
+      const activeOrders = (orders?.filter(o => o.status === 'processing' || o.status === 'pending').length || 0) +
+        (engOrders?.filter(o => o.status === 'processing' || o.status === 'pending').length || 0);
       const totalSpent = (orders?.reduce((sum, o) => sum + Number(o.price), 0) || 0) +
-                          (engOrders?.reduce((sum, o) => sum + Number(o.total_price), 0) || 0);
-      
+        (engOrders?.reduce((sum, o) => sum + Number(o.total_price), 0) || 0);
+
       return { totalOrders, completedOrders, activeOrders, totalSpent };
     },
     enabled: !!user?.id,
@@ -113,9 +113,9 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm text-zinc-500 font-medium mb-1">Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'},</p>
+            <p className="text-sm font-medium mb-1" style={{ color: 'hsl(145 15% 45%)' }}>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'},</p>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold text-white tracking-tight">
+              <h1 className="text-3xl font-bold tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>
                 {profile?.full_name || 'User'}
               </h1>
               {hasActiveSubscription && (
@@ -127,16 +127,18 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex gap-2.5">
-            <Button 
-              variant="outline" 
-              className="border-white/10 bg-white/5 hover:bg-white/10 text-white gap-2"
+            <Button
+              variant="outline"
+              className="gap-2"
+              style={{ borderColor: 'hsl(145 72% 52% / 0.2)', background: 'hsl(145 72% 52% / 0.06)', color: 'hsl(145 72% 60%)' }}
               onClick={() => navigate('/engagement-order')}
             >
               <Sparkles className="h-4 w-4" />
               Full Engagement
             </Button>
-            <Button 
-              className="bg-white text-black hover:bg-zinc-200 gap-2 font-semibold shadow-lg shadow-white/10"
+            <Button
+              className="gap-2 font-semibold"
+              style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}
               onClick={() => navigate('/order')}
             >
               <Zap className="h-4 w-4" />
@@ -155,13 +157,13 @@ export default function Dashboard() {
                   <Crown className="h-6 w-6 text-black" />
                 </div>
                 <div>
-                  <p className="font-bold text-lg text-white">
+                  <p className="font-bold text-lg" style={{ color: 'hsl(140 60% 95%)' }}>
                     {subscription.plan_type === 'lifetime' ? '👑 Lifetime Member' : '⭐ Pro Member'}
                   </p>
-                  <p className="text-sm text-zinc-400">
-                    {subscription.plan_type === 'lifetime' 
-                      ? 'Unlimited access forever' 
-                      : subscription.expires_at 
+                  <p className="text-sm" style={{ color: 'hsl(145 15% 50%)' }}>
+                    {subscription.plan_type === 'lifetime'
+                      ? 'Unlimited access forever'
+                      : subscription.expires_at
                         ? `Expires ${formatDistanceToNow(new Date(subscription.expires_at), { addSuffix: true })}`
                         : 'Active subscription'}
                   </p>
@@ -179,8 +181,8 @@ export default function Dashboard() {
               label: 'Balance',
               value: formatPrice(wallet?.balance || 0),
               sub: 'Available funds',
-              gradient: 'from-white/10 to-white/5',
-              iconBg: 'bg-white/10',
+              gradient: 'from-emerald-500/10 to-emerald-500/5',
+              iconBg: 'bg-emerald-500/10',
             },
             {
               icon: ShoppingCart,
@@ -207,18 +209,19 @@ export default function Dashboard() {
               iconBg: 'bg-white/10',
             },
           ].map((stat, i) => (
-            <div 
-              key={i} 
-              className="relative group rounded-2xl border border-white/[0.06] bg-gradient-to-br from-zinc-900/80 to-zinc-950/80 p-5 hover:border-white/10 transition-all duration-300"
+            <div
+              key={i}
+              className="relative group rounded-2xl p-5"
+              style={{ background: 'linear-gradient(145deg, hsl(150 20% 9%) 0%, hsl(150 22% 6%) 100%)', border: '1px solid hsl(145 72% 52% / 0.1)', boxShadow: '0 1px 0 0 hsl(145 72% 52% / 0.06) inset, 0 8px 24px -8px hsl(150 30% 3% / 0.6)' }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
-                <div className={`w-10 h-10 rounded-xl ${stat.iconBg} flex items-center justify-center mb-4`}>
-                  <stat.icon className="h-5 w-5 text-white/80" />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: 'hsl(145 72% 52% / 0.1)', border: '1px solid hsl(145 72% 52% / 0.12)' }}>
+                  <stat.icon className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
                 </div>
-                <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-white tracking-tight">{stat.value}</p>
-                <p className="text-xs text-zinc-500 mt-1">{stat.sub}</p>
+                <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: 'hsl(145 15% 45%)' }}>{stat.label}</p>
+                <p className="text-2xl font-bold tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>{stat.value}</p>
+                <p className="text-xs mt-1" style={{ color: 'hsl(145 15% 40%)' }}>{stat.sub}</p>
               </div>
             </div>
           ))}
@@ -227,22 +230,22 @@ export default function Dashboard() {
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Recent Engagement Orders - 3 cols */}
-          <div className="lg:col-span-3 rounded-2xl border border-white/[0.06] bg-zinc-950/50 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+          <div className="lg:col-span-3 rounded-2xl overflow-hidden" style={{ border: '1px solid hsl(145 72% 52% / 0.08)', background: 'hsl(150 22% 6% / 0.5)' }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid hsl(145 72% 52% / 0.08)' }}>
               <div className="flex items-center gap-2.5">
-                <BarChart3 className="h-4.5 w-4.5 text-zinc-400" />
-                <h2 className="font-semibold text-white">Engagement Orders</h2>
+                <BarChart3 className="h-4.5 w-4.5" style={{ color: 'hsl(145 72% 52% / 0.6)' }} />
+                <h2 className="font-semibold" style={{ color: 'hsl(140 60% 95%)' }}>Engagement Orders</h2>
               </div>
-              <Link to="/engagement-orders" className="text-xs text-zinc-500 hover:text-white transition-colors flex items-center gap-1">
+              <Link to="/engagement-orders" className="text-xs flex items-center gap-1" style={{ color: 'hsl(145 72% 52% / 0.5)' }}>
                 View all <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
-            
+
             <div className="divide-y divide-white/[0.04]">
               {engagementOrders && engagementOrders.length > 0 ? (
                 engagementOrders.slice(0, 4).map((order: any) => (
-                  <Link 
-                    key={order.id} 
+                  <Link
+                    key={order.id}
                     to={`/engagement-orders/${order.order_number}`}
                     className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition-colors group"
                   >
@@ -251,7 +254,7 @@ export default function Dashboard() {
                         <span className="text-xs font-mono text-zinc-400">#{order.order_number}</span>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-white truncate max-w-[200px]">
+                        <p className="text-sm font-medium truncate max-w-[200px]" style={{ color: 'hsl(140 60% 90%)' }}>
                           {order.link?.replace('https://', '').slice(0, 35)}...
                         </p>
                         <div className="flex items-center gap-2 mt-1">
@@ -281,8 +284,8 @@ export default function Dashboard() {
                     <Sparkles className="h-5 w-5 text-zinc-500" />
                   </div>
                   <p className="text-sm text-zinc-500 mb-3">No engagement orders yet</p>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className="bg-white text-black hover:bg-zinc-200 text-xs"
                     onClick={() => navigate('/engagement-order')}
                   >
@@ -304,11 +307,11 @@ export default function Dashboard() {
                 View all <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
-            
+
             <div className="divide-y divide-white/[0.04]">
               {recentOrders && recentOrders.length > 0 ? (
                 recentOrders.slice(0, 4).map((order: any) => (
-                  <div 
+                  <div
                     key={order.id}
                     className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition-colors"
                   >
@@ -331,8 +334,8 @@ export default function Dashboard() {
                     <ShoppingCart className="h-5 w-5 text-zinc-500" />
                   </div>
                   <p className="text-sm text-zinc-500 mb-3">No orders yet</p>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className="bg-white text-black hover:bg-zinc-200 text-xs"
                     onClick={() => navigate('/order')}
                   >
@@ -351,8 +354,8 @@ export default function Dashboard() {
             { icon: Wallet, label: 'Add Funds', desc: 'Deposit to wallet', path: '/wallet', accent: 'from-emerald-500/20 to-green-500/20 border-emerald-500/10 hover:border-emerald-500/20' },
             { icon: Package, label: 'All Services', desc: 'Browse catalog', path: '/services', accent: 'from-sky-500/20 to-blue-500/20 border-sky-500/10 hover:border-sky-500/20' },
           ].map((action, i) => (
-            <Link 
-              key={i} 
+            <Link
+              key={i}
               to={action.path}
               className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${action.accent} p-5 transition-all duration-300`}
             >

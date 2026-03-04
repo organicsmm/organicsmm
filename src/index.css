@@ -12,64 +12,75 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Font loading */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap&font-display=swap');
+/* Font loading — Outfit for headlines, Inter for body */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap&font-display=swap');
 
 @layer base {
   :root {
-    /* Ultra Dark Theme - Pure Black */
-    --background: 0 0% 2%;
-    --foreground: 0 0% 100%;
+    /* ═══════════════════════════════════════════
+       ORGANIC 3D THEME — Light Green on Dark
+       ═══════════════════════════════════════════ */
+    --background: 150 25% 4%;
+    --foreground: 140 60% 95%;
 
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 100%;
+    --card: 152 20% 7%;
+    --card-foreground: 140 60% 95%;
 
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 150 22% 8%;
+    --popover-foreground: 140 60% 95%;
 
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
+    --primary: 145 72% 52%;
+    --primary-foreground: 152 50% 4%;
 
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 150 18% 10%;
+    --secondary-foreground: 140 40% 85%;
 
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 150 12% 14%;
+    --muted-foreground: 145 15% 55%;
 
-    --accent: 0 0% 85%;
-    --accent-foreground: 0 0% 0%;
+    --accent: 145 72% 52%;
+    --accent-foreground: 152 50% 4%;
 
-    --success: 0 0% 80%;
-    --success-foreground: 0 0% 0%;
+    --success: 145 72% 52%;
+    --success-foreground: 152 50% 4%;
 
-    --warning: 0 0% 70%;
-    --warning-foreground: 0 0% 0%;
+    --warning: 42 90% 55%;
+    --warning-foreground: 42 90% 10%;
 
-    --destructive: 0 0% 50%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 10%;
-    --ring: 0 0% 70%;
+    --border: 150 15% 16%;
+    --input: 150 18% 10%;
+    --ring: 145 72% 52%;
 
     --radius: 1rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(0 0% 90%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(0 0% 90%) 0%, hsl(0 0% 70%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(0 0% 85%) 0%, hsl(0 0% 70%) 100%);
-    --gradient-dark: linear-gradient(135deg, hsl(0 0% 8%) 0%, hsl(0 0% 3%) 100%);
-    --gradient-glass: linear-gradient(135deg, hsl(0 0% 10% / 0.95) 0%, hsl(0 0% 5% / 0.98) 100%);
+    /* 3D Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(145 72% 52%) 0%, hsl(160 72% 42%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(145 80% 48%) 0%, hsl(170 70% 38%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(145 72% 52%) 0%, hsl(160 72% 42%) 100%);
+    --gradient-dark: linear-gradient(135deg, hsl(150 25% 6%) 0%, hsl(150 25% 3%) 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(150 20% 9% / 0.95) 0%, hsl(150 25% 5% / 0.98) 100%);
 
-    --shadow-card: 0 8px 40px -8px hsl(0 0% 0% / 0.7), 0 0 0 1px hsl(var(--border) / 0.6);
+    --shadow-card: 0 8px 40px -8px hsl(145 72% 52% / 0.12), 0 0 0 1px hsl(var(--border) / 0.6);
 
-    --sidebar-background: 0 0% 3%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 10%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 0 0% 70%;
+    /* Sidebar */
+    --sidebar-background: 150 25% 4%;
+    --sidebar-foreground: 140 60% 95%;
+    --sidebar-primary: 145 72% 52%;
+    --sidebar-primary-foreground: 152 50% 4%;
+    --sidebar-accent: 150 18% 10%;
+    --sidebar-accent-foreground: 140 40% 85%;
+    --sidebar-border: 150 15% 14%;
+    --sidebar-ring: 145 72% 52%;
+
+    /* 3D light source direction */
+    --3d-light: 145 72% 52%;
+    --3d-shadow: 150 30% 3%;
+    --3d-depth: 8px;
+    --glow-color: hsl(145 72% 52% / 0.35);
+    --glow-soft: hsl(145 72% 52% / 0.08);
   }
 }
 
@@ -81,17 +92,21 @@ input[type="number"] {
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-    background: hsl(0 0% 2%);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: hsl(150 25% 4%);
+    /* Subtle radial underglow */
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, hsl(145 72% 52% / 0.06) 0%, transparent 60%);
+    background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeSpeed;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'Outfit', system-ui, sans-serif;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
   }
 
   h1 { @apply text-3xl sm:text-4xl md:text-5xl font-bold; line-height: 1.1; }
@@ -99,7 +114,7 @@ input[type="number"] {
   h3 { @apply text-xl sm:text-2xl font-bold; line-height: 1.25; }
 
   label, .label {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-weight: 600;
     letter-spacing: 0.01em;
   }
@@ -110,21 +125,26 @@ input[type="number"] {
   }
 
   .text-bright {
-    color: hsl(0 0% 100%);
+    color: hsl(140 60% 95%);
   }
 
   ::selection {
-    background: hsl(0 0% 100% / 0.25);
+    background: hsl(145 72% 52% / 0.3);
     color: hsl(var(--foreground));
   }
 }
 
 @layer components {
+  /* ═══ 3D GLASS CARD ═══ */
   .glass-card {
     @apply relative overflow-hidden rounded-2xl;
-    background: hsl(0 0% 8% / 0.98);
-    border: 1px solid hsl(0 0% 20% / 0.5);
-    box-shadow: 0 4px 20px -4px hsl(0 0% 0% / 0.5);
+    background: linear-gradient(145deg, hsl(150 20% 9%) 0%, hsl(150 22% 6%) 100%);
+    border: 1px solid hsl(145 72% 52% / 0.12);
+    box-shadow:
+      0 1px 0 0 hsl(145 72% 52% / 0.08) inset,
+      0 -1px 0 0 hsl(150 30% 3% / 0.5) inset,
+      0 8px 30px -8px hsl(150 30% 3% / 0.7),
+      0 0 0 1px hsl(150 15% 16% / 0.5);
   }
 
   .glass-card::before {
@@ -134,18 +154,23 @@ input[type="number"] {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, hsl(0 0% 40% / 0.4), transparent);
+    background: linear-gradient(90deg, transparent, hsl(145 72% 52% / 0.25), transparent);
   }
 
+  /* ═══ GLASS PANEL ═══ */
   .glass-panel {
     @apply rounded-xl;
     background: hsl(var(--secondary) / 0.9);
-    border: 1px solid hsl(var(--border) / 0.5);
+    border: 1px solid hsl(145 72% 52% / 0.08);
+    box-shadow:
+      0 1px 0 0 hsl(145 72% 52% / 0.05) inset,
+      0 4px 16px -4px hsl(150 30% 3% / 0.4);
   }
 
+  /* ═══ GRADIENT TEXT ═══ */
   .gradient-text {
     @apply bg-clip-text text-transparent font-bold;
-    background-image: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(0 0% 75%) 100%);
+    background-image: linear-gradient(135deg, hsl(145 72% 60%) 0%, hsl(160 72% 42%) 100%);
   }
 
   .gradient-text-accent {
@@ -153,11 +178,12 @@ input[type="number"] {
     background-image: var(--gradient-accent);
   }
 
-  .glow-primary { box-shadow: 0 0 40px -10px hsl(0 0% 100% / 0.15); }
-  .glow-accent  { box-shadow: 0 0 40px -10px hsl(0 0% 100% / 0.2); }
+  /* ═══ GLOW EFFECTS ═══ */
+  .glow-primary { box-shadow: 0 0 40px -10px hsl(145 72% 52% / 0.25); }
+  .glow-accent  { box-shadow: 0 0 40px -10px hsl(145 72% 52% / 0.3); }
   .glow-border  { position: relative; }
 
-  /* Navigation */
+  /* ═══ NAVIGATION ═══ */
   .nav-link {
     @apply flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground;
   }
@@ -166,113 +192,146 @@ input[type="number"] {
   }
 
   .nav-link-active {
-    @apply text-foreground font-medium bg-secondary;
-    border: 1px solid hsl(0 0% 25%);
+    @apply text-foreground font-medium;
+    background: hsl(145 72% 52% / 0.12);
+    border: 1px solid hsl(145 72% 52% / 0.2);
+    box-shadow: 0 0 20px -6px hsl(145 72% 52% / 0.15);
   }
 
-  /* Buttons */
+  /* ═══ 3D BUTTONS ═══ */
   .btn-gradient {
     @apply relative overflow-hidden font-semibold rounded-xl;
-    background: hsl(0 0% 98%);
-    color: hsl(0 0% 5%);
-    box-shadow: 0 4px 20px -4px hsl(0 0% 100% / 0.2);
+    background: var(--gradient-primary);
+    color: hsl(152 50% 4%);
+    box-shadow:
+      0 1px 0 0 hsl(145 80% 62% / 0.4) inset,
+      0 -2px 0 0 hsl(150 70% 30% / 0.3) inset,
+      0 4px 20px -4px hsl(145 72% 52% / 0.4);
   }
   .btn-gradient:hover {
-    background: hsl(0 0% 92%);
+    filter: brightness(1.08);
+    box-shadow:
+      0 1px 0 0 hsl(145 80% 62% / 0.5) inset,
+      0 -2px 0 0 hsl(150 70% 30% / 0.3) inset,
+      0 6px 28px -4px hsl(145 72% 52% / 0.5);
   }
 
   .btn-glass {
     @apply relative overflow-hidden font-medium rounded-xl;
     background: hsl(var(--secondary));
-    border: 1px solid hsl(var(--border));
+    border: 1px solid hsl(145 72% 52% / 0.15);
+    box-shadow:
+      0 1px 0 0 hsl(145 72% 52% / 0.05) inset,
+      0 4px 12px -4px hsl(150 30% 3% / 0.4);
   }
   .btn-glass:hover {
-    background: hsl(0 0% 15%);
-    border-color: hsl(0 0% 30%);
+    background: hsl(150 18% 13%);
+    border-color: hsl(145 72% 52% / 0.25);
+    box-shadow:
+      0 1px 0 0 hsl(145 72% 52% / 0.08) inset,
+      0 6px 20px -4px hsl(150 30% 3% / 0.5);
   }
 
-  /* Stat cards */
+  /* ═══ STAT CARDS — 3D raised ═══ */
   .stat-card {
     @apply glass-card p-6 cursor-default;
   }
   .stat-card:hover {
-    border-color: hsl(0 0% 30%);
+    border-color: hsl(145 72% 52% / 0.2);
+    box-shadow:
+      0 1px 0 0 hsl(145 72% 52% / 0.1) inset,
+      0 -1px 0 0 hsl(150 30% 3% / 0.5) inset,
+      0 12px 40px -10px hsl(150 30% 3% / 0.8),
+      0 0 20px -6px hsl(145 72% 52% / 0.1);
   }
 
-  /* Inputs */
+  /* ═══ INPUTS — 3D recessed ═══ */
   .input-glass {
     @apply bg-input border-border rounded-xl;
-    box-shadow: inset 0 1px 2px hsl(0 0% 0% / 0.2);
+    box-shadow:
+      inset 0 2px 4px hsl(150 30% 3% / 0.3),
+      inset 0 0 0 1px hsl(150 15% 12% / 0.5);
   }
   .input-glass:focus {
-    border-color: hsl(0 0% 40%);
-    box-shadow: 0 0 0 2px hsl(0 0% 40% / 0.2), inset 0 1px 2px hsl(0 0% 0% / 0.2);
+    border-color: hsl(145 72% 52% / 0.4);
+    box-shadow:
+      0 0 0 2px hsl(145 72% 52% / 0.15),
+      inset 0 2px 4px hsl(150 30% 3% / 0.3);
   }
 
-  /* Organic bars - static */
+  /* ═══ ORGANIC BARS ═══ */
   .organic-bar {
     @apply h-full rounded-full;
-    background: hsl(0 0% 98%);
-    box-shadow: 0 0 20px -4px hsl(0 0% 100% / 0.3);
+    background: var(--gradient-primary);
+    box-shadow: 0 0 20px -4px hsl(145 72% 52% / 0.4);
   }
   .organic-bar-pending {
-    background: hsl(0 0% 40%);
+    background: hsl(150 15% 20%);
     box-shadow: none;
   }
 
-  /* Run indicator - static dot */
+  /* ═══ RUN INDICATOR ═══ */
   .run-indicator {
     @apply w-3 h-3 rounded-full;
-    box-shadow: 0 0 6px currentColor;
+    box-shadow: 0 0 8px hsl(145 72% 52% / 0.6);
   }
 
-  /* Grid pattern */
+  /* ═══ GRID PATTERN ═══ */
   .grid-pattern {
     background-image:
-      linear-gradient(hsl(0 0% 15% / 0.4) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(0 0% 15% / 0.4) 1px, transparent 1px);
+      linear-gradient(hsl(145 72% 52% / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(145 72% 52% / 0.04) 1px, transparent 1px);
     background-size: 60px 60px;
   }
 
-  /* Status badges */
+  /* ═══ STATUS BADGES — 3D pill style ═══ */
   .badge-success {
     @apply px-3 py-1.5 rounded-lg text-xs font-semibold;
-    background: hsl(0 0% 30%);
-    color: hsl(0 0% 90%);
-    border: 1px solid hsl(0 0% 40%);
+    background: hsl(145 72% 52% / 0.12);
+    color: hsl(145 72% 65%);
+    border: 1px solid hsl(145 72% 52% / 0.2);
+    box-shadow: 0 0 12px -4px hsl(145 72% 52% / 0.2);
   }
   .badge-warning {
     @apply px-3 py-1.5 rounded-lg text-xs font-semibold;
-    background: hsl(0 0% 25%);
-    color: hsl(0 0% 85%);
-    border: 1px solid hsl(0 0% 35%);
+    background: hsl(42 90% 55% / 0.12);
+    color: hsl(42 90% 65%);
+    border: 1px solid hsl(42 90% 55% / 0.2);
+    box-shadow: 0 0 12px -4px hsl(42 90% 55% / 0.15);
   }
   .badge-error {
     @apply px-3 py-1.5 rounded-lg text-xs font-semibold;
-    background: hsl(0 0% 20%);
-    color: hsl(0 0% 80%);
-    border: 1px solid hsl(0 0% 30%);
+    background: hsl(0 72% 50% / 0.12);
+    color: hsl(0 72% 65%);
+    border: 1px solid hsl(0 72% 50% / 0.2);
+    box-shadow: 0 0 12px -4px hsl(0 72% 50% / 0.15);
   }
   .badge-info {
     @apply px-3 py-1.5 rounded-lg text-xs font-semibold;
-    background: hsl(0 0% 22%);
-    color: hsl(0 0% 85%);
-    border: 1px solid hsl(0 0% 32%);
+    background: hsl(200 72% 50% / 0.12);
+    color: hsl(200 72% 65%);
+    border: 1px solid hsl(200 72% 50% / 0.2);
+    box-shadow: 0 0 12px -4px hsl(200 72% 50% / 0.15);
   }
 
-  /* Card variants */
-  .card-primary { @apply glass-card; border-left: 3px solid hsl(0 0% 50%); }
-  .card-accent  { @apply glass-card; border-left: 3px solid hsl(0 0% 60%); }
-  .card-success { @apply glass-card; border-left: 3px solid hsl(0 0% 70%); }
-  .card-warning { @apply glass-card; border-left: 3px solid hsl(0 0% 55%); }
+  /* ═══ CARD VARIANTS — green accent borders ═══ */
+  .card-primary { @apply glass-card; border-left: 3px solid hsl(145 72% 52%); }
+  .card-accent  { @apply glass-card; border-left: 3px solid hsl(160 72% 42%); }
+  .card-success { @apply glass-card; border-left: 3px solid hsl(145 72% 52%); }
+  .card-warning { @apply glass-card; border-left: 3px solid hsl(42 90% 55%); }
 
   .dark-input {
-    @apply rounded-xl px-4 py-3 bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-muted-foreground;
+    @apply rounded-xl px-4 py-3 bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none;
+    box-shadow: inset 0 2px 4px hsl(150 30% 3% / 0.3);
+  }
+  .dark-input:focus {
+    border-color: hsl(145 72% 52% / 0.4);
+    box-shadow: 0 0 0 2px hsl(145 72% 52% / 0.12), inset 0 2px 4px hsl(150 30% 3% / 0.3);
   }
 
   .divider {
     @apply h-px w-full;
-    background: linear-gradient(90deg, transparent, hsl(0 0% 25%), transparent);
+    background: linear-gradient(90deg, transparent, hsl(145 72% 52% / 0.15), transparent);
   }
 
   /* Kept for backward compat but static */
@@ -288,13 +347,16 @@ input[type="number"] {
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(0 0% 30%) transparent;
+    scrollbar-color: hsl(145 72% 52% / 0.2) transparent;
   }
   .scrollbar-thin::-webkit-scrollbar { width: 6px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: hsl(0 0% 30%);
+    background: hsl(145 72% 52% / 0.2);
     border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(145 72% 52% / 0.35);
   }
 
   .text-balance { text-wrap: balance; }

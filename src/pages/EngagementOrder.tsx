@@ -559,6 +559,20 @@ export default function EngagementOrder() {
       return;
     }
 
+    // NEW: Block orders where any enabled engagement type has zero price
+    const zeroPriceEngagements = Object.entries(engagements)
+      .filter(([_, config]) => config.enabled && config.price <= 0)
+      .map(([type]) => type);
+
+    if (zeroPriceEngagements.length > 0) {
+      toast({
+        title: "⚠️ Pricing Error",
+        description: `${zeroPriceEngagements.join(', ')} has $0.00 price. Service pricing may not be configured correctly. Please contact support.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Admin gets free access - no subscription or balance required
     if (isAdmin) {
       placeOrderMutation.mutate();
