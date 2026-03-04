@@ -1,8 +1,8 @@
 // Quick sync: calls import-services edge function to refresh prices for all yoyo services
 const https = require('https');
 
-const SUPABASE_URL = 'https://uboeupkchwoxghufkgpk.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVib2V1cGtjaHdveGdodWZrZ3BrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NTA2MzgsImV4cCI6MjA4NzMyNjYzOH0.009JPYkxEunKw6KCJtMmAu6k8osFyMX7ygnydrNzN2c';
+const SUPABASE_URL = 'https://nenuwlbnaxesmnpfjlrl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY';
 
 const SERVICE_IDS = ['13636', '7515', '13362', '13384', '10026', '11674'];
 

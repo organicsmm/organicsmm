@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Check localStorage for stored session for instant render
   const hasStoredSession = typeof window !== 'undefined' && (
-    localStorage.getItem('sb-uboeupkchwoxghufkgpk-auth-token') ||
+    localStorage.getItem('sb-nenuwlbnaxesmnpfjlrl-auth-token') ||
     // Fallback: check for any supabase auth token
     Object.keys(localStorage).some(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
   );
