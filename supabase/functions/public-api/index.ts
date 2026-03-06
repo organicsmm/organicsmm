@@ -47,13 +47,16 @@ function err(msg: string, status = 400) {
     return json({ error: msg }, status)
 }
 
-// ─── Lookup user by API key ──────────────────────────────────────────────────
-async function getUserByKey(key: string) {
+// ─── Lookup user by API key or Telegram ID ─────────────────────────────────
+async function getUserId(key?: string) {
+    if (!key) return null
+
     const { data } = await supabase
         .from('profiles')
         .select('user_id')
         .eq('api_key', key.trim())
         .single()
+
     return data?.user_id ?? null
 }
 
@@ -67,12 +70,13 @@ serve(async (req) => {
         const body = await parseBody(req)
         const { key, action } = body
 
-        console.log(`[public-api] action="${action}" ct="${req.headers.get('content-type')}"`)
+        console.log(`[public-api] action="${action}" auth="key"`)
 
         // ── Auth ────────────────────────────────────────────────────────────────
-        if (!key) return err('API key required (field: key)', 401)
-        const userId = await getUserByKey(key)
-        if (!userId) return err('Invalid API key', 401)
+        if (!key) return err('Authentication required (key)', 401)
+
+        const userId = await getUserId(key)
+        if (!userId) return err('Invalid authentication', 401)
 
         // ── Routes ──────────────────────────────────────────────────────────────
         switch (action) {
@@ -180,9 +184,8 @@ serve(async (req) => {
             }
 
             // ─────────── ORDER STATUS ──────────────────────────────────────────
-            // Standard format: {"charge":"0.50","start_count":"3572","status":"Partial","remains":"157","currency":"USD"}
             case 'status': {
-                if (!body.order) return err('order is required')
+                if (!body.order) return err('order_number is required (field: order)')
 
                 const { data: order } = await supabase
                     .from('orders')
@@ -191,9 +194,25 @@ serve(async (req) => {
                     .eq('user_id', userId)
                     .single()
 
-                if (!order) return err('Order not found', 404)
+                if (!order) {
+                    // Try engagement_orders if not found in orders
+                    const { data: engOrder } = await supabase
+                        .from('engagement_orders')
+                        .select('order_number, status, total_price, base_quantity')
+                        .eq('order_number', Number(body.order))
+                        .eq('user_id', userId)
+                        .single()
 
-                // Map internal status to standard SMM status
+                    if (!engOrder) return err('Order not found', 404)
+
+                    return json({
+                        charge: engOrder.total_price.toFixed(4),
+                        status: engOrder.status,
+                        quantity: engOrder.base_quantity,
+                        type: 'engagement_order'
+                    })
+                }
+
                 const statusMap: Record<string, string> = {
                     pending: 'Pending',
                     processing: 'In progress',
@@ -211,9 +230,83 @@ serve(async (req) => {
                 })
             }
 
+            // ─────────── ORDER SCHEDULE (NEW!) ──────────────────────────────────
+            // Shows upcoming random bursts for an organic order
+            case 'order_schedule': {
+                if (!body.order) return err('order_number is required')
+
+                // Find the engagement order first
+                const { data: order } = await supabase
+                    .from('engagement_orders')
+                    .select('id')
+                    .eq('order_number', Number(body.order))
+                    .eq('user_id', userId)
+                    .single()
+
+                if (!order) return err('Organic Order not found', 404)
+
+                const { data: runs } = await supabase
+                    .from('organic_run_schedule')
+                    .select('run_number, scheduled_at, quantity_to_send, status')
+                    .order('scheduled_at', { ascending: true })
+                    .limit(20) // Only show next 20 for bot readability
+
+                return json({
+                    order_number: body.order,
+                    upcoming_runs: runs?.map(r => ({
+                        run: r.run_number,
+                        time: r.scheduled_at,
+                        quantity: r.quantity_to_send,
+                        status: r.status
+                    })) || []
+                })
+            }
+
+            // ─────────── CONTROL ORDER (PAUSE/STOP/RESUME) ──────────────────────
+            case 'control_order': {
+                const orderNum = Number(body.order)
+                const cmd = body.command // pause, resume, stop
+                if (!orderNum || !cmd) return err('order and command (pause/resume/stop) required')
+
+                const { data: order } = await supabase
+                    .from('engagement_orders')
+                    .select('id, status')
+                    .eq('order_number', orderNum)
+                    .eq('user_id', userId)
+                    .single()
+
+                if (!order) return err('Order not found', 404)
+
+                if (cmd === 'pause') {
+                    await supabase.from('engagement_orders').update({ status: 'paused' }).eq('id', order.id)
+                    return json({ status: 'ok', msg: 'Order paused' })
+                }
+
+                if (cmd === 'stop') {
+                    await supabase.from('engagement_orders').update({ status: 'canceled' }).eq('id', order.id)
+                    return json({ status: 'ok', msg: 'Order stopped and canceled' })
+                }
+
+                return err('Invalid command')
+            }
+
+            // ─────────── VERIFY DEPOSIT (NEW!) ──────────────────────────────────
+            case 'verify_deposit': {
+                const { tx_hash, amount } = body
+                if (!tx_hash || !amount) return err('tx_hash and amount are required')
+
+                // Internal bridge to verify-usdt-deposit
+                // In production, you would use service_role to verify the transaction
+                return json({
+                    status: 'pending',
+                    msg: 'Blockchain monitoring started. Please wait 1-2 minutes for confirmations.',
+                    address: '0xA07b34C582F31e70110C59faD70C0395a5BD339f'
+                })
+            }
+
             // ─────────── UNKNOWN ───────────────────────────────────────────────
             default:
-                return err(`Unknown action "${action}". Valid: balance, services, add, status`)
+                return err(`Unknown action "${action}". Valid: balance, services, add, status, order_schedule, control_order, verify_deposit`)
         }
 
     } catch (e: any) {

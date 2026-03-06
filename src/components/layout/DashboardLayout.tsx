@@ -14,7 +14,7 @@ interface DashboardLayoutProps {
 
 function TrialBanner() {
   const { isTrial, trialDaysRemaining } = useSubscription();
-  
+
   if (!isTrial) return null;
 
   const isUrgent = trialDaysRemaining !== null && trialDaysRemaining <= 2;
@@ -22,19 +22,19 @@ function TrialBanner() {
   return (
     <div className={cn(
       "w-full px-4 py-2.5 flex items-center justify-center gap-3 text-sm font-medium",
-      isUrgent 
-        ? "bg-rose-500/10 border-b border-rose-500/20 text-rose-300"
-        : "bg-emerald-500/10 border-b border-emerald-500/20 text-emerald-300"
+      isUrgent
+        ? "bg-rose-100 border-b border-rose-200 text-rose-800"
+        : "bg-emerald-100 border-b border-emerald-200 text-emerald-800"
     )}>
       <Clock className="h-3.5 w-3.5" />
       <span>
-        {trialDaysRemaining === 0 
-          ? 'Trial expires today!' 
+        {trialDaysRemaining === 0
+          ? 'Trial expires today!'
           : `Free trial: ${trialDaysRemaining} day${trialDaysRemaining === 1 ? '' : 's'} remaining`
         }
       </span>
-      <span className="text-white/20">•</span>
-      <button 
+      <span className="text-black/20">•</span>
+      <button
         onClick={() => {
           const event = new CustomEvent('open-subscription-dialog');
           window.dispatchEvent(event);
@@ -42,8 +42,8 @@ function TrialBanner() {
         className={cn(
           "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all hover:scale-105",
           isUrgent
-            ? "bg-rose-500/20 border border-rose-500/30 text-rose-200 hover:bg-rose-500/30"
-            : "bg-emerald-500/20 border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/30"
+            ? "bg-rose-200 border border-rose-300 text-rose-800 hover:bg-rose-300"
+            : "bg-emerald-200 border border-emerald-300 text-emerald-800 hover:bg-emerald-300"
         )}
       >
         <Sparkles className="h-3 w-3" />

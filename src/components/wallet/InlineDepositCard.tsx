@@ -94,73 +94,80 @@ export default function InlineDepositCard() {
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(DEPOSIT_WALLET)}&bgcolor=ffffff&color=000000&margin=10`;
 
   return (
-    <Card className="overflow-hidden border-border/50">
-      {/* Gradient header */}
-      <CardHeader className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-bold">Pay & Verify</h2>
+    <div className="glass-premium overflow-hidden">
+      {/* Premium Header */}
+      <div className="p-8 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <ShieldCheck className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black tracking-tight">Deposit Vault</h2>
+              <p className="text-xs text-muted-foreground">Automated BSC Verification</p>
+            </div>
           </div>
-          <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/30">
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            Only USDT on BNB Smart Chain (BEP20)
+          <Badge variant="outline" className="text-[10px] bg-amber-500/5 text-amber-500 border-amber-500/20 py-1.5 px-3 rounded-lg font-bold uppercase tracking-widest h-fit">
+            <AlertTriangle className="h-3 w-3 mr-1.5" />
+            USDT BEP20 ONLY
           </Badge>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-5 pt-5">
+      <div className="p-8 pt-4 space-y-6">
         {/* Wallet address + QR */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-8 p-6 rounded-[1.5rem] bg-white/[0.02] border border-white/[0.05]">
           {/* QR Code */}
-          <div className="flex-shrink-0 flex items-center justify-center">
+          <div className="flex-shrink-0 flex items-center justify-center relative group">
+            <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
             <img
               src={qrSrc}
-              alt="USDT BEP20 QR Code"
-              className="w-28 h-28 rounded-xl border border-border/50"
+              alt="QR"
+              className="w-32 h-32 rounded-2xl relative z-10 border border-white/10 p-2 bg-white"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           </div>
 
-          {/* Address */}
-          <div className="flex-1 space-y-2">
-            <p className="text-sm text-muted-foreground font-medium">Send USDT (BEP20) to:</p>
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/50 border border-border/50">
-              <code className="text-xs text-foreground break-all flex-1 font-mono">{DEPOSIT_WALLET}</code>
-              <button onClick={copyAddress} className="p-1.5 hover:bg-secondary rounded-lg transition-colors flex-shrink-0">
-                {copied ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
-              </button>
+          <div className="flex-1 space-y-4">
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Recipient Address</p>
+              <div className="flex items-center gap-2">
+                <code className="text-sm text-foreground break-all flex-1 font-mono font-bold">{DEPOSIT_WALLET}</code>
+                <button onClick={copyAddress} className="p-2 hover:bg-primary/10 rounded-xl transition-colors flex-shrink-0 border border-transparent hover:border-primary/20">
+                  {copied ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <Copy className="h-5 w-5 text-muted-foreground" />}
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Network: <span className="text-foreground font-medium">BNB Smart Chain (BEP20)</span>
-            </p>
+            <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-wider">
+              <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/10">Network: <span className="text-primary">BEP20</span></span>
+              <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/10">Currency: <span className="text-primary">USDT</span></span>
+            </div>
           </div>
         </div>
 
-        {/* Inputs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm text-muted-foreground mb-1.5 block">Amount (USD)</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Arrival Amount</label>
+            <div className="relative group">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">$</span>
               <Input
                 type="number"
-                placeholder="Min $1.00"
+                placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="pl-7"
+                className="pl-8 bg-white/[0.02] border-white/10 focus:border-primary/40 rounded-xl h-14 font-bold text-lg"
                 min="1"
                 step="0.01"
               />
             </div>
           </div>
-          <div>
-            <label className="text-sm text-muted-foreground mb-1.5 block">Transaction Hash</label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">TX Hash Signature</label>
             <Input
               placeholder="0x..."
               value={txHash}
               onChange={(e) => setTxHash(e.target.value)}
-              className="font-mono text-xs"
+              className="font-mono text-xs bg-white/[0.02] border-white/10 focus:border-primary/40 rounded-xl h-14"
             />
           </div>
         </div>
@@ -168,23 +175,21 @@ export default function InlineDepositCard() {
         <Button
           onClick={handleVerify}
           disabled={verifying || !amount || !txHash}
-          variant="gradient"
-          className="w-full gap-2"
-          size="lg"
+          className="w-full h-16 rounded-2xl gap-3 text-lg font-black bg-primary text-background shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95 disabled:grayscale"
         >
           {verifying ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Verifying on BSC...
+              <Loader2 className="h-6 w-6 animate-spin" />
+              Scanning Chain...
             </>
           ) : (
             <>
-              <ShieldCheck className="h-4 w-4" />
-              Verify & Add Funds
+              <ShieldCheck className="h-6 w-6" />
+              Inject Funds to Vault
             </>
           )}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

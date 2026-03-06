@@ -448,7 +448,7 @@ export default function AdminSubscriptions() {
                       <SelectItem value="trial">
                         <span className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-emerald-500" />
-                          Trial (7 days)
+                          Trial Access
                         </span>
                       </SelectItem>
                       <SelectItem value="monthly">
@@ -708,7 +708,7 @@ export default function AdminSubscriptions() {
                   <p className="font-medium">{selectedRequest.full_name}</p>
                   <p className="text-sm text-muted-foreground">{selectedRequest.email}</p>
                   <Badge className="mt-2">
-                    {selectedRequest.plan_type === 'lifetime' ? '$199 Lifetime' : '$20/month'}
+                    {selectedRequest.plan_type === 'lifetime' ? '$99 Lifetime' : '$10/month'}
                   </Badge>
                 </div>
                 <div className="space-y-2">

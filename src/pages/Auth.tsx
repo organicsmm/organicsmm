@@ -7,12 +7,10 @@ import { Label } from '@/components/ui/label';
 import {
   Mail, Lock, User, Loader2, ArrowLeft, Shield, Zap,
   Activity, Shuffle, Clock, Moon, Timer, BarChart3,
-  Eye, EyeOff, KeyRound, Fingerprint, Globe, CheckCircle2, Star
+  Eye, EyeOff, KeyRound, Fingerprint, Globe, CheckCircle2, Star, Target, Users
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
-import logo from '@/assets/logo.png';
-
 
 const loginSchema = z.object({
   email: z.string().trim().email('Invalid email address'),
@@ -25,28 +23,11 @@ const signupSchema = z.object({
   fullName: z.string().trim().min(2, 'Name must be at least 2 characters'),
 });
 
-
-// Logo component using actual OrganicSMM brand asset
-function LogoMark({ size = 40 }: { size?: number }) {
-  return (
-    <img
-      src={logo}
-      alt="OrganicSMM"
-      width={size}
-      height={size}
-      style={{ width: size, height: size, objectFit: 'contain', borderRadius: 10 }}
-    />
-  );
-}
-
-
 const features = [
-  { icon: Activity, title: 'S-Curve Delivery', desc: 'Mimics natural viral growth patterns', badge: 'EXCLUSIVE' },
-  { icon: Shuffle, title: '±50% Random Variance', desc: 'Unpredictable quantities like real users', badge: 'UNIQUE' },
-  { icon: Clock, title: 'Peak Hour Boost', desc: '1.5× during 6PM–10PM IST automatically', badge: 'SMART' },
-  { icon: Moon, title: 'Night Mode Slowdown', desc: 'Reduces at 2AM–6AM like real behavior', badge: 'NATURAL' },
-  { icon: Timer, title: '±5 Min Random Jitter', desc: 'Execution times vary — bot-proof', badge: 'STEALTH' },
-  { icon: BarChart3, title: 'Live Preview Timeline', desc: 'See delivery schedule before ordering', badge: 'PREMIUM' },
+  { icon: Activity, title: 'S-Curve Delivery', desc: 'Mimics natural viral growth patterns', bg: 'bg-[#ffdeed]/50', color: 'text-[#d946ef]' },
+  { icon: Shuffle, title: 'Random Variance', desc: 'Unpredictable quantities like real users', bg: 'bg-[#9b87f5]/10', color: 'text-[#9b87f5]' },
+  { icon: Clock, title: 'Peak Hour Boost', desc: 'Automatic 1.5× boost during IST peaks', bg: 'bg-[#0ea5e9]/10', color: 'text-[#0ea5e9]' },
+  { icon: Timer, title: 'Random Jitter', desc: 'Execution times vary — bot-proof', bg: 'bg-[#f59e0b]/10', color: 'text-[#f59e0b]' },
 ];
 
 export default function Auth() {
@@ -97,8 +78,10 @@ export default function Auth() {
         if (!v.success) { setError(v.error.errors[0].message); setIsSubmitting(false); return; }
         const { error } = await signIn(email, password);
         if (error) {
-          if (error.message?.toLowerCase().includes('invalid login credentials')) setError('Invalid email or password.');
-          else if (error.message?.toLowerCase().includes('email not confirmed')) setError('Email not verified. Check your inbox.');
+          const msg = error.message.toLowerCase();
+          if (msg.includes('invalid login credentials')) setError('Invalid access credentials.');
+          else if (msg.includes('email not confirmed')) setError('Terminal not verified. Check your inbox.');
+          else if (msg.includes('rate limit')) setError('Rate limit exceeded. Try again in 5 mins.');
           else setError(error.message || 'Login failed.');
           setIsSubmitting(false); return;
         }
@@ -108,317 +91,231 @@ export default function Auth() {
         if (!v.success) { setError(v.error.errors[0].message); setIsSubmitting(false); return; }
         const { error } = await signUp(email, password, fullName);
         if (error) {
-          if (error.message?.toLowerCase().includes('already registered')) setError('Email already registered.');
+          const msg = error.message.toLowerCase();
+          if (msg.includes('already registered')) setError('This terminal email is already registered.');
+          else if (msg.includes('rate limit')) setError('Too many attempts. Please wait 5 minutes.');
           else setError(error.message || 'Signup failed.');
           setIsSubmitting(false); return;
         }
-        // Show email verification screen instead of navigating
         setShowVerifyEmail(true);
       }
     } catch (err: any) {
-      if (!err?.message?.includes('abort')) setError('Something went wrong.');
+      if (!err?.message?.includes('abort')) {
+        const msg = err?.message?.toLowerCase() || '';
+        if (msg.includes('rate limit')) {
+          setError('Security limit reached. Please wait 5 minutes before trying again.');
+        } else {
+          setError('Authorization terminal error. Please refresh.');
+        }
+      }
     } finally { setIsSubmitting(false); }
   };
 
   const reset = () => { setError(''); setSuccessMessage(''); setShowVerifyEmail(false); };
 
   return (
-    <div className="min-h-screen flex" style={{ background: 'hsl(150 25% 4%)' }}>
+    <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center p-4 md:p-10 font-sans selection:bg-[#9b87f5]/40 overflow-hidden relative">
 
-      {/* ───── LEFT PANEL — Brand ───── */}
-      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-12 xl:p-16 relative overflow-hidden" style={{ borderRight: '1px solid hsl(145 72% 52% / 0.08)' }}>
-
-        {/* Subtle grid texture */}
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{ backgroundImage: 'linear-gradient(hsl(145 72% 52% / 0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(145 72% 52% / 0.3) 1px, transparent 1px)', backgroundSize: '60px 60px' }}
-        />
-
-        <div className="relative z-10">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-14">
-            <LogoMark size={44} />
-            <div>
-              <h1 className="text-xl font-bold tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>OrganicSMM</h1>
-              <p className="text-[11px] font-medium tracking-[0.15em] uppercase" style={{ color: 'hsl(145 72% 52% / 0.5)' }}>World's First AI-Organic Panel</p>
-            </div>
-          </div>
-
-          {/* Headline */}
-          <div className="mb-10">
-            <h2 className="text-4xl xl:text-5xl font-black leading-[1.1] tracking-tight mb-3" style={{ color: 'hsl(140 60% 95%)' }}>
-              Features No Other<br />
-              <span style={{ color: 'hsl(145 72% 52%)' }}>SMM Panel Has</span>
-            </h2>
-            <p className="text-sm leading-relaxed max-w-sm" style={{ color: 'hsl(145 15% 45%)' }}>
-              The only panel with AI-organic delivery — human-like patterns, IST peak hours, and zero detection risk.
-            </p>
-          </div>
-
-          {/* Feature list */}
-          <div className="space-y-2">
-            {features.map((f, i) => (
-              <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl" style={{ border: '1px solid hsl(145 72% 52% / 0.08)', background: 'hsl(145 72% 52% / 0.03)' }}>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(145 72% 52% / 0.08)', border: '1px solid hsl(145 72% 52% / 0.12)' }}>
-                  <f.icon className="h-4 w-4" style={{ color: 'hsl(145 72% 52%)' }} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[13px] font-semibold" style={{ color: 'hsl(140 60% 90%)' }}>{f.title}</span>
-                    <span className="text-[9px] font-bold tracking-widest" style={{ color: 'hsl(145 72% 52% / 0.4)' }}>{f.badge}</span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed" style={{ color: 'hsl(145 15% 40%)' }}>{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats bar */}
-        <div className="relative z-10 flex items-center justify-between px-5 py-4 rounded-xl mt-8" style={{ border: '1px solid hsl(145 72% 52% / 0.08)', background: 'hsl(145 72% 52% / 0.03)' }}>
-          {[
-            { value: '50K+', label: 'Orders' },
-            { value: '0', label: 'Bans' },
-            { value: '99.9%', label: 'Uptime' },
-            { value: '24/7', label: 'Support' },
-          ].map((s, i, arr) => (
-            <div key={i} className="flex items-center gap-4">
-              <div className="text-center">
-                <div className="text-xl font-black" style={{ color: 'hsl(145 72% 60%)' }}>{s.value}</div>
-                <div className="text-[10px] uppercase tracking-widest mt-0.5" style={{ color: 'hsl(145 15% 35%)' }}>{s.label}</div>
-              </div>
-              {i < arr.length - 1 && <div className="w-px h-7" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />}
-            </div>
-          ))}
-        </div>
+      {/* ── DYNAMIC 3D BACKGROUND ── */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#9b87f5]/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#d946ef]/5 blur-[100px] rounded-full" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-20"
+          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #333 1px, transparent 0)', backgroundSize: '40px 40px' }} />
       </div>
 
-      {/* ───── RIGHT PANEL — Form ───── */}
-      <div className="w-full lg:w-[45%] flex items-center justify-center p-6 sm:p-8 lg:p-12">
-        <div className="w-full max-w-[420px]">
+      {/* ── MAIN AUTH CONSOLE CARD ── */}
+      <div className="w-full max-w-[480px] relative z-10">
 
-          {/* Back to home */}
-          <Link to="/" className="inline-flex items-center gap-2 mb-8 text-sm font-medium" style={{ color: 'hsl(145 15% 40%)' }}>
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to home
+        {/* Logo Section */}
+        <div className="flex flex-col items-center mb-10 text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#9b87f5] to-[#7E69AB] rounded-[2rem] flex items-center justify-center shadow-[0_0_50px_rgba(155,135,245,0.4)] mb-6 border border-white/20">
+            <Zap className="w-8 h-8 text-white fill-current drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+          </div>
+          <h1 className="text-3xl font-[1000] text-white tracking-tighter mb-1" style={{ textShadow: '0 0 20px rgba(155,135,245,0.4)' }}>OrganicSMM</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#9b87f5]">PRO ACCESS TERMINAL</p>
+        </div>
+
+        {/* The Glass Card */}
+        <div className="bg-[#16161a]/85 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-8 md:p-12 shadow-[0_40px_100px_rgba(0,0,0,0.6)] relative overflow-hidden group">
+
+          {/* Inner Glow / Light Stroke */}
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#9b87f5] to-transparent opacity-50" />
+          <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#9b87f5]/20 to-transparent opacity-30" />
+
+          {/* Back to Home */}
+          <Link to="/" className="absolute top-6 right-8 text-[9px] font-black uppercase tracking-widest text-white/20 hover:text-[#9b87f5] transition-none flex items-center gap-2">
+            <ArrowLeft className="w-3 h-3" /> Home
           </Link>
 
-          {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <LogoMark size={36} />
-            <span className="text-lg font-bold" style={{ color: 'hsl(140 60% 95%)' }}>OrganicSMM</span>
-          </div>
+          <div className="mt-4">
+            <h2 className="text-2xl font-[1000] text-white mb-2 leading-none" style={{ textShadow: '0 0 15px rgba(255,255,255,0.2)' }}>
+              {isForgotPassword ? 'Reset Access' : isLogin ? 'Authenticate.' : 'Initialize Access.'}
+            </h2>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#9b87f5]/60 mb-10">
+              {isForgotPassword
+                ? 'DECRYPTION PROTOCOL ACTIVE'
+                : isLogin
+                  ? 'SECURITY CLEARANCE REQUIRED'
+                  : 'NEW NODE COMMISSIONING'}
+            </p>
 
-          {/* Form card */}
-          <div className="rounded-2xl p-7 sm:p-8" style={{ background: 'hsl(150 20% 7% / 0.95)', border: '1px solid hsl(145 72% 52% / 0.1)', boxShadow: '0 1px 0 0 hsl(145 72% 52% / 0.06) inset, 0 30px 80px -20px hsl(150 30% 3% / 0.8)' }}>
-
-            {/* ──── Email Verification Screen ──── */}
+            {/* ──── Verification Screen ──── */}
             {showVerifyEmail ? (
-              <div className="text-center py-4">
-                <div className="flex items-center justify-center w-16 h-16 rounded-2xl mx-auto mb-5" style={{ background: 'hsl(145 72% 52% / 0.1)', border: '1px solid hsl(145 72% 52% / 0.15)', boxShadow: '0 0 30px -8px hsl(145 72% 52% / 0.2)' }}>
-                  <Mail className="h-7 w-7" style={{ color: 'hsl(145 72% 52%)' }} />
+              <div className="text-center py-6">
+                <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8">
+                  <Mail className="h-8 w-8 text-[#9b87f5]" />
                 </div>
-                <h2 className="text-2xl font-black tracking-tight mb-2" style={{ color: 'hsl(140 60% 95%)' }}>
-                  Verify Your Email
-                </h2>
-                <p className="text-sm leading-relaxed mb-4" style={{ color: 'hsl(145 15% 50%)' }}>
-                  We've sent a verification link to
+                <h3 className="text-lg font-black text-white mb-3">Check Your Terminal</h3>
+                <p className="text-xs font-bold text-white/40 mb-8 max-w-[200px] mx-auto leading-relaxed">
+                  An authorization link has been dispatched to:
                 </p>
-                <div className="px-4 py-2.5 rounded-xl mb-5" style={{ background: 'hsl(145 72% 52% / 0.06)', border: '1px solid hsl(145 72% 52% / 0.12)' }}>
-                  <span className="text-sm font-bold" style={{ color: 'hsl(145 72% 60%)' }}>{email}</span>
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/10 mb-8">
+                  <span className="text-xs font-black text-[#9b87f5] tracking-tight">{email}</span>
                 </div>
-                <div className="space-y-3 text-left mb-6">
-                  <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'hsl(145 72% 52% / 0.04)', border: '1px solid hsl(145 72% 52% / 0.08)' }}>
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(145 72% 52% / 0.15)' }}>
-                      <span className="text-xs font-bold" style={{ color: 'hsl(145 72% 52%)' }}>1</span>
-                    </div>
-                    <p className="text-xs" style={{ color: 'hsl(145 15% 50%)' }}>
-                      Open your <strong style={{ color: 'hsl(140 60% 90%)' }}>email inbox</strong> and find the verification email from OrganicSMM
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'hsl(145 72% 52% / 0.04)', border: '1px solid hsl(145 72% 52% / 0.08)' }}>
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(145 72% 52% / 0.15)' }}>
-                      <span className="text-xs font-bold" style={{ color: 'hsl(145 72% 52%)' }}>2</span>
-                    </div>
-                    <p className="text-xs" style={{ color: 'hsl(145 15% 50%)' }}>
-                      Click the <strong style={{ color: 'hsl(140 60% 90%)' }}>verification link</strong> — you'll be redirected and logged in automatically
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
-                  <span className="text-[10px] uppercase tracking-widest" style={{ color: 'hsl(145 15% 30%)' }}>didn't get it?</span>
-                  <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
-                </div>
-                <p className="text-[11px] mb-4" style={{ color: 'hsl(145 15% 40%)' }}>
-                  Check your spam/junk folder. The email may take 1-2 minutes.
-                </p>
                 <button type="button" onClick={() => { setShowVerifyEmail(false); setIsLogin(true); reset(); }}
-                  className="text-xs font-medium" style={{ color: 'hsl(145 72% 52% / 0.6)' }}>
-                  ← Back to Sign In
+                  className="text-[10px] font-black uppercase tracking-widest text-[#9b87f5] hover:text-white transition-none underline underline-offset-4 decoration-2">
+                  ← RETURN TO LOGIN
                 </button>
               </div>
             ) : (
-              <>
+              <form onSubmit={handleSubmit} className="space-y-6">
 
-                {/* Top accent line */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px rounded-full" style={{ background: 'linear-gradient(90deg, transparent, hsl(145 72% 52% / 0.3), transparent)' }} />
-
-                {/* Header */}
-                <div className="mb-7">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-xl mx-auto mb-5" style={{ background: 'hsl(145 72% 52% / 0.08)', border: '1px solid hsl(145 72% 52% / 0.12)', boxShadow: '0 0 20px -6px hsl(145 72% 52% / 0.15)' }}>
-                    {isForgotPassword
-                      ? <KeyRound className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
-                      : isLogin
-                        ? <Fingerprint className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
-                        : <Star className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
-                    }
-                  </div>
-                  <h2 className="text-2xl font-black text-center tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>
-                    {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Start Free Trial'}
-                  </h2>
-                  <p className="text-sm text-center mt-1" style={{ color: 'hsl(145 15% 45%)' }}>
-                    {isForgotPassword
-                      ? 'Enter your email for a reset link'
-                      : isLogin
-                        ? 'Sign in to your account'
-                        : 'Get 7 days free — all features unlocked'}
-                  </p>
-                  {!isLogin && !isForgotPassword && (
-                    <div className="mt-3 flex items-center justify-center gap-2 py-1.5 px-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit mx-auto">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span className="text-[11px] font-bold text-emerald-400 tracking-wide">7 DAYS FREE · NO CARD NEEDED</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* ──── Forgot Password Form ──── */}
                 {isForgotPassword ? (
-                  <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
-                        <Mail className="h-3 w-3" /> Email
-                      </Label>
-                      <Input id="email" type="email" placeholder="you@example.com"
-                        value={email} onChange={e => setEmail(e.target.value)}
-                        className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
+                  /* ───── Forgot Password ───── */
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">TERMINAL EMAIL</Label>
+                      <Input
+                        type="email"
+                        placeholder="agent@organicsmm.pro"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none"
+                      />
                     </div>
 
-                    {error && <ErrorBox msg={error} />}
-                    {successMessage && <SuccessBox msg={successMessage} />}
-
-                    <Button type="submit" disabled={isSubmitting}
-                      className="w-full h-11 rounded-xl font-bold text-sm" style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}>
-                      {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</> : <><Mail className="h-4 w-4 mr-2" />Send Reset Link</>}
-                    </Button>
-
-                    <div className="text-center">
-                      <button type="button" onClick={() => { setIsForgotPassword(false); reset(); }}
-                        className="text-xs font-medium" style={{ color: 'hsl(145 15% 45%)' }}>
-                        ← Back to Sign In
-                      </button>
-                    </div>
-                  </form>
-
-                ) : (
-                  /* ──── Main Login / Signup Form ──── */
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    {!isLogin && (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="fullName" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
-                          <User className="h-3 w-3" /> Full Name
-                        </Label>
-                        <Input id="fullName" type="text" placeholder="Your name"
-                          value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name"
-                          className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
+                    {error && (
+                      <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                        <Shield className="h-4 w-4 text-rose-500 shrink-0" />
+                        <p className="text-xs font-bold text-rose-200">{error}</p>
                       </div>
                     )}
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
-                        <Mail className="h-3 w-3" /> Email
-                      </Label>
-                      <Input id="email" type="email" placeholder="you@example.com"
-                        value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
-                        className="h-11 rounded-xl text-sm placeholder:text-white/20" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
+                    {successMessage && (
+                      <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex gap-3 items-center">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <p className="text-xs font-bold text-emerald-200">{successMessage}</p>
+                      </div>
+                    )}
+
+                    <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#9b87f5] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest shadow-2xl shadow-[#9b87f5]/20 group">
+                      {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                        <span className="flex items-center gap-2">
+                          REQUEST DECRYPTION <ArrowLeft className="w-4 h-4 rotate-180 transition-none group-hover:translate-x-1" />
+                        </span>
+                      )}
+                    </Button>
+
+                    <button type="button" onClick={() => setIsForgotPassword(false)} className="w-full text-center text-[10px] font-[1000] uppercase tracking-[0.2em] text-white/20 hover:text-white transition-none">
+                      ABORT RESET
+                    </button>
+                  </div>
+                ) : (
+                  /* ───── Login / Signup ───── */
+                  <div className="space-y-6">
+
+                    {!isLogin && (
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">AGENT IDENTIFIER</Label>
+                        <Input
+                          placeholder="OPERATOR NAME"
+                          value={fullName}
+                          onChange={e => setFullName(e.target.value)}
+                          className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">TERMINAL EMAIL</Label>
+                      <Input
+                        type="email"
+                        placeholder="agent@organicsmm.pro"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
+                      />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'hsl(145 15% 45%)' }}>
-                          <Lock className="h-3 w-3" /> Password
-                        </Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between px-1">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">ACCESS CODE</Label>
                         {isLogin && (
-                          <button type="button" onClick={() => { setIsForgotPassword(true); reset(); }}
-                            className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'hsl(145 72% 52% / 0.5)' }}>
-                            Forgot?
+                          <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[9px] font-black uppercase tracking-widest text-white/20 hover:text-[#9b87f5]">
+                            LOST KEY?
                           </button>
                         )}
                       </div>
-                      <div className="relative">
-                        <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
-                          value={password} onChange={e => setPassword(e.target.value)}
-                          autoComplete={isLogin ? 'current-password' : 'new-password'}
-                          className="h-11 rounded-xl text-sm placeholder:text-white/20 pr-10" style={{ background: 'hsl(145 72% 52% / 0.04)', borderColor: 'hsl(145 72% 52% / 0.1)', color: 'hsl(140 60% 95%)' }} />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'hsl(145 15% 40%)' }}>
+                      <div className="relative group/input">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/80 text-white font-bold px-6 border-2 transition-none placeholder:text-white/5 pr-14 shadow-inner"
+                        />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-[#9b87f5] transition-none">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                     </div>
 
-                    {error && <ErrorBox msg={error} />}
+                    {error && (
+                      <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                        <Shield className="h-4 w-4 text-rose-500 shrink-0" />
+                        <p className="text-[11px] font-bold text-rose-200 leading-tight">{error}</p>
+                      </div>
+                    )}
 
-                    <Button type="submit" disabled={isSubmitting}
-                      className="w-full h-11 rounded-xl font-bold text-sm disabled:opacity-50" style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 -1px 0 0 hsl(150 70% 30% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}>
-                      {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Please wait...</> : isLogin ? 'Sign In' : 'Create Account'}
+                    <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-[1.25rem] bg-white text-black hover:bg-white/95 font-black text-sm uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(255,255,255,0.1)] transition-none group border-b-4 border-zinc-300">
+                      {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                        <span className="flex items-center gap-2">
+                          {isLogin ? 'INITIALIZE SCAN' : 'GENERATE ACCESS'}
+                          <Zap className="w-4 h-4 fill-current transition-none group-hover:scale-125 group-hover:text-[#9b87f5]" />
+                        </span>
+                      )}
                     </Button>
 
-                    <div className="pt-1">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
-                        <span className="text-[10px] uppercase tracking-widest" style={{ color: 'hsl(145 15% 30%)' }}>or</span>
-                        <div className="flex-1 h-px" style={{ background: 'hsl(145 72% 52% / 0.08)' }} />
-                      </div>
-                      <div className="text-center">
-                        <button type="button" onClick={() => { setIsLogin(!isLogin); reset(); }}
-                          className="text-sm font-medium" style={{ color: 'hsl(145 15% 45%)' }}>
-                          {isLogin ? "Don't have an account? " : 'Already have an account? '}
-                          <span className="font-bold" style={{ color: 'hsl(145 72% 60%)' }}>{isLogin ? 'Sign up free' : 'Sign in'}</span>
-                        </button>
-                      </div>
+                    <div className="pt-4 text-center">
+                      <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-[10px] font-bold text-white/20 tracking-widest uppercase">
+                        {isLogin ? "No access key? " : 'Key already exists? '}
+                        <span className="text-[#9b87f5] font-black ml-1 border-b border-[#9b87f5]/30 hover:text-white transition-colors">{isLogin ? 'REGISTER' : 'AUTHORIZE'}</span>
+                      </button>
                     </div>
-                  </form>
+                  </div>
                 )}
-              </>
+              </form>
             )}
           </div>
+        </div>
 
-          {/* Trust badges */}
-          <div className="mt-6 flex items-center justify-center gap-5 text-[10px] uppercase tracking-widest" style={{ color: 'hsl(145 15% 30%)' }}>
-            <span className="flex items-center gap-1.5"><Shield className="h-3 w-3" style={{ color: 'hsl(145 72% 52% / 0.3)' }} />Secured</span>
-            <span className="flex items-center gap-1.5"><Zap className="h-3 w-3" style={{ color: 'hsl(145 72% 52% / 0.3)' }} />Instant</span>
-            <span className="flex items-center gap-1.5"><Globe className="h-3 w-3" style={{ color: 'hsl(145 72% 52% / 0.3)' }} />Global</span>
+        {/* Bottom Trust Indicators */}
+        <div className="mt-10 flex items-center justify-center gap-8 opacity-30">
+          <div className="flex items-center gap-2">
+            <Shield className="h-3 w-3 text-white" />
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white">ENCRYPTED</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Fingerprint className="h-3 w-3 text-white" />
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white">BIO-SCAN</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Globe className="h-3 w-3 text-white" />
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white">NETWORK</span>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ErrorBox({ msg }: { msg: string }) {
-  return (
-    <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10 text-red-400/80 text-xs font-medium flex items-start gap-2">
-      <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1 shrink-0" />
-      {msg}
-    </div>
-  );
-}
-
-function SuccessBox({ msg }: { msg: string }) {
-  return (
-    <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-emerald-400/80 text-xs font-medium flex items-start gap-2">
-      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-      {msg}
     </div>
   );
 }

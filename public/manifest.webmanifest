@@ -1,0 +1,64 @@
+{
+    "name": "OrganicSMM",
+    "short_name": "OrganicSMM",
+    "description": "Premium High-Growth Social Media Terminal",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0c",
+    "theme_color": "#9b87f5",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/favicon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/favicon.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "categories": [
+        "business",
+        "social",
+        "productivity"
+    ],
+    "shortcuts": [
+        {
+            "name": "New Order",
+            "url": "/new-order",
+            "icons": [
+                {
+                    "src": "/favicon.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Wallet",
+            "url": "/wallet",
+            "icons": [
+                {
+                    "src": "/favicon.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop",
+            "sizes": "2070x1164",
+            "type": "image/jpeg",
+            "form_factor": "wide",
+            "label": "Professional Dashboard"
+        }
+    ]
+}

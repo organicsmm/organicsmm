@@ -174,54 +174,53 @@ export default function Dashboard() {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             {
               icon: Wallet,
               label: 'Balance',
               value: formatPrice(wallet?.balance || 0),
               sub: 'Available funds',
-              gradient: 'from-emerald-500/10 to-emerald-500/5',
-              iconBg: 'bg-emerald-500/10',
+              accent: 'hsl(145 72% 52%)',
             },
             {
               icon: ShoppingCart,
               label: 'Total Orders',
               value: stats?.totalOrders || 0,
               sub: `${stats?.completedOrders || 0} completed`,
-              gradient: 'from-white/8 to-white/3',
-              iconBg: 'bg-white/10',
+              accent: 'hsl(140 60% 95%)',
             },
             {
               icon: Activity,
-              label: 'Active',
+              label: 'Active Tasks',
               value: stats?.activeOrders || 0,
               sub: 'In progress now',
-              gradient: 'from-white/8 to-white/3',
-              iconBg: 'bg-white/10',
+              accent: 'hsl(145 72% 52%)',
             },
             {
               icon: TrendingUp,
               label: 'Total Spent',
               value: formatPrice(stats?.totalSpent || 0),
               sub: 'All time',
-              gradient: 'from-white/8 to-white/3',
-              iconBg: 'bg-white/10',
+              accent: 'hsl(140 60% 95%)',
             },
           ].map((stat, i) => (
             <div
               key={i}
-              className="relative group rounded-2xl p-5"
-              style={{ background: 'linear-gradient(145deg, hsl(150 20% 9%) 0%, hsl(150 22% 6%) 100%)', border: '1px solid hsl(145 72% 52% / 0.1)', boxShadow: '0 1px 0 0 hsl(145 72% 52% / 0.06) inset, 0 8px 24px -8px hsl(150 30% 3% / 0.6)' }}
+              className="glass-premium p-6 group transition-all duration-300 hover:-translate-y-1"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: 'hsl(145 72% 52% / 0.1)', border: '1px solid hsl(145 72% 52% / 0.12)' }}>
-                  <stat.icon className="h-5 w-5" style={{ color: 'hsl(145 72% 52%)' }} />
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: 'hsl(145 72% 52% / 0.1)', border: '1px solid hsl(145 72% 52% / 0.15)' }}>
+                  <stat.icon className="h-6 w-6" style={{ color: 'hsl(145 72% 52%)' }} />
                 </div>
-                <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: 'hsl(145 15% 45%)' }}>{stat.label}</p>
-                <p className="text-2xl font-bold tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>{stat.value}</p>
-                <p className="text-xs mt-1" style={{ color: 'hsl(145 15% 40%)' }}>{stat.sub}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] mb-2" style={{ color: 'hsl(145 15% 45%)' }}>{stat.label}</p>
+                <p className="text-3xl font-black tracking-tighter" style={{ color: 'hsl(140 60% 95%)' }}>{stat.value}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="h-1 w-8 rounded-full bg-primary/20 overflow-hidden">
+                    <div className="h-full bg-primary w-1/2 animate-pulse" />
+                  </div>
+                  <p className="text-[10px] font-bold" style={{ color: 'hsl(145 15% 40%)' }}>{stat.sub}</p>
+                </div>
               </div>
             </div>
           ))}
