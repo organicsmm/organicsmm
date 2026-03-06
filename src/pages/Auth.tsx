@@ -117,186 +117,189 @@ export default function Auth() {
     <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center p-4 md:p-10 font-sans selection:bg-[#9b87f5]/40 overflow-hidden relative">
 
       {/* ── DYNAMIC 3D BACKGROUND ── */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#9b87f5]/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#d946ef]/5 blur-[100px] rounded-full" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-20"
-          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #333 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none bg-[#08080a]">
+        <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] bg-[#9b87f5]/20 blur-[150px] rounded-full" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#d946ef]/10 blur-[120px] rounded-full" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.03]"
+          style={{ backgroundImage: 'linear-gradient(#9b87f5 1px, transparent 1px), linear-gradient(90deg, #9b87f5 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
       </div>
 
       {/* ── MAIN AUTH CONSOLE CARD ── */}
-      <div className="w-full max-w-[480px] relative z-10">
+      <div className="w-full max-w-[480px] relative z-10 px-4">
 
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-10 text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-[#9b87f5] to-[#7E69AB] rounded-[2rem] flex items-center justify-center shadow-[0_0_50px_rgba(155,135,245,0.4)] mb-6 border border-white/20">
-            <Zap className="w-8 h-8 text-white fill-current drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+          <div className="w-20 h-20 bg-gradient-to-br from-[#9b87f5] to-[#7E69AB] rounded-[2.5rem] flex items-center justify-center shadow-[0_0_60px_rgba(155,135,245,0.5)] mb-6 border border-white/30">
+            <Zap className="w-10 h-10 text-white fill-current drop-shadow-[0_0_15px_rgba(255,255,255,0.9)]" />
           </div>
-          <h1 className="text-3xl font-[1000] text-white tracking-tighter mb-1" style={{ textShadow: '0 0 20px rgba(155,135,245,0.4)' }}>OrganicSMM</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#9b87f5]">PRO ACCESS TERMINAL</p>
+          <h1 className="text-4xl font-[1000] text-white tracking-tighter mb-1" style={{ textShadow: '0 0 30px rgba(155,135,245,0.5), 0 0 60px rgba(155,135,245,0.2)' }}>OrganicSMM</h1>
+          <p className="text-[11px] font-black uppercase tracking-[0.5em] text-[#9b87f5] opacity-80">AUTHENTICATION TERMINAL</p>
         </div>
 
-        {/* The Glass Card */}
-        <div className="bg-[#16161a]/85 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-8 md:p-12 shadow-[0_40px_100px_rgba(0,0,0,0.6)] relative overflow-hidden group">
+        {/* The Glass Card Container with platform glow */}
+        <div className="relative">
+          <div className="absolute -inset-4 bg-[#9b87f5]/10 blur-[40px] rounded-[4rem] opacity-50" />
 
-          {/* Inner Glow / Light Stroke */}
-          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#9b87f5] to-transparent opacity-50" />
-          <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#9b87f5]/20 to-transparent opacity-30" />
+          <div className="bg-[#121216]/90 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-8 md:p-14 shadow-[0_50px_120px_rgba(0,0,0,0.8)] relative overflow-hidden ring-1 ring-white/5">
 
-          {/* Back to Home */}
-          <Link to="/" className="absolute top-6 right-8 text-[9px] font-black uppercase tracking-widest text-white/20 hover:text-[#9b87f5] transition-none flex items-center gap-2">
-            <ArrowLeft className="w-3 h-3" /> Home
-          </Link>
+            {/* Upper Light Line */}
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#9b87f5] to-transparent opacity-60" />
 
-          <div className="mt-4">
-            <h2 className="text-2xl font-[1000] text-white mb-2 leading-none" style={{ textShadow: '0 0 15px rgba(255,255,255,0.2)' }}>
-              {isForgotPassword ? 'Reset Access' : isLogin ? 'Authenticate.' : 'Initialize Access.'}
-            </h2>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#9b87f5]/60 mb-10">
-              {isForgotPassword
-                ? 'DECRYPTION PROTOCOL ACTIVE'
-                : isLogin
-                  ? 'SECURITY CLEARANCE REQUIRED'
-                  : 'NEW NODE COMMISSIONING'}
-            </p>
+            {/* Home Redirect */}
+            <Link to="/" className="absolute top-8 right-10 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-[#9b87f5] transition-none flex items-center gap-2 group">
+              <ArrowLeft className="w-4 h-4 transition-none group-hover:-translate-x-1" /> RETURN
+            </Link>
 
-            {/* ──── Verification Screen ──── */}
-            {showVerifyEmail ? (
-              <div className="text-center py-6">
-                <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8">
-                  <Mail className="h-8 w-8 text-[#9b87f5]" />
-                </div>
-                <h3 className="text-lg font-black text-white mb-3">Check Your Terminal</h3>
-                <p className="text-xs font-bold text-white/40 mb-8 max-w-[200px] mx-auto leading-relaxed">
-                  An authorization link has been dispatched to:
-                </p>
-                <div className="bg-white/5 p-4 rounded-2xl border border-white/10 mb-8">
-                  <span className="text-xs font-black text-[#9b87f5] tracking-tight">{email}</span>
-                </div>
-                <button type="button" onClick={() => { setShowVerifyEmail(false); setIsLogin(true); reset(); }}
-                  className="text-[10px] font-black uppercase tracking-widest text-[#9b87f5] hover:text-white transition-none underline underline-offset-4 decoration-2">
-                  ← RETURN TO LOGIN
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="mt-4">
+              <h2 className="text-2xl font-[1000] text-white mb-2 leading-none" style={{ textShadow: '0 0 15px rgba(255,255,255,0.2)' }}>
+                {isForgotPassword ? 'Reset Access' : isLogin ? 'Authenticate.' : 'Initialize Access.'}
+              </h2>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#9b87f5]/60 mb-10">
+                {isForgotPassword
+                  ? 'DECRYPTION PROTOCOL ACTIVE'
+                  : isLogin
+                    ? 'SECURITY CLEARANCE REQUIRED'
+                    : 'NEW NODE COMMISSIONING'}
+              </p>
 
-                {isForgotPassword ? (
-                  /* ───── Forgot Password ───── */
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">TERMINAL EMAIL</Label>
-                      <Input
-                        type="email"
-                        placeholder="agent@organicsmm.pro"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none"
-                      />
-                    </div>
-
-                    {error && (
-                      <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
-                        <Shield className="h-4 w-4 text-rose-500 shrink-0" />
-                        <p className="text-xs font-bold text-rose-200">{error}</p>
-                      </div>
-                    )}
-
-                    {successMessage && (
-                      <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex gap-3 items-center">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                        <p className="text-xs font-bold text-emerald-200">{successMessage}</p>
-                      </div>
-                    )}
-
-                    <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#9b87f5] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest shadow-2xl shadow-[#9b87f5]/20 group">
-                      {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                        <span className="flex items-center gap-2">
-                          REQUEST DECRYPTION <ArrowLeft className="w-4 h-4 rotate-180 transition-none group-hover:translate-x-1" />
-                        </span>
-                      )}
-                    </Button>
-
-                    <button type="button" onClick={() => setIsForgotPassword(false)} className="w-full text-center text-[10px] font-[1000] uppercase tracking-[0.2em] text-white/20 hover:text-white transition-none">
-                      ABORT RESET
-                    </button>
+              {/* ──── Verification Screen ──── */}
+              {showVerifyEmail ? (
+                <div className="text-center py-6">
+                  <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[3rem] flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(155,135,245,0.2)]">
+                    <Mail className="h-10 w-10 text-[#9b87f5] drop-shadow-[0_0_10px_rgba(155,135,245,0.5)]" />
                   </div>
-                ) : (
-                  /* ───── Login / Signup ───── */
-                  <div className="space-y-6">
+                  <h3 className="text-2xl font-[1000] text-white mb-4 tracking-tight">Check Terminal.智</h3>
+                  <p className="text-[11px] font-bold text-white/30 mb-10 max-w-[240px] mx-auto leading-relaxed border-t border-white/5 pt-6">
+                    An encrypted validation sequence has been dispatched to your subspace email.
+                  </p>
+                  <div className="bg-[#9b87f5]/5 p-5 rounded-2xl border border-[#9b87f5]/20 mb-10 ring-1 ring-[#9b87f5]/10">
+                    <span className="text-xs font-black text-[#9b87f5] tracking-tight">{email}</span>
+                  </div>
+                  <button type="button" onClick={() => { setShowVerifyEmail(false); setIsLogin(true); reset(); }}
+                    className="text-[10px] font-black uppercase tracking-[0.3em] text-[#9b87f5] hover:text-white transition-none underline underline-offset-8 decoration-2 decoration-[#9b87f5]/40">
+                    ← BACK TO GATEWAY
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
 
-                    {!isLogin && (
+                  {isForgotPassword ? (
+                    /* ───── Forgot Password ───── */
+                    <div className="space-y-6">
                       <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">AGENT IDENTIFIER</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">TERMINAL EMAIL</Label>
                         <Input
-                          placeholder="OPERATOR NAME"
-                          value={fullName}
-                          onChange={e => setFullName(e.target.value)}
+                          type="email"
+                          placeholder="agent@organicsmm.pro"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none"
+                        />
+                      </div>
+
+                      {error && (
+                        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                          <Shield className="h-4 w-4 text-rose-500 shrink-0" />
+                          <p className="text-xs font-bold text-rose-200">{error}</p>
+                        </div>
+                      )}
+
+                      {successMessage && (
+                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex gap-3 items-center">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                          <p className="text-xs font-bold text-emerald-200">{successMessage}</p>
+                        </div>
+                      )}
+
+                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#9b87f5] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest shadow-2xl shadow-[#9b87f5]/20 group">
+                        {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                          <span className="flex items-center gap-2">
+                            REQUEST DECRYPTION <ArrowLeft className="w-4 h-4 rotate-180 transition-none group-hover:translate-x-1" />
+                          </span>
+                        )}
+                      </Button>
+
+                      <button type="button" onClick={() => setIsForgotPassword(false)} className="w-full text-center text-[10px] font-[1000] uppercase tracking-[0.2em] text-white/20 hover:text-white transition-none">
+                        ABORT RESET
+                      </button>
+                    </div>
+                  ) : (
+                    /* ───── Login / Signup ───── */
+                    <div className="space-y-6">
+
+                      {!isLogin && (
+                        <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">AGENT IDENTIFIER</Label>
+                          <Input
+                            placeholder="OPERATOR NAME"
+                            value={fullName}
+                            onChange={e => setFullName(e.target.value)}
+                            className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">TERMINAL EMAIL</Label>
+                        <Input
+                          type="email"
+                          placeholder="agent@organicsmm.pro"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
                           className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
                         />
                       </div>
-                    )}
 
-                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">TERMINAL EMAIL</Label>
-                      <Input
-                        type="email"
-                        placeholder="agent@organicsmm.pro"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between px-1">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">ACCESS CODE</Label>
-                        {isLogin && (
-                          <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[9px] font-black uppercase tracking-widest text-white/20 hover:text-[#9b87f5]">
-                            LOST KEY?
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">ACCESS CODE [PWD]</Label>
+                          {isLogin && (
+                            <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[9px] font-black uppercase tracking-widest text-[#9b87f5]/40 hover:text-[#9b87f5] transition-none">
+                              LOST KEY?
+                            </button>
+                          )}
+                        </div>
+                        <div className="relative group/input">
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/80 text-white font-bold px-6 border-2 transition-none placeholder:text-white/5 pr-14 shadow-inner"
+                          />
+                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-[#9b87f5] transition-none">
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
-                        )}
+                        </div>
                       </div>
-                      <div className="relative group/input">
-                        <Input
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={e => setPassword(e.target.value)}
-                          className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/80 text-white font-bold px-6 border-2 transition-none placeholder:text-white/5 pr-14 shadow-inner"
-                        />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-[#9b87f5] transition-none">
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+
+                      {error && (
+                        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                          <Shield className="h-4 w-4 text-rose-500 shrink-0" />
+                          <p className="text-[11px] font-bold text-rose-200 leading-tight">{error}</p>
+                        </div>
+                      )}
+
+                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-[1.25rem] bg-white text-black hover:bg-white/95 font-black text-sm uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(255,255,255,0.1)] transition-none group border-b-4 border-zinc-300">
+                        {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                          <span className="flex items-center gap-2">
+                            {isLogin ? 'INITIALIZE SCAN' : 'GENERATE ACCESS'}
+                            <Zap className="w-4 h-4 fill-current transition-none group-hover:scale-125 group-hover:text-[#9b87f5]" />
+                          </span>
+                        )}
+                      </Button>
+
+                      <div className="pt-4 text-center">
+                        <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-[10px] font-bold text-white/20 tracking-widest uppercase">
+                          {isLogin ? "No access key? " : 'Key already exists? '}
+                          <span className="text-[#9b87f5] font-black ml-1 border-b border-[#9b87f5]/30 hover:text-white transition-colors">{isLogin ? 'REGISTER' : 'AUTHORIZE'}</span>
                         </button>
                       </div>
                     </div>
-
-                    {error && (
-                      <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
-                        <Shield className="h-4 w-4 text-rose-500 shrink-0" />
-                        <p className="text-[11px] font-bold text-rose-200 leading-tight">{error}</p>
-                      </div>
-                    )}
-
-                    <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-[1.25rem] bg-white text-black hover:bg-white/95 font-black text-sm uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(255,255,255,0.1)] transition-none group border-b-4 border-zinc-300">
-                      {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                        <span className="flex items-center gap-2">
-                          {isLogin ? 'INITIALIZE SCAN' : 'GENERATE ACCESS'}
-                          <Zap className="w-4 h-4 fill-current transition-none group-hover:scale-125 group-hover:text-[#9b87f5]" />
-                        </span>
-                      )}
-                    </Button>
-
-                    <div className="pt-4 text-center">
-                      <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-[10px] font-bold text-white/20 tracking-widest uppercase">
-                        {isLogin ? "No access key? " : 'Key already exists? '}
-                        <span className="text-[#9b87f5] font-black ml-1 border-b border-[#9b87f5]/30 hover:text-white transition-colors">{isLogin ? 'REGISTER' : 'AUTHORIZE'}</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </form>
-            )}
+                  )}
+                </form>
+              )}
+            </div>
           </div>
         </div>
 
