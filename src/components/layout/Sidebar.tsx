@@ -169,8 +169,8 @@ export function Sidebar({ onClose }: SidebarProps) {
 
           {isAdmin && (
             <>
-              <div className="my-4 mx-3" style={{ borderTop: '1px solid hsl(145 72% 52% / 0.06)' }} />
-              <p className="px-3 mb-2.5 text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: 'hsl(145 15% 35%)' }}>
+              <div className="my-4 mx-3 border-t border-[#f1f5f9]" />
+              <p className="px-3 mb-2.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#1a1a2e]/30">
                 Admin
               </p>
               {adminNavItems.map((item) => {
@@ -180,25 +180,18 @@ export function Sidebar({ onClose }: SidebarProps) {
                     key={item.path}
                     to={item.path}
                     onClick={handleNavClick}
-                    className="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium"
-                    style={isActive ? {
-                      background: 'linear-gradient(135deg, hsl(145 72% 52%) 0%, hsl(160 72% 42%) 100%)',
-                      color: 'hsl(152 50% 4%)',
-                      boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 -1px 0 0 hsl(150 70% 30% / 0.3) inset, 0 4px 20px -4px hsl(145 72% 52% / 0.35)',
-                    } : {
-                      color: 'hsl(145 15% 50%)',
-                    }}
+                    className={cn(
+                      'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium',
+                      isActive
+                        ? 'bg-[#1a1a2e] text-white shadow-lg'
+                        : 'text-[#1a1a2e]/40 hover:text-[#1a1a2e] hover:bg-[#f8fafc]'
+                    )}
                   >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={isActive ? {
-                      background: 'hsl(152 50% 4% / 0.15)',
-                    } : {
-                      background: 'hsl(145 72% 52% / 0.06)',
-                    }}>
-                      <item.icon className="h-[15px] w-[15px]" style={isActive ? {
-                        color: 'hsl(152 50% 4%)',
-                      } : {
-                        color: 'hsl(145 15% 45%)',
-                      }} />
+                    <div className={cn(
+                      'flex items-center justify-center w-8 h-8 rounded-lg',
+                      isActive ? 'bg-white/10' : 'bg-[#9b87f5]/5'
+                    )}>
+                      <item.icon className={cn('h-[15px] w-[15px]', isActive ? 'text-white' : 'text-[#9b87f5]')} />
                     </div>
                     <span>{item.label}</span>
                   </Link>
@@ -212,8 +205,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         <div className="px-3 pb-2 relative">
           <button
             onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
-            className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-[13px] font-medium"
-            style={{ color: 'hsl(145 15% 50%)' }}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-[13px] font-medium text-[#1a1a2e]/50 hover:bg-[#f8fafc]"
           >
             <div className="flex items-center gap-2.5">
               <span className="text-base">{currencyInfo.flag}</span>
@@ -223,11 +215,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           </button>
 
           {showCurrencyPicker && (
-            <div className="absolute bottom-full left-3 right-3 mb-1 rounded-xl overflow-hidden z-50" style={{
-              border: '1px solid hsl(145 72% 52% / 0.1)',
-              background: 'hsl(150 25% 5%)',
-              boxShadow: '0 -8px 30px -8px hsl(150 30% 3% / 0.8)',
-            }}>
+            <div className="absolute bottom-full left-3 right-3 mb-1 rounded-xl overflow-hidden z-50 bg-white border border-[#f1f5f9] shadow-lg">
               {CURRENCIES.map((c) => (
                 <button
                   key={c.code}
@@ -235,18 +223,16 @@ export function Sidebar({ onClose }: SidebarProps) {
                     setCurrency(c.code);
                     setShowCurrencyPicker(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px]"
-                  style={currency === c.code ? {
-                    background: 'hsl(145 72% 52% / 0.1)',
-                    color: 'hsl(145 72% 60%)',
-                    fontWeight: 500,
-                  } : {
-                    color: 'hsl(145 15% 50%)',
-                  }}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-2.5 text-[13px]',
+                    currency === c.code
+                      ? 'bg-[#9b87f5]/10 text-[#9b87f5] font-medium'
+                      : 'text-[#1a1a2e]/50 hover:bg-[#f8fafc]'
+                  )}
                 >
                   <span className="text-base">{c.flag}</span>
                   <span className="flex-1 text-left">{c.code}</span>
-                  <span className="text-[11px]" style={{ color: 'hsl(145 15% 35%)' }}>{c.symbol}</span>
+                  <span className="text-[11px] text-[#1a1a2e]/30">{c.symbol}</span>
                 </button>
               ))}
             </div>
@@ -254,16 +240,13 @@ export function Sidebar({ onClose }: SidebarProps) {
         </div>
 
         {/* Sign Out */}
-        <div className="p-3" style={{ borderTop: '1px solid hsl(145 72% 52% / 0.06)' }}>
+        <div className="p-3 border-t border-[#f1f5f9]">
           <button
             onClick={() => signOut()}
-            className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium"
-            style={{ color: 'hsl(145 15% 40%)' }}
+            className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-[#1a1a2e]/40 hover:bg-[#f8fafc]"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{
-              background: 'hsl(0 72% 50% / 0.06)',
-            }}>
-              <LogOut className="h-[15px] w-[15px]" style={{ color: 'hsl(0 72% 55%)' }} />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-50">
+              <LogOut className="h-[15px] w-[15px] text-red-400" />
             </div>
             <span>Sign Out</span>
           </button>
