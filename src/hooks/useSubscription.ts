@@ -5,7 +5,7 @@ import { useAuth } from './useAuth';
 export interface Subscription {
   id: string;
   user_id: string;
-  plan_type: 'none' | 'monthly' | 'lifetime' | 'trial';
+  plan_type: 'none' | 'monthly' | 'lifetime';
   status: 'inactive' | 'active' | 'expired' | 'cancelled';
   activated_at: string | null;
   expires_at: string | null;
@@ -31,7 +31,7 @@ export function useSubscription() {
     queryKey: ['user-subscription', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      
+
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -42,7 +42,7 @@ export function useSubscription() {
         console.error('Error fetching subscription:', error);
         return null;
       }
-      
+
       return data as Subscription | null;
     },
     enabled: !!user,
@@ -75,12 +75,8 @@ export function useSubscription() {
   const hasActiveSubscription = subscription?.status === 'active';
   const isSubscriptionExpired = subscription?.status === 'expired';
   const hasPendingRequest = !!pendingRequest;
-  const isTrial = subscription?.plan_type === 'trial' && subscription?.status === 'active';
-  
-  // Calculate trial days remaining
-  const trialDaysRemaining = isTrial && subscription?.expires_at
-    ? Math.max(0, Math.ceil((new Date(subscription.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null;
+  const isTrial = false;
+  const trialDaysRemaining = null;
 
   return {
     subscription,

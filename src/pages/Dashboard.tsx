@@ -21,19 +21,24 @@ import {
   Eye,
   Heart,
   MessageCircle,
-  BarChart3
+  BarChart3,
+  LockKeyhole,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { PageMeta } from '@/components/seo/PageMeta';
 import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow } from 'date-fns';
+import { SubscriptionRequestDialog } from '@/components/subscription/SubscriptionRequestDialog';
+import { useState } from 'react';
 
 export default function Dashboard() {
   const { user, wallet, profile } = useAuth();
   const { subscription, hasActiveSubscription } = useSubscription();
   const { formatPrice } = useCurrency();
   const navigate = useNavigate();
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'lifetime'>('monthly');
 
   const { data: recentOrders } = useQuery({
     queryKey: ['recent-orders', user?.id],
@@ -113,15 +118,15 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-medium mb-1" style={{ color: 'hsl(145 15% 45%)' }}>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'},</p>
+            <p className="text-[11px] font-black uppercase tracking-widest mb-1 text-white/30">Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'},</p>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold tracking-tight" style={{ color: 'hsl(140 60% 95%)' }}>
+              <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-2xl">
                 {profile?.full_name || 'User'}
               </h1>
               {hasActiveSubscription && (
-                <Badge className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-bold flex items-center gap-1 px-2.5 py-1 shadow-lg shadow-amber-500/20 text-xs">
-                  <Crown className="h-3.5 w-3.5" />
-                  {subscription?.plan_type === 'lifetime' ? 'Lifetime' : 'Pro'}
+                <Badge className="bg-primary text-black font-black flex items-center gap-1 px-3 py-1 shadow-lg shadow-primary/20 text-[10px] uppercase tracking-widest border-none">
+                  <Crown className="h-3.5 w-3.5 fill-current" />
+                  {subscription?.plan_type === 'lifetime' ? 'Lifetime Member' : 'Pro Console'}
                 </Badge>
               )}
             </div>
@@ -129,43 +134,102 @@ export default function Dashboard() {
           <div className="flex gap-2.5">
             <Button
               variant="outline"
-              className="gap-2"
-              style={{ borderColor: 'hsl(145 72% 52% / 0.2)', background: 'hsl(145 72% 52% / 0.06)', color: 'hsl(145 72% 60%)' }}
+              className="gap-2 h-12 rounded-2xl border-white/10 bg-white/5 text-white/60 font-black text-xs uppercase tracking-widest"
               onClick={() => navigate('/engagement-order')}
+              disabled={!hasActiveSubscription}
             >
-              <Sparkles className="h-4 w-4" />
-              Full Engagement
+              <Sparkles className="h-4 w-4 text-primary" />
+              Engagement
             </Button>
             <Button
-              className="gap-2 font-semibold"
-              style={{ background: 'linear-gradient(135deg, hsl(145 72% 52%), hsl(160 72% 42%))', color: 'hsl(152 50% 4%)', boxShadow: '0 1px 0 0 hsl(145 80% 62% / 0.3) inset, 0 4px 16px -4px hsl(145 72% 52% / 0.35)' }}
+              className="gap-2 h-12 rounded-2xl btn-3d px-6 text-xs"
               onClick={() => navigate('/order')}
+              disabled={!hasActiveSubscription}
             >
-              <Zap className="h-4 w-4" />
-              New Order
+              <Zap className="h-4 w-4 fill-current" />
+              NEW ORDER
             </Button>
           </div>
         </div>
 
+        {/* Locked State for Non-Subscribers */}
+        {!hasActiveSubscription && (
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-white/5 bg-white/[0.02] p-8 md:p-12">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px] -mr-48 -mt-48" />
+
+            <div className="relative max-w-2xl">
+              <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-8 border border-white/10 shadow-inner">
+                <LockKeyhole className="h-10 w-10 text-white/20" />
+              </div>
+
+              <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight leading-[1.1]">
+                Growth Console <span className="text-primary italic">Locked.</span>
+              </h2>
+
+              <p className="text-lg text-white/40 font-bold mb-10 leading-relaxed italic">
+                You need an active license to access the Organic Growth Console and start viral campaigns. Choose a plan to unlock immediate access.
+              </p>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    setSelectedPlan('monthly');
+                    setShowRequestDialog(true);
+                  }}
+                  className="three-d-card p-6 border-white/5 hover:border-primary/40 transition-all text-left group"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <Zap className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-1 rounded">Popular</span>
+                  </div>
+                  <h3 className="font-black text-white text-lg mb-1">Monthly Pro</h3>
+                  <p className="text-2xl font-black text-white/80 mb-4">$10 <span className="text-xs text-white/20">/ MONTH</span></p>
+                  <div className="h-10 rounded-xl bg-primary text-black flex items-center justify-center font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
+                    Activate Console
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedPlan('lifetime');
+                    setShowRequestDialog(true);
+                  }}
+                  className="three-d-card p-6 border-primary/40 bg-primary/5 hover:border-primary transition-all text-left group"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <Crown className="h-6 w-6 text-amber-500 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-2 py-1 rounded">Best Value</span>
+                  </div>
+                  <h3 className="font-black text-white text-lg mb-1">Lifetime King</h3>
+                  <p className="text-2xl font-black text-white/80 mb-4">$99 <span className="text-xs text-white/20">/ ONE-TIME</span></p>
+                  <div className="h-10 rounded-xl btn-3d bg-primary text-black flex items-center justify-center font-black text-[10px] uppercase tracking-widest">
+                    Get Lifetime Access
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Subscription Banner */}
         {hasActiveSubscription && subscription && (
-          <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-r from-amber-500/5 via-yellow-500/5 to-amber-500/5 p-5">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl" />
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-primary/20 bg-primary/5 p-8">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -mr-32 -mt-32" />
             <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
-                  <Crown className="h-6 w-6 text-black" />
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 rounded-3xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/30 shrink-0">
+                  <Crown className="h-9 w-9 text-black fill-current" />
                 </div>
                 <div>
-                  <p className="font-bold text-lg" style={{ color: 'hsl(140 60% 95%)' }}>
-                    {subscription.plan_type === 'lifetime' ? '👑 Lifetime Member' : '⭐ Pro Member'}
+                  <p className="font-black text-2xl tracking-tighter text-white">
+                    {subscription.plan_type === 'lifetime' ? 'Lifetime Member' : 'Pro Member'}
                   </p>
-                  <p className="text-sm" style={{ color: 'hsl(145 15% 50%)' }}>
+                  <p className="text-xs font-bold uppercase tracking-widest text-white/30">
                     {subscription.plan_type === 'lifetime'
-                      ? 'Unlimited access forever'
+                      ? 'UNLIMITED ACCESS FOREVER'
                       : subscription.expires_at
                         ? `Expires ${formatDistanceToNow(new Date(subscription.expires_at), { addSuffix: true })}`
-                        : 'Active subscription'}
+                        : 'Elite Access Active'}
                   </p>
                 </div>
               </div>
@@ -207,19 +271,19 @@ export default function Dashboard() {
           ].map((stat, i) => (
             <div
               key={i}
-              className="glass-premium p-6 group transition-all duration-300 hover:-translate-y-1"
+              className="three-d-card p-6"
             >
               <div className="relative">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: 'hsl(145 72% 52% / 0.1)', border: '1px solid hsl(145 72% 52% / 0.15)' }}>
-                  <stat.icon className="h-6 w-6" style={{ color: 'hsl(145 72% 52%)' }} />
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 bg-primary/10 border border-primary/20 shadow-inner">
+                  <stat.icon className="h-6 w-6 text-primary" />
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.15em] mb-2" style={{ color: 'hsl(145 15% 45%)' }}>{stat.label}</p>
-                <p className="text-3xl font-black tracking-tighter" style={{ color: 'hsl(140 60% 95%)' }}>{stat.value}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 text-white/20">{stat.label}</p>
+                <p className="text-3xl font-black tracking-tighter text-white drop-shadow-xl">{stat.value}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <div className="h-1 w-8 rounded-full bg-primary/20 overflow-hidden">
-                    <div className="h-full bg-primary w-1/2 animate-pulse" />
+                    <div className="h-full bg-primary w-1/2 shadow-[0_0_10px_rgba(167,139,250,0.5)]" />
                   </div>
-                  <p className="text-[10px] font-bold" style={{ color: 'hsl(145 15% 40%)' }}>{stat.sub}</p>
+                  <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{stat.sub}</p>
                 </div>
               </div>
             </div>
@@ -229,14 +293,14 @@ export default function Dashboard() {
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Recent Engagement Orders - 3 cols */}
-          <div className="lg:col-span-3 rounded-2xl overflow-hidden" style={{ border: '1px solid hsl(145 72% 52% / 0.08)', background: 'hsl(150 22% 6% / 0.5)' }}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid hsl(145 72% 52% / 0.08)' }}>
+          <div className="lg:col-span-3 three-d-card">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
               <div className="flex items-center gap-2.5">
-                <BarChart3 className="h-4.5 w-4.5" style={{ color: 'hsl(145 72% 52% / 0.6)' }} />
-                <h2 className="font-semibold" style={{ color: 'hsl(140 60% 95%)' }}>Engagement Orders</h2>
+                <BarChart3 className="h-5 w-5 text-primary" />
+                <h2 className="font-black text-sm uppercase tracking-widest text-white/80">Engagement Console</h2>
               </div>
-              <Link to="/engagement-orders" className="text-xs flex items-center gap-1" style={{ color: 'hsl(145 72% 52% / 0.5)' }}>
-                View all <ChevronRight className="h-3 w-3" />
+              <Link to="/engagement-orders" className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-1 text-primary/40 hover:text-primary transition-colors">
+                VIEW LOGS <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
 
@@ -372,6 +436,11 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+      <SubscriptionRequestDialog
+        open={showRequestDialog}
+        onOpenChange={setShowRequestDialog}
+        planType={selectedPlan}
+      />
     </DashboardLayout>
   );
 }

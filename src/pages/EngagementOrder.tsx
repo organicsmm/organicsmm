@@ -12,7 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { PlatformSelector } from "@/components/engagement/PlatformSelector";
 import { QuantitySelector } from "@/components/engagement/QuantitySelector";
 import { EngagementTypeCard } from "@/components/engagement/EngagementTypeCard";
@@ -34,7 +36,8 @@ import {
   curveToSchedule,
   calculateQuantitiesFromCurve,
 } from "@/lib/curve-to-schedule";
-import { Loader2, Rocket, Link as LinkIcon, Wallet, RefreshCw } from "lucide-react";
+import { Loader2, Rocket, Link as LinkIcon, Wallet, RefreshCw, Brain, Percent } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useDebounce } from "@/hooks/useDebounce";
 
 type EngagementConfigs = Record<string, EngagementConfig>;
@@ -53,7 +56,7 @@ const formatPriceRaw = (price: number): string => {
 
 export default function EngagementOrder() {
   const navigate = useNavigate();
-  const { user, isLoading: authLoading, isAdmin, wallet, refreshWallet } = useAuth();
+  const { user, profile, isLoading: authLoading, isAdmin, wallet, refreshWallet } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasActiveSubscription } = useSubscription();
@@ -78,6 +81,24 @@ export default function EngagementOrder() {
 
   // Engagement configs - initialize empty, will be populated when bundle loads
   const [engagements, setEngagements] = useState<EngagementConfigs>({});
+
+  // Local settings toggles (defaulted from localStorage)
+  const [isOrganicMode, setIsOrganicMode] = useState(true);
+  const [isAutoRatios, setIsAutoRatios] = useState(true);
+  // User-saved custom ratios from Settings page (stored in localStorage)
+  const [userSavedRatios, setUserSavedRatios] = useState<Record<string, number> | null>(null);
+
+  // Sync with localStorage on load
+  useEffect(() => {
+    try {
+      const savedOrganic = localStorage.getItem('organic_settings');
+      if (savedOrganic) {
+        const parsed = JSON.parse(savedOrganic);
+        if (typeof parsed.isOrganicMode === 'boolean') setIsOrganicMode(parsed.isOrganicMode);
+        if (parsed.ratios) setUserSavedRatios(parsed.ratios);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
 
   // Fetch ALL active bundles WITH items to know which platforms are available
@@ -154,10 +175,13 @@ export default function EngagementOrder() {
   const baseTypeQuantities = useMemo(() => {
     const base: Record<EngagementType, number> = {} as Record<EngagementType, number>;
     activeEngagementTypes.forEach((type) => {
-      base[type] = Math.round(debouncedBaseQuantity * (DEFAULT_RATIOS[type] / 100));
+      // Use user's custom ratio if available from localStorage, else fallback to default
+      const userRatio = userSavedRatios?.[type];
+      const ratio = typeof userRatio === 'number' ? userRatio : DEFAULT_RATIOS[type];
+      base[type] = Math.round(debouncedBaseQuantity * (ratio / 100));
     });
     return base;
-  }, [debouncedBaseQuantity, activeEngagementTypes]);
+  }, [debouncedBaseQuantity, activeEngagementTypes, userSavedRatios]);
   // Fetch ALL active services as fallback for price lookup
   const { data: allServices } = useQuery({
     queryKey: ['all-active-services'],
@@ -259,7 +283,13 @@ export default function EngagementOrder() {
       const updated: EngagementConfigs = {};
 
       uniqueBundleTypes.forEach((type) => {
-        const ratioPercent = DEFAULT_RATIOS[type] ?? 1;
+        // If auto-ratios is OFF, only enable 'views' by default
+        const isEnabledByDefault = isAutoRatios || type === 'views';
+
+        // Use user's custom ratio if available from localStorage, else fallback to default
+        const userRatio = userSavedRatios?.[type];
+        const ratioPercent = typeof userRatio === 'number' ? userRatio : (DEFAULT_RATIOS[type] ?? 1);
+
         const ratioQuantity = Math.round(debouncedBaseQuantity * (ratioPercent / 100));
 
         const serviceData = servicePrices[type];
@@ -270,8 +300,8 @@ export default function EngagementOrder() {
 
         updated[type] = {
           type,
-          enabled: true, // All bundle types are enabled by default
-          quantity,
+          enabled: prev[type] ? prev[type].enabled : isEnabledByDefault,
+          quantity: (isAutoRatios || !prev[type]) ? quantity : prev[type].quantity,
           price: serviceData ? (quantity / 1000) * serviceData.pricePerK : 0,
           serviceId: serviceData?.serviceId || null,
           minQuantity: serviceData?.minQuantity,
@@ -283,7 +313,7 @@ export default function EngagementOrder() {
       });
       return updated;
     });
-  }, [debouncedBaseQuantity, bundles, servicePrices]);
+  }, [debouncedBaseQuantity, bundles, servicePrices, userSavedRatios, isAutoRatios]);
 
   const handleEngagementChange = useCallback((type: EngagementType, config: EngagementConfig) => {
     setEngagements(prev => ({ ...prev, [type]: config }));
@@ -408,7 +438,7 @@ export default function EngagementOrder() {
           link: link.trim(),
           base_quantity: baseQuantity,
           total_price: totalPrice,
-          is_organic_mode: true,
+          is_organic_mode: isOrganicMode,
           // Per-type settings will be in each engagement object
           engagements: Object.entries(engagements)
             .filter(([_, config]) => config.enabled)
@@ -631,19 +661,96 @@ export default function EngagementOrder() {
           <div className="absolute bottom-0 left-0 w-24 sm:w-36 h-24 sm:h-36 bg-gradient-to-tr from-foreground/10 to-transparent rounded-full blur-3xl" />
         </div>
 
-        {/* Platform Selection */}
-        <Card className="glass-card border-2 border-border overflow-hidden">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5">
-              <Label className="text-base sm:text-lg font-bold tracking-tight text-foreground">Select Platform</Label>
-            </div>
-            <PlatformSelector
-              selected={platform}
-              onSelect={setPlatform}
-              availablePlatforms={availablePlatforms}
-            />
-          </CardContent>
-        </Card>
+        {/* AI Automation Toggles */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <Card className={cn(
+            "glass-card border-2 transition-all duration-300 relative overflow-hidden",
+            isOrganicMode ? "border-success/40 bg-success/5 shadow-[0_0_30px_rgba(34,197,94,0.1)]" : "border-border"
+          )}>
+            <CardContent className="p-4 sm:p-6 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-inner",
+                  isOrganicMode ? "bg-success text-white" : "bg-secondary text-muted-foreground"
+                )}>
+                  <Brain className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-base sm:text-lg font-black text-foreground tracking-tight">AI Organic Algorithm</h3>
+                    <Badge variant="outline" className={cn(
+                      "text-[10px] font-black uppercase tracking-widest border-none px-2 py-0.5",
+                      isOrganicMode ? "bg-success text-white" : "bg-muted text-muted-foreground"
+                    )}>
+                      {isOrganicMode ? "ON" : "OFF"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium mb-3">AI generates UNIQUE organic patterns for each order automatically</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="bg-success/10 text-[10px] text-success border-success/20 font-bold py-0.5">✓ Unique S-curve per order</Badge>
+                    <Badge variant="outline" className="bg-success/10 text-[10px] text-success border-success/20 font-bold py-0.5">✓ Random variance</Badge>
+                    <Badge variant="outline" className="bg-success/10 text-[10px] text-success border-success/20 font-bold py-0.5">✓ Anti-bot detection</Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <Switch
+                  checked={isOrganicMode}
+                  onCheckedChange={(val) => {
+                    setIsOrganicMode(val);
+                    if (val) setIsAutoRatios(false); // turn off the other
+                  }}
+                  className="data-[state=checked]:bg-success scale-125"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className={cn(
+            "glass-card border-2 transition-all duration-300 relative overflow-hidden",
+            isAutoRatios ? "border-primary/40 bg-primary/5 shadow-[0_0_30px_rgba(155,135,245,0.1)]" : "border-border"
+          )}>
+            <CardContent className="p-4 sm:p-6 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-inner",
+                  isAutoRatios ? "bg-primary text-white" : "bg-secondary text-muted-foreground"
+                )}>
+                  <Percent className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-base sm:text-lg font-black text-foreground tracking-tight">AI Smart Ratios</h3>
+                    <Badge variant="outline" className={cn(
+                      "text-[10px] font-black uppercase tracking-widest border-none px-2 py-0.5",
+                      isAutoRatios ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                    )}>
+                      {isAutoRatios ? "AI AUTO-PILOT" : "MANUAL MODE"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium mb-3">AI automatically calculates organic engagement ratios</p>
+                  <div className="flex flex-wrap gap-2">
+                    {isAutoRatios ? (
+                      <Badge variant="outline" className="bg-primary/10 text-[10px] text-primary border-primary/20 font-bold py-0.5 italic">Optimized for algorithms</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-amber-500/10 text-[10px] text-amber-500 border-amber-500/20 font-bold py-0.5">Customized by User</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <Switch
+                  checked={isAutoRatios}
+                  onCheckedChange={(val) => {
+                    setIsAutoRatios(val);
+                    if (val) setIsOrganicMode(false); // turn off the other
+                  }}
+                  className="scale-125"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>{/* end AI Automation Toggles grid */}
 
         {/* Link Input */}
         <Card className="glass-card border-2 border-border">

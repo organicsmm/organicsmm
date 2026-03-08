@@ -4,8 +4,10 @@ import { useWallet } from '@/hooks/useWallet';
 import { useTransactions, type TransactionFilter } from '@/hooks/useTransactions';
 import { useCurrency } from '@/hooks/useCurrency';
 import InlineDepositCard from '@/components/wallet/InlineDepositCard';
+import RazorpayDepositCard from '@/components/wallet/RazorpayDepositCard';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import {
   Wallet as WalletIcon,
   ArrowUpRight,
@@ -87,8 +89,19 @@ export default function Wallet() {
           </div>
         </div>
 
-        {/* Deposit Card */}
-        <InlineDepositCard />
+        {/* Deposit Section */}
+        <Tabs defaultValue="razorpay" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4 h-12 glass-card p-1">
+            <TabsTrigger value="razorpay" className="rounded-lg font-bold">Razorpay (UPI/Cards)</TabsTrigger>
+            <TabsTrigger value="usdt" className="rounded-lg font-bold">USDT (BEP20)</TabsTrigger>
+          </TabsList>
+          <TabsContent value="razorpay">
+            <RazorpayDepositCard />
+          </TabsContent>
+          <TabsContent value="usdt">
+            <InlineDepositCard />
+          </TabsContent>
+        </Tabs>
 
         {/* Transaction History */}
         <div className="glass-card p-6">
@@ -128,6 +141,18 @@ export default function Wallet() {
                             {tx.payment_method.replace(/_/g, ' ').toUpperCase()}
                           </Badge>
                         )}
+                        {/* Status Badge */}
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[9px] py-0 px-1.5 h-4 font-black uppercase tracking-widest border-none",
+                            tx.status === 'pending' ? "bg-amber-500/10 text-amber-500" :
+                              tx.status === 'completed' ? "bg-emerald-500/10 text-emerald-500" :
+                                "bg-rose-500/10 text-rose-500"
+                          )}
+                        >
+                          {tx.status}
+                        </Badge>
                         {/* Date */}
                         <span className="text-xs text-muted-foreground">{fmtDate(tx.created_at!)}</span>
                         {/* BSCScan link for crypto deposits */}

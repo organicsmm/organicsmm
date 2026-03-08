@@ -14,17 +14,17 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Leaf, 
-  Zap, 
-  Clock, 
+import {
+  Leaf,
+  Zap,
+  Clock,
   Link as LinkIcon,
   AlertCircle,
   CheckCircle2,
@@ -40,9 +40,9 @@ import {
 import type { Service } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
-import { 
-  detectServiceCategory, 
-  getOrganicConfigForService, 
+import {
+  detectServiceCategory,
+  getOrganicConfigForService,
   calculateOptimalRuns,
   getCategoryDisplayInfo,
   type ServiceCategory,
@@ -70,19 +70,32 @@ interface OrganicPreviewRun {
 export default function Order() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, wallet, refreshWallet, isAdmin } = useAuth();
+  const { user, profile, wallet, refreshWallet, isAdmin } = useAuth();
   const { formatPrice } = useCurrency();
   const { hasActiveSubscription } = useSubscription();
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
-  
+
   const preselectedService = searchParams.get('service');
-  
+
   const [selectedServiceId, setSelectedServiceId] = useState<string>(preselectedService || '');
   const [serviceSearch, setServiceSearch] = useState('');
   const [showServiceList, setShowServiceList] = useState(false);
   const [link, setLink] = useState('');
   const [quantity, setQuantity] = useState<number>(1000);
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('organic');
+
+  // Load user preference for organic mode from localStorage
+  useEffect(() => {
+    try {
+      const savedOrganic = localStorage.getItem('organic_settings');
+      if (savedOrganic) {
+        const parsed = JSON.parse(savedOrganic);
+        if (typeof parsed.isOrganicMode === 'boolean') {
+          setDeliveryMode(parsed.isOrganicMode ? 'organic' : 'direct');
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
   const [dripRuns, setDripRuns] = useState<number>(20); // Optimized: 20 runs for natural distribution
   const [dripInterval, setDripInterval] = useState<number>(30);
   const [dripIntervalUnit, setDripIntervalUnit] = useState<string>('minutes');
@@ -101,9 +114,9 @@ export default function Order() {
   const filteredServices = useMemo(() => {
     if (!services) return [];
     if (!serviceSearch) return services;
-    
+
     const query = serviceSearch.toLowerCase();
-    return services.filter(s => 
+    return services.filter(s =>
       s.provider_service_id?.toLowerCase().includes(query) ||
       s.name.toLowerCase().includes(query) ||
       s.category.toLowerCase().includes(query)
@@ -148,13 +161,13 @@ export default function Order() {
   const effectiveRuns = useMemo(() => {
     // Use service-specific config for optimal runs
     const configRuns = calculateOptimalRuns(quantity, serviceMinQty, organicConfig);
-    
+
     // User can override with manual setting
     const userRuns = dripRuns;
-    
+
     // Each run must have at least service minimum
     const maxPossibleRuns = Math.floor(quantity / serviceMinQty);
-    
+
     // Use the smaller of: config-based runs, user selection, or max possible
     return Math.min(userRuns, configRuns, maxPossibleRuns);
   }, [quantity, dripRuns, serviceMinQty, organicConfig]);
@@ -163,11 +176,11 @@ export default function Order() {
   // Advanced Organic Algorithm v5.0 - Service-specific scheduling with TRUE randomness
   const organicPreview = useMemo((): OrganicPreviewRun[] => {
     if (deliveryMode !== 'organic' || !quantity || effectiveRuns < 1) return [];
-    
+
     const runs: OrganicPreviewRun[] = [];
     let remaining = quantity;
     const now = new Date();
-    
+
     // Get service-specific config values
     const {
       baseIntervalMinutes,
@@ -184,16 +197,16 @@ export default function Order() {
       nightReduction,
       targetHumanScore,
     } = organicConfig;
-    
+
     // Calculate interval based on time limit mode OR service config
     let intervalMs: number;
-    
+
     if (timeLimitEnabled && timeLimitValue > 0) {
       // Time Limit ON: AI fits all runs within specified duration
       const totalDurationMs = timeLimitValue * (
         timeLimitUnit === 'minutes' ? 60000 :
-        timeLimitUnit === 'hours' ? 3600000 :
-        86400000
+          timeLimitUnit === 'hours' ? 3600000 :
+            86400000
       );
       intervalMs = Math.floor(totalDurationMs / effectiveRuns);
     } else {
@@ -203,25 +216,25 @@ export default function Order() {
       // Apply some randomization to base interval
       intervalMs = baseInterval + (Math.random() * variance * 2 - variance);
     }
-    
+
     // Use current timestamp for unique seed each load
     const baseSeed = Date.now() % 100000;
-    
+
     // Seeded random for preview (changes each page load for uniqueness)
     const seededRandom = (seed: number): number => {
       const x = Math.sin((seed + baseSeed) * 9999) * 10000;
       return x - Math.floor(x);
     };
-    
+
     // Service-specific session types
     const getSessionType = (i: number, total: number): 'burst' | 'normal' | 'slow' | 'pause' => {
       const roll = seededRandom(i * 88888);
       const position = i / total;
-      
+
       // Use service-specific probabilities
       if (roll < pauseChance) return 'pause';
       if (roll < pauseChance + burstChance) return 'burst';
-      
+
       // Position-based adjustments
       if (position < 0.2) {
         return roll < 0.5 ? 'slow' : 'normal';
@@ -229,14 +242,14 @@ export default function Order() {
       if (position > 0.8) {
         return roll < 0.4 ? 'slow' : 'normal';
       }
-      
+
       return seededRandom(i * 77777) > 0.4 ? 'normal' : 'burst';
     };
 
     // Service-specific time multipliers
     const getTimeMultiplier = (hour: number): { multiplier: number; isPeak: boolean } => {
       if (!peakHoursEnabled) return { multiplier: 1.0, isPeak: false };
-      
+
       // Use service-specific peak boost
       if (hour >= 20 && hour <= 22) return { multiplier: peakHourBoost, isPeak: true };
       if (hour >= 18 && hour < 20) return { multiplier: peakHourBoost * 0.85, isPeak: true };
@@ -252,38 +265,38 @@ export default function Order() {
     // Service-specific human score calculation
     const getHumanScore = (variance: number, sessionType: string, patternBreaker: boolean): number => {
       let score = targetHumanScore[0]; // Start with min target
-      
+
       // Variance adds to score
       const varianceRatio = Math.abs(variance) / serviceMinQty;
       score += Math.min(25, varianceRatio * 12);
-      
+
       // Session type affects score
       if (sessionType === 'burst') score += 5;
       if (sessionType === 'slow') score += 12;
       if (sessionType === 'pause') score += 18;
-      
+
       // Pattern breakers are highly human
       if (patternBreaker) score += 15;
-      
+
       return Math.min(targetHumanScore[1], Math.max(targetHumanScore[0], score));
     };
 
     // First pass: calculate base quantities with service-specific variance
     const baseQuantities: number[] = [];
     let totalBase = 0;
-    
+
     for (let i = 0; i < effectiveRuns; i++) {
       // Random multiplier based on service variance config
       const varianceRange = quantityVariancePercent / 50; // Normalize to 0-1+ range
       const randomMult = (1 - varianceRange * 0.7) + seededRandom(i * 12345) * varianceRange * 1.4;
-      
+
       // S-curve weight
       const x = i / effectiveRuns;
       let sCurve = 1.0;
       if (x < 0.2) sCurve = 0.6 + x * 2;
       else if (x < 0.6) sCurve = 1.0 + (x - 0.2) * 0.5;
       else sCurve = 1.2 - (x - 0.6) * 1.5;
-      
+
       // Service-specific spike/dip chances
       let spikeMult = 1.0;
       const spikeRoll = seededRandom(i * 54321);
@@ -294,28 +307,28 @@ export default function Order() {
         // Dip: use service-specific magnitude
         spikeMult = dipMagnitude[0] + seededRandom(i * 22222) * (dipMagnitude[1] - dipMagnitude[0]);
       }
-      
+
       const baseQty = randomMult * sCurve * spikeMult;
       baseQuantities.push(baseQty);
       totalBase += baseQty;
     }
-    
+
     // Second pass: normalize to total quantity while respecting minimum
     for (let i = 0; i < effectiveRuns; i++) {
       const scheduledAt = new Date(now.getTime() + (i * intervalMs));
-      
+
       // Add random offset based on service interval variance (±variance minutes)
       const offsetRange = intervalVariance * 60000;
       const randomOffset = Math.floor((seededRandom(i * 77777) * 2 - 1) * offsetRange);
       scheduledAt.setTime(scheduledAt.getTime() + randomOffset);
-      
+
       const hour = scheduledAt.getHours();
       const { multiplier, isPeak } = getTimeMultiplier(hour);
       const sessionType = getSessionType(i, effectiveRuns);
-      
+
       // Service-specific pattern breaker chance
       const patternBreaker = seededRandom(i * 99999) > (1 - patternBreakerChance);
-      
+
       let qty: number;
       if (i === effectiveRuns - 1) {
         // Last run gets remaining
@@ -323,15 +336,15 @@ export default function Order() {
       } else {
         // Proportional distribution
         qty = Math.round((baseQuantities[i] / totalBase) * quantity);
-        
+
         // Apply time multiplier
         qty = Math.round(qty * (0.7 + multiplier * 0.3));
-        
+
         // Ensure minimum and don't exceed remaining
         const runsLeft = effectiveRuns - i;
         const minNeededForRemaining = (runsLeft - 1) * serviceMinQty;
         qty = Math.max(serviceMinQty, Math.min(qty, remaining - minNeededForRemaining));
-        
+
         // Pattern breaker: either spike or dip dramatically
         if (patternBreaker) {
           const breakerRoll = seededRandom(i * 33333);
@@ -342,13 +355,13 @@ export default function Order() {
           }
         }
       }
-      
+
       remaining -= qty;
-      
+
       const avgQty = Math.floor(quantity / effectiveRuns);
       const variance = qty - avgQty;
       const humanScore = getHumanScore(variance, sessionType, patternBreaker);
-      
+
       runs.push({
         runNumber: i + 1,
         scheduledAt,
@@ -364,7 +377,7 @@ export default function Order() {
         dayOfWeek: scheduledAt.getDay(),
       });
     }
-    
+
     return runs;
   }, [quantity, effectiveRuns, dripInterval, dripIntervalUnit, variancePercent, peakHoursEnabled, deliveryMode, serviceMinQty, timeLimitEnabled, timeLimitValue, timeLimitUnit, organicConfig]);
 
@@ -380,7 +393,7 @@ export default function Order() {
       if (!selectedService || !link || !user) {
         throw new Error('Missing required fields');
       }
-      
+
       if (!wallet || wallet.balance < totalPrice) {
         throw new Error('Insufficient balance');
       }
@@ -408,19 +421,19 @@ export default function Order() {
         })
         .select()
         .single();
-      
+
       if (orderError) throw orderError;
 
       // Deduct from wallet
       const newBalance = wallet.balance - totalPrice;
       const { error: walletError } = await supabase
         .from('wallets')
-        .update({ 
+        .update({
           balance: newBalance,
-          total_spent: (wallet.total_spent || 0) + totalPrice 
+          total_spent: (wallet.total_spent || 0) + totalPrice
         })
         .eq('user_id', user.id);
-      
+
       if (walletError) throw walletError;
 
       // Create transaction
@@ -435,7 +448,7 @@ export default function Order() {
           description: `Order #${order.order_number} - ${selectedService.name}`,
           status: 'completed',
         });
-      
+
       if (txError) throw txError;
 
       let firstRunId: string | null = null;
@@ -445,36 +458,36 @@ export default function Order() {
         // CRITICAL: Recalculate schedule times at submission to ensure they're in the future
         // The preview times may be stale if user took time to fill the form
         const submissionTime = new Date();
-        
+
         // Add initial delay (2-5 minutes) to ensure first run is safely in the future
         const initialDelayMs = (2 + Math.random() * 3) * 60000; // 2-5 minutes random delay
         const startTime = new Date(submissionTime.getTime() + initialDelayMs);
-        
+
         // CRITICAL: Use the SAME interval calculation as preview
         // If time limit is enabled, distribute runs within that duration
         let baseIntervalMs: number;
-        
+
         if (timeLimitEnabled && timeLimitValue > 0) {
           // Time Limit ON: Fit all runs within specified duration
           const totalDurationMs = timeLimitValue * (
             timeLimitUnit === 'minutes' ? 60000 :
-            timeLimitUnit === 'hours' ? 3600000 :
-            86400000 // days
+              timeLimitUnit === 'hours' ? 3600000 :
+                86400000 // days
           );
           baseIntervalMs = Math.floor(totalDurationMs / organicPreview.length);
         } else {
           // Time Limit OFF: Use service-specific base interval from config
           baseIntervalMs = organicConfig.baseIntervalMinutes * 60000;
         }
-        
+
         const runs = organicPreview.map((run, index) => {
           // Calculate new scheduled time from submission time
           const newScheduledAt = new Date(startTime.getTime() + (index * baseIntervalMs));
-          
+
           // Add random variance to each run's time (±2 minutes for organic feel)
           const timeVariance = (Math.random() * 4 - 2) * 60000;
           newScheduledAt.setTime(newScheduledAt.getTime() + timeVariance);
-          
+
           return {
             order_id: order.id,
             run_number: run.runNumber,
@@ -491,9 +504,9 @@ export default function Order() {
           .from('organic_run_schedule')
           .insert(runs)
           .select();
-        
+
         if (runsError) throw runsError;
-        
+
         // Get first run ID for immediate execution
         if (insertedRuns && insertedRuns.length > 0) {
           firstRunId = insertedRuns.find(r => r.run_number === 1)?.id || null;
@@ -503,10 +516,10 @@ export default function Order() {
       // INSTANT: Navigate immediately, process in background
       toast.success('🚀 Order placed successfully!');
       refreshWallet();
-      
+
       // Fire-and-forget: process order in background
       supabase.functions.invoke('process-order', {
-        body: { 
+        body: {
           order_id: order.id,
           run_id: firstRunId
         }
@@ -539,7 +552,7 @@ export default function Order() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     // Basic validation first
     if (!selectedServiceId) {
       setError('Please select a service');
@@ -563,34 +576,34 @@ export default function Order() {
       placeOrderMutation.mutate();
       return;
     }
-    
+
     // STEP 1: Check subscription FIRST (before balance)
     if (!hasActiveSubscription) {
       setShowSubscriptionDialog(true);
       return;
     }
-    
+
     // STEP 2: After subscription confirmed, check balance
     if (!wallet || wallet.balance <= 0) {
       toast.error('आपके account में कोई balance नहीं है। पहले funds add करें!');
       navigate('/wallet');
       return;
     }
-    
+
     if (wallet.balance < totalPrice) {
       toast.error(`Insufficient balance! Your wallet has ${formatPrice(wallet.balance)}. Order requires ${formatPrice(totalPrice)}.`);
       navigate('/wallet');
       return;
     }
-    
+
     placeOrderMutation.mutate();
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   };
 
@@ -623,7 +636,7 @@ export default function Order() {
                   <Search className="h-4 w-4 text-primary" />
                   <Label className="text-base font-semibold">Select Service</Label>
                 </div>
-                
+
                 {/* Search Input */}
                 <div className="relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -653,7 +666,7 @@ export default function Order() {
 
                 {/* Selected Service Display */}
                 {selectedService && !showServiceList && (
-                  <div 
+                  <div
                     onClick={() => setShowServiceList(true)}
                     className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all duration-300"
                   >
@@ -671,7 +684,7 @@ export default function Order() {
                       <span className="bg-secondary px-2 py-1 rounded-md">Max: {selectedService.max_quantity.toLocaleString()}</span>
                       {selectedService.drip_feed_enabled && <span className="bg-success/20 text-success px-2 py-1 rounded-md">✓ Drip</span>}
                     </div>
-                    
+
                     {/* AI-Detected Service Type Badge */}
                     {deliveryMode === 'organic' && (
                       <div className="mt-3 pt-3 border-t border-border/50">
@@ -715,9 +728,8 @@ export default function Order() {
                                   setShowServiceList(false);
                                   setServiceSearch('');
                                 }}
-                                className={`w-full p-4 text-left hover:bg-primary/5 transition-all border-b border-border/50 ${
-                                  selectedServiceId === service.id ? 'bg-primary/10 border-l-4 border-l-primary' : ''
-                                }`}
+                                className={`w-full p-4 text-left hover:bg-primary/5 transition-all border-b border-border/50 ${selectedServiceId === service.id ? 'bg-primary/10 border-l-4 border-l-primary' : ''
+                                  }`}
                               >
                                 <div className="flex items-start sm:items-center justify-between gap-3 flex-col sm:flex-row">
                                   <div className="flex-1 min-w-0 space-y-1.5">
@@ -800,11 +812,10 @@ export default function Order() {
                         key={qty}
                         type="button"
                         onClick={() => setQuantity(qty)}
-                        className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${
-                          quantity === qty 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-secondary hover:bg-secondary/80 text-foreground'
-                        }`}
+                        className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${quantity === qty
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-secondary hover:bg-secondary/80 text-foreground'
+                          }`}
                       >
                         {qty >= 1000 ? `${qty / 1000}K` : qty}
                       </button>
@@ -829,29 +840,26 @@ export default function Order() {
                       key={mode.id}
                       type="button"
                       onClick={() => setDeliveryMode(mode.id as DeliveryMode)}
-                      className={`relative p-4 rounded-xl border-2 text-center transition-all duration-300 ${
-                        deliveryMode === mode.id
-                          ? mode.id === 'organic' 
-                            ? 'border-success bg-success/10 shadow-lg shadow-success/20'
-                            : 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
-                          : 'border-border bg-card hover:border-primary/30 hover:bg-secondary/50'
-                      }`}
+                      className={`relative p-4 rounded-xl border-2 text-center transition-all duration-300 ${deliveryMode === mode.id
+                        ? mode.id === 'organic'
+                          ? 'border-success bg-success/10 shadow-lg shadow-success/20'
+                          : 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
+                        : 'border-border bg-card hover:border-primary/30 hover:bg-secondary/50'
+                        }`}
                     >
                       {mode.id === 'organic' && deliveryMode === 'organic' && (
                         <div className="absolute -top-2 -right-2 bg-success text-[10px] text-success-foreground px-2 py-0.5 rounded-full font-bold">
                           ⭐ BEST
                         </div>
                       )}
-                      <mode.icon className={`h-7 w-7 mx-auto mb-2 ${
-                        deliveryMode === mode.id 
-                          ? mode.id === 'organic' ? 'text-success' : 'text-primary'
-                          : 'text-muted-foreground'
-                      }`} />
-                      <p className={`font-semibold text-sm ${
-                        deliveryMode === mode.id 
-                          ? mode.id === 'organic' ? 'text-success' : 'text-primary'
-                          : 'text-foreground'
-                      }`}>{mode.label}</p>
+                      <mode.icon className={`h-7 w-7 mx-auto mb-2 ${deliveryMode === mode.id
+                        ? mode.id === 'organic' ? 'text-success' : 'text-primary'
+                        : 'text-muted-foreground'
+                        }`} />
+                      <p className={`font-semibold text-sm ${deliveryMode === mode.id
+                        ? mode.id === 'organic' ? 'text-success' : 'text-primary'
+                        : 'text-foreground'
+                        }`}>{mode.label}</p>
                       <p className="text-xs text-muted-foreground mt-1">{mode.desc}</p>
                     </button>
                   ))}
@@ -865,7 +873,7 @@ export default function Order() {
                     <Clock className="h-4 w-4 text-primary" />
                     <Label className="text-base font-semibold">Schedule Settings</Label>
                   </div>
-                  
+
                   {/* Time Limit Toggle - Only for Organic mode */}
                   {deliveryMode === 'organic' && (
                     <div className="p-4 rounded-xl bg-card border-2 border-border space-y-4">
@@ -877,8 +885,8 @@ export default function Order() {
                           <div>
                             <p className="font-medium">Time Limit</p>
                             <p className="text-xs text-muted-foreground">
-                              {timeLimitEnabled 
-                                ? 'AI fits schedule within this time' 
+                              {timeLimitEnabled
+                                ? 'AI fits schedule within this time'
                                 : 'AI decides optimal duration'}
                             </p>
                           </div>
@@ -888,7 +896,7 @@ export default function Order() {
                           onCheckedChange={setTimeLimitEnabled}
                         />
                       </div>
-                      
+
                       {/* Time Limit Input - shown when enabled */}
                       {timeLimitEnabled && (
                         <div className="flex gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -1022,11 +1030,10 @@ export default function Order() {
                             setDripInterval(preset.interval);
                             setVariancePercent(preset.variance);
                           }}
-                          className={`p-4 rounded-xl border-2 text-center transition-all duration-300 ${
-                            organicPreset === preset.id
-                              ? 'border-success bg-success/15 shadow-md shadow-success/20'
-                              : 'border-border bg-card hover:border-success/40'
-                          }`}
+                          className={`p-4 rounded-xl border-2 text-center transition-all duration-300 ${organicPreset === preset.id
+                            ? 'border-success bg-success/15 shadow-md shadow-success/20'
+                            : 'border-border bg-card hover:border-success/40'
+                            }`}
                         >
                           <span className="text-xl mb-1 block">{preset.emoji}</span>
                           <p className={`font-bold text-sm ${organicPreset === preset.id ? 'text-success' : ''}`}>{preset.label}</p>
@@ -1103,26 +1110,24 @@ export default function Order() {
                     <div className="p-4 rounded-xl bg-card border border-border">
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium">Detection Risk Level</span>
-                        <span className={`text-sm font-bold px-2 py-0.5 rounded-lg ${
-                          variancePercent >= 40 && dripRuns >= 15 ? 'bg-success/20 text-success' :
+                        <span className={`text-sm font-bold px-2 py-0.5 rounded-lg ${variancePercent >= 40 && dripRuns >= 15 ? 'bg-success/20 text-success' :
                           variancePercent >= 30 && dripRuns >= 10 ? 'bg-warning/20 text-warning' : 'bg-destructive/20 text-destructive'
-                        }`}>
+                          }`}>
                           {variancePercent >= 40 && dripRuns >= 15 ? '✓ Very Low' :
-                           variancePercent >= 30 && dripRuns >= 10 ? '⚠ Low' : '⚠ Medium'}
+                            variancePercent >= 30 && dripRuns >= 10 ? '⚠ Low' : '⚠ Medium'}
                         </span>
                       </div>
                       <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-500 rounded-full ${
-                            variancePercent >= 40 && dripRuns >= 15 ? 'bg-success' :
+                        <div
+                          className={`h-full transition-all duration-500 rounded-full ${variancePercent >= 40 && dripRuns >= 15 ? 'bg-success' :
                             variancePercent >= 30 && dripRuns >= 10 ? 'bg-warning' : 'bg-destructive'
-                          }`}
+                            }`}
                           style={{ width: `${Math.max(10, 100 - (variancePercent * 1.5 + dripRuns * 1.5))}%` }}
                         />
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        {variancePercent >= 40 && dripRuns >= 15 
-                          ? '100% undetectable organic pattern' 
+                        {variancePercent >= 40 && dripRuns >= 15
+                          ? '100% undetectable organic pattern'
                           : 'Increase runs or variance for better safety'}
                       </p>
                     </div>
@@ -1161,9 +1166,9 @@ export default function Order() {
               </div>
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
-                size="lg" 
+              <Button
+                type="submit"
+                size="lg"
                 className="w-full h-14 text-lg font-bold rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all duration-300"
                 disabled={placeOrderMutation.isPending || !selectedServiceId || !link}
               >
@@ -1186,7 +1191,7 @@ export default function Order() {
           <div className="lg:col-span-2 space-y-5">
             {/* Organic Timeline Preview - New Design */}
             {deliveryMode === 'organic' && organicPreview.length > 0 && (
-              <OrganicTimelinePreview 
+              <OrganicTimelinePreview
                 runs={organicPreview}
                 totalQuantity={quantity}
               />
@@ -1209,15 +1214,14 @@ export default function Order() {
                 <div className="mb-5 bg-secondary/30 p-4 rounded-xl">
                   <div className="flex items-end gap-0.5 h-32 sm:h-40">
                     {organicPreview.map((run, i) => (
-                      <div 
+                      <div
                         key={i}
                         className="flex-1 flex flex-col items-center justify-end"
                       >
-                        <div 
-                          className={`w-full rounded-t-sm transition-all duration-500 min-w-[2px] ${
-                            run.isPeakHour ? 'bg-gradient-to-t from-warning to-warning/50' : 'bg-gradient-to-t from-success to-success/50'
-                          }`}
-                          style={{ 
+                        <div
+                          className={`w-full rounded-t-sm transition-all duration-500 min-w-[2px] ${run.isPeakHour ? 'bg-gradient-to-t from-warning to-warning/50' : 'bg-gradient-to-t from-success to-success/50'
+                            }`}
+                          style={{
                             height: `${Math.max(5, (run.quantity / maxQuantity) * 100)}%`,
                             animationDelay: `${i * 50}ms`
                           }}
@@ -1274,7 +1278,7 @@ export default function Order() {
                 </div>
                 <div className="max-h-64 overflow-y-auto scrollbar-thin space-y-2">
                   {organicPreview.slice(0, 10).map((run) => (
-                    <div 
+                    <div
                       key={run.runNumber}
                       className="flex items-center justify-between p-3 rounded-xl bg-secondary/40 hover:bg-secondary/60 transition-colors"
                     >
@@ -1328,7 +1332,7 @@ export default function Order() {
                     </p>
                     <div className="flex items-end gap-0.5 h-10">
                       {Array(Math.min(effectiveRuns, 30)).fill(0).map((_, i) => (
-                        <div 
+                        <div
                           key={i}
                           className="flex-1 bg-muted-foreground/30 rounded-t min-w-[2px]"
                           style={{ height: '60%' }}
@@ -1343,7 +1347,7 @@ export default function Order() {
                     </p>
                     <div className="flex items-end gap-0.5 h-10">
                       {organicPreview.slice(0, 30).map((run, i) => (
-                        <div 
+                        <div
                           key={i}
                           className="flex-1 bg-success rounded-t min-w-[2px]"
                           style={{ height: `${Math.max(10, (run.quantity / maxQuantity) * 100)}%` }}

@@ -18,7 +18,7 @@ const iconMap = {
 
 export function PlatformSelector({ selected, onSelect, availablePlatforms }: PlatformSelectorProps) {
   // Filter platforms based on availablePlatforms prop
-  const platformsToShow = availablePlatforms 
+  const platformsToShow = availablePlatforms
     ? Object.entries(PLATFORM_CONFIG).filter(([key]) => availablePlatforms.includes(key))
     : Object.entries(PLATFORM_CONFIG);
 
@@ -35,20 +35,19 @@ export function PlatformSelector({ selected, onSelect, availablePlatforms }: Pla
       {platformsToShow.map(([key, config]) => {
         const Icon = iconMap[config.icon as keyof typeof iconMap];
         const isSelected = selected === key;
-        
+
         return (
           <button
             key={key}
             onClick={() => onSelect(key)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all duration-200",
-              "border-2",
+              "flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest",
               isSelected
-                ? `bg-gradient-to-r ${config.color} text-white border-transparent shadow-lg scale-105`
-                : "bg-secondary/50 text-muted-foreground border-border hover:border-foreground/30 hover:bg-secondary"
+                ? `bg-gradient-to-r ${config.color} text-white border-2 border-white/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)] scale-[1.05]`
+                : "bg-white/[0.03] text-white/30 border border-white/5 hover:bg-white/5 hover:text-white/50"
             )}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className={cn("h-4 w-4", isSelected ? "text-white" : "text-white/20")} />
             <span>{config.label}</span>
           </button>
         );

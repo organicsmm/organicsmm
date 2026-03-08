@@ -40,6 +40,7 @@ const AdminBundles = lazy(() => import("./pages/admin/AdminBundles"));
 const AdminCronMonitor = lazy(() => import("./pages/admin/AdminCronMonitor"));
 const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions"));
 const AdminChat = lazy(() => import("./pages/admin/AdminChat"));
+const AdminDeposits = lazy(() => import("./pages/admin/AdminDeposits"));
 const AdminProviderAccounts = lazy(() => import("./pages/admin/AdminProviderAccounts"));
 const AdminServiceProviderMapping = lazy(() => import("./pages/admin/AdminServiceProviderMapping"));
 
@@ -137,6 +138,7 @@ const App = () => {
                       <Route path="/admin/cron-monitor" element={<AdminCronMonitor />} />
                       <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
                       <Route path="/admin/chat" element={<AdminChat />} />
+                      <Route path="/admin/deposits" element={<AdminDeposits />} />
                       <Route path="/admin/provider-accounts" element={<AdminProviderAccounts />} />
                       <Route path="/admin/service-provider-mapping" element={<AdminServiceProviderMapping />} />
 

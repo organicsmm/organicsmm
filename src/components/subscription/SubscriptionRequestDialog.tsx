@@ -25,6 +25,7 @@ import {
   MessageSquare,
   Sparkles,
   Shield,
+  LockKeyhole,
 } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
@@ -174,8 +175,20 @@ Request ID: ${requestData.id}`;
 
       if (msgError) {
         console.error('Failed to send chat message:', msgError);
-        // Don't throw - request is already saved
       }
+
+      // Step 4: Send Telegram alert to admin
+      const appUrl = window.location.origin;
+      supabase.functions.invoke('send-telegram-notification', {
+        body: {
+          message: `<b>👑 NEW SUBSCRIPTION REQUEST</b>\n\n` +
+            `👤 <b>Name:</b> ${validation.data.full_name}\n` +
+            `📧 <b>Email:</b> ${profile?.email || user.email}\n` +
+            `📞 <b>Phone:</b> ${validation.data.phone}\n` +
+            `💎 <b>Plan:</b> ${planType.toUpperCase()}\n\n` +
+            `<a href="${appUrl}/admin/subscriptions">Open Admin Panel</a>`,
+        },
+      }).catch(err => console.error('TG alert failed:', err));
     },
     onSuccess: () => {
       toast.success('Request submitted! Opening Live Chat...');
@@ -306,26 +319,11 @@ Request ID: ${requestData.id}`;
             <div className="relative">
               <Input
                 id="full_name"
-                placeholder="Enter your full name"
-                value={formData.full_name}
-                onChange={(e) => {
-                  setFormData({ ...formData, full_name: e.target.value });
-                  if (errors.full_name) setErrors({ ...errors, full_name: '' });
-                }}
-                onFocus={() => setFocusedField('full_name')}
-                onBlur={() => setFocusedField(null)}
-                className={cn(
-                  "h-12 rounded-xl pl-4 pr-10 transition-all",
-                  errors.full_name
-                    ? "border-destructive focus-visible:ring-destructive/30"
-                    : focusedField === 'full_name'
-                      ? "border-primary"
-                      : ""
-                )}
+                value={profile?.full_name || ''}
+                readOnly
+                className="h-12 rounded-xl pl-4 pr-10 transition-all bg-muted/50 text-muted-foreground cursor-not-allowed"
               />
-              {formData.full_name && !errors.full_name && (
-                <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-success" />
-              )}
+              <LockKeyhole className="absolute right-3 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground/40" />
             </div>
             {errors.full_name && (
               <p className="text-xs text-destructive flex items-center gap-1">

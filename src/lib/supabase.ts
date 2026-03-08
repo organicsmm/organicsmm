@@ -10,8 +10,19 @@ export interface Profile {
   user_id: string;
   email: string;
   full_name: string | null;
+  avatar_url: string | null;
   api_key: string | null;
   currency: string;
+  telegram_id: string | null;
+  telegram_username: string | null;
+  is_organic_mode_default: boolean;
+  organic_ratios: {
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    [key: string]: number;
+  };
   created_at: string;
   updated_at: string;
 }

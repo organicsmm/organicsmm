@@ -90,7 +90,7 @@ export default function AdminSubscriptions() {
 
   // Add subscriber state
   const [addEmail, setAddEmail] = useState('');
-  const [addPlanType, setAddPlanType] = useState<'trial' | 'monthly' | 'lifetime'>('trial');
+  const [addPlanType, setAddPlanType] = useState<'monthly' | 'lifetime'>('monthly');
   const [removeDialog, setRemoveDialog] = useState<{ userId: string; email: string } | null>(null);
 
   // Fetch active subscribers with profile info
@@ -156,18 +156,16 @@ export default function AdminSubscriptions() {
       if (profileError) throw profileError;
       if (!profile) throw new Error('User not found with this email. They must sign up first.');
 
-      const expiresAt = addPlanType === 'trial'
-        ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()   // 7 days
-        : addPlanType === 'monthly'
-          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()  // 30 days
-          : null; // lifetime — no expiry
+      const expiresAt = addPlanType === 'monthly'
+        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()  // 30 days
+        : null; // lifetime — no expiry
 
       // Upsert subscription
       const { error: subError } = await supabase
         .from('subscriptions')
         .upsert({
           user_id: profile.user_id,
-          plan_type: addPlanType === 'trial' ? 'trial' : addPlanType,
+          plan_type: addPlanType,
           status: 'active',
           activated_at: new Date().toISOString(),
           expires_at: expiresAt,
@@ -297,16 +295,26 @@ export default function AdminSubscriptions() {
   });
 
   const filteredSubscribers = subscribers?.filter(
-    (sub) =>
-      sub.profile?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sub.profile?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    (sub) => {
+      if (!searchQuery.trim()) return true;
+      const search = searchQuery.toLowerCase();
+      return (
+        sub.profile?.email.toLowerCase().includes(search) ||
+        sub.profile?.full_name?.toLowerCase().includes(search)
+      );
+    }
   );
 
   const filteredRequests = requests?.filter(
-    (req) =>
-      req.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.phone.includes(searchQuery)
+    (req) => {
+      if (!searchQuery.trim()) return true;
+      const search = searchQuery.toLowerCase();
+      return (
+        req.email.toLowerCase().includes(search) ||
+        req.full_name.toLowerCase().includes(search) ||
+        req.phone.includes(search)
+      );
+    }
   );
 
   const stats = {
@@ -440,17 +448,11 @@ export default function AdminSubscriptions() {
                       type="email"
                     />
                   </div>
-                  <Select value={addPlanType} onValueChange={(v: 'trial' | 'monthly' | 'lifetime') => setAddPlanType(v)}>
+                  <Select value={addPlanType} onValueChange={(v: 'monthly' | 'lifetime') => setAddPlanType(v)}>
                     <SelectTrigger className="w-full sm:w-44 h-11 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="trial">
-                        <span className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-emerald-500" />
-                          Trial Access
-                        </span>
-                      </SelectItem>
                       <SelectItem value="monthly">
                         <span className="flex items-center gap-2">
                           <Zap className="h-4 w-4 text-blue-500" />

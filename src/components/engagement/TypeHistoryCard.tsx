@@ -5,9 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format, formatDistanceToNow } from "date-fns";
-import { 
+import {
   Eye, Heart, MessageCircle, Bookmark, Share2,
-  Clock, Play, CheckCircle2, XCircle, Pencil, 
+  Clock, Play, CheckCircle2, XCircle, Pencil,
   ChevronDown, ChevronUp, ExternalLink, RefreshCw, Zap, CalendarClock,
   Pause, PlayCircle, Ban
 } from "lucide-react";
@@ -81,10 +81,10 @@ export function TypeHistoryCard({
   const { formatPrice } = useCurrency();
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  
+
   const config = ENGAGEMENT_CONFIG[engagementType as keyof typeof ENGAGEMENT_CONFIG] || ENGAGEMENT_CONFIG.views;
   const Icon = config.icon;
-  
+
   const sortedRuns = [...runs].sort((a, b) => a.run_number - b.run_number);
 
   // Provider-first helper: delivered + effective status should follow provider_status/remains
@@ -125,7 +125,7 @@ export function TypeHistoryCard({
   const completedCount = runs.filter(r => getEffectiveStatus(r) === 'completed').length;
   const pendingCount = runs.filter(r => getEffectiveStatus(r) === 'pending').length;
   const activeCount = runs.filter(r => getEffectiveStatus(r) === 'started').length;
-  
+
   // Build per-run view with cumulative totals
   const runsWithSchedule = (() => {
     let cumulativeScheduled = 0;
@@ -149,18 +149,18 @@ export function TypeHistoryCard({
   })();
 
   // Calculate total delivered
-  const totalDelivered = runsWithSchedule.length > 0 
-    ? runsWithSchedule[runsWithSchedule.length - 1].cumulativeDelivered 
+  const totalDelivered = runsWithSchedule.length > 0
+    ? runsWithSchedule[runsWithSchedule.length - 1].cumulativeDelivered
     : 0;
 
   // Calculate total scheduled from all non-failed runs
-  const totalScheduled = runsWithSchedule.length > 0 
-    ? runsWithSchedule[runsWithSchedule.length - 1].cumulativeScheduled 
+  const totalScheduled = runsWithSchedule.length > 0
+    ? runsWithSchedule[runsWithSchedule.length - 1].cumulativeScheduled
     : 0;
 
   // Dynamic target = max of original target and scheduled (allows exceeding original)
   const dynamicTarget = Math.max(targetQuantity, totalScheduled);
-  
+
   // Find next pending run
   const now = new Date();
   const nextRun = sortedRuns.find(r => getEffectiveStatus(r) === 'pending' && new Date(r.scheduled_at) >= now);
@@ -172,7 +172,7 @@ export function TypeHistoryCard({
   const isTerminal = isCancelled || itemStatus === 'completed' || itemStatus === 'failed';
 
   return (
-    <Card className={`glass-card overflow-hidden transition-all duration-300 ${isPaused ? 'ring-1 ring-amber-500/30' : ''} ${isCancelled ? 'ring-1 ring-destructive/30 opacity-60' : ''}`}>
+    <Card className={`three-d-card overflow-hidden ${isPaused ? 'border-amber-500/30' : ''} ${isCancelled ? 'border-destructive/30 opacity-60' : ''}`}>
       {/* Paused/Cancelled status banner */}
       {isPaused && (
         <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/20">
@@ -202,10 +202,9 @@ export function TypeHistoryCard({
       <div className="p-4 border-b border-border">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-start gap-3">
-            <div className={`flex items-center justify-center w-12 h-12 rounded-lg font-bold text-lg ${
-              isPaused ? 'bg-amber-500/80 text-white' : isCancelled ? 'bg-muted text-muted-foreground' : 'bg-teal-500 text-white'
-            }`}>
-              <Icon className="h-6 w-6" />
+            <div className={`flex items-center justify-center w-12 h-12 rounded-lg font-bold text-lg ${isPaused ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : isCancelled ? 'bg-white/5 text-white/20 border border-white/10' : 'bg-primary/20 text-primary border border-primary/30'
+              }`}>
+              <Icon className="h-6 w-6 fill-current opacity-60" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -217,16 +216,16 @@ export function TypeHistoryCard({
                   Organic
                 </Badge>
               </div>
-              <a 
-                href="#" 
-                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mt-0.5 transition-colors"
+              <a
+                href="#"
+                className="text-sm text-white/30 hover:text-white/50 flex items-center gap-1 mt-0.5"
               >
                 https://www.instagram.com/reel/...
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
           </div>
-          
+
           {/* Right side - Dynamic Target & Controls */}
           <div className="flex items-center gap-3">
             <div className="text-right">
@@ -235,7 +234,7 @@ export function TypeHistoryCard({
                 <p className="text-sm text-muted-foreground">{formatPrice(servicePrice)}</p>
               )}
             </div>
-            
+
             {/* Per-type control buttons */}
             {itemId && !isTerminal && !isPaused && !isCancelled && (
               <div className="flex items-center gap-1.5">
@@ -247,15 +246,14 @@ export function TypeHistoryCard({
                 </Button>
               </div>
             )}
-            
-            <Badge className={`text-xs ${
-              isPaused ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : 
-              isCancelled ? "bg-destructive/20 text-destructive border-destructive/30" : 
-              itemStatus === 'completed' ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
-              "bg-teal-500/20 text-teal-400 border-teal-500/30"
-            }`}>
-              {isPaused && <Pause className="h-3 w-3 mr-1" />}
-              {isCancelled && <Ban className="h-3 w-3 mr-1" />}
+
+            <Badge className={`text-[10px] font-black uppercase tracking-widest border-none ${isPaused ? "bg-amber-500/20 text-amber-400" :
+              isCancelled ? "bg-destructive/20 text-destructive" :
+                itemStatus === 'completed' ? "bg-emerald-500/20 text-emerald-400" :
+                  "bg-primary/20 text-primary"
+              }`}>
+              {isPaused && <Pause className="h-3 w-3 mr-1 fill-current" />}
+              {isCancelled && <Ban className="h-3 w-3 mr-1 fill-current" />}
               {itemStatus === 'completed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
               {itemStatus || 'processing'}
             </Badge>
@@ -293,10 +291,9 @@ export function TypeHistoryCard({
       <div className="px-4 py-3 border-b border-border flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500/60"></span>
           </span>
-          <Zap className="h-4 w-4 text-foreground" />
+          <Zap className="h-4 w-4 text-white/40" />
           <span className="font-semibold text-sm uppercase tracking-wider">LIVE DELIVERY TRACKING</span>
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -320,20 +317,20 @@ export function TypeHistoryCard({
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Runs</p>
         </div>
         <div className="p-4 text-center">
-          <p className="text-2xl font-bold text-green-400">{completedCount}</p>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Completed</p>
+          <p className="text-2xl font-black text-emerald-500/40">{completedCount}</p>
+          <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.2em]">Completed</p>
         </div>
         <div className="p-4 text-center">
-          <p className="text-2xl font-bold text-blue-400">{activeCount}</p>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">In Progress</p>
+          <p className="text-2xl font-black text-primary/40">{activeCount}</p>
+          <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.2em]">Processing</p>
         </div>
         <div className="p-4 text-center">
-          <p className="text-2xl font-bold text-foreground">{pendingCount}</p>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Pending</p>
+          <p className="text-2xl font-black text-white/50">{pendingCount}</p>
+          <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.2em]">Pending</p>
         </div>
         <div className="p-4 text-center">
-          <p className="text-2xl font-bold text-teal-400">{totalDelivered.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Delivered</p>
+          <p className="text-2xl font-black text-emerald-500/60">{totalDelivered.toLocaleString()}</p>
+          <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.2em]">Delivered</p>
         </div>
       </div>
 
@@ -368,22 +365,20 @@ export function TypeHistoryCard({
                 return (
                   <div
                     key={run.id}
-                    className={`p-4 transition-colors ${
-                      isActive ? 'bg-amber-500/10' :
+                    className={`p-4 transition-colors ${isActive ? 'bg-amber-500/10' :
                       isFailed ? 'bg-rose-500/5' :
-                      isPending ? 'hover:bg-violet-500/5 cursor-pointer' : 
-                      isCompleted ? 'bg-emerald-500/5' : ''
-                    }`}
+                        isPending ? 'hover:bg-violet-500/5 cursor-pointer' :
+                          isCompleted ? 'bg-emerald-500/5' : ''
+                      }`}
                     onClick={() => isPending && onEditRun(run)}
                   >
                     <div className="flex items-center gap-4">
                       {/* Run Number Circle - Colorful Gradient */}
-                      <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm ${
-                        isCompleted ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' :
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm ${isCompleted ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' :
                         isActive ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white animate-pulse' :
-                        isFailed ? 'bg-gradient-to-br from-rose-500 to-red-500 text-white' :
-                        'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
-                      }`}>
+                          isFailed ? 'bg-gradient-to-br from-rose-500 to-red-500 text-white' :
+                            'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
+                        }`}>
                         #{run.run_number}
                       </div>
 
@@ -391,13 +386,12 @@ export function TypeHistoryCard({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 flex-wrap">
                           {/* Status Badge - Colorful */}
-                          <Badge className={`text-xs ${
-                            isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
+                          <Badge className={`text-xs ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
                             isActive ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
-                            isFailed ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' :
-                            isUpcoming ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' :
-                            'bg-violet-500/20 text-violet-400 border border-violet-500/40'
-                          }`}>
+                              isFailed ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' :
+                                isUpcoming ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' :
+                                  'bg-violet-500/20 text-violet-400 border border-violet-500/40'
+                            }`}>
                             {isCompleted && <CheckCircle2 className="h-3 w-3 mr-1" />}
                             {isActive && <Play className="h-3 w-3 mr-1" />}
                             {isPending && isUpcoming && <CalendarClock className="h-3 w-3 mr-1" />}
@@ -434,14 +428,14 @@ export function TypeHistoryCard({
                               ({isPastDue ? `${relativeTime} ago` : `in ${relativeTime}`})
                             </span>
                           </span>
-                          
+
                           {run.started_at && (
                             <span className="flex items-center gap-1 text-amber-400">
                               <Play className="h-3 w-3" />
                               Started: {format(new Date(run.started_at), 'hh:mm a')}
                             </span>
                           )}
-                          
+
                           {run.completed_at && (
                             <span className="flex items-center gap-1 text-emerald-400">
                               <CheckCircle2 className="h-3 w-3" />
@@ -460,17 +454,17 @@ export function TypeHistoryCard({
                             <p className="text-sm font-bold text-purple-400">{run.provider_account_name}</p>
                           </div>
                         )}
-                        
+
                         {run.provider_order_id && (
                           <div className="text-right">
                             <p className="text-xs text-muted-foreground uppercase">Order ID</p>
                             <p className="text-sm font-mono text-teal-400">{run.provider_order_id}</p>
                           </div>
                         )}
-                        
+
                         {isPending && (
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             className="h-8"
                             onClick={(e) => {

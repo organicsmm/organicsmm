@@ -9,20 +9,20 @@ export function MobileBottomNav() {
   return (
     <>
       {/* Mobile Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 lg:hidden">
-        <div className="flex items-center justify-between h-14 px-4 bg-white/95 backdrop-blur-md border-b border-[#f1f5f9]">
+      <header className="fixed top-0 left-0 right-0 z-40 lg:hidden px-2 pt-2">
+        <div className="flex items-center justify-between h-14 px-4 bg-[#0a0a0c]/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#9b87f5]/10 border border-[#9b87f5]/15"
+            className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10"
           >
-            <Menu className="w-5 h-5 text-[#9b87f5]" />
+            <Menu className="w-5 h-5 text-white" />
           </button>
 
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center bg-[#f8fafc] border border-[#f1f5f9]">
-              <img src={logo} alt="OrganicSMM" className="w-full h-full object-contain" />
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-white/5 border border-white/10 p-1">
+              <img src="/favicon.png" alt="OrganicSMM" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-sm tracking-tight text-[#1a1a2e]">OrganicSMM</span>
+            <span className="font-black text-sm tracking-tighter text-white">OrganicSMM</span>
           </div>
 
           <div className="w-10" />

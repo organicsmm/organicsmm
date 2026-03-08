@@ -124,27 +124,27 @@ export const DEFAULT_ORGANIC_SETTINGS = {
   peakHoursEnabled: false,  // Peak hours OFF by default
 };
 
-// Platform icons and colors - Vibrant gradients
+// Platform icons and colors - Deep Premium Palettes
 export const PLATFORM_CONFIG = {
-  instagram: { icon: 'Instagram', color: 'from-pink-500 via-purple-500 to-orange-400', label: 'Instagram', bgColor: 'bg-gradient-to-br from-pink-500/20 to-purple-500/20', borderColor: 'border-pink-500/40' },
-  tiktok: { icon: 'Music', color: 'from-cyan-400 via-teal-500 to-pink-500', label: 'TikTok', bgColor: 'bg-gradient-to-br from-cyan-500/20 to-pink-500/20', borderColor: 'border-cyan-500/40' },
-  youtube: { icon: 'Youtube', color: 'from-red-500 to-red-600', label: 'YouTube', bgColor: 'bg-gradient-to-br from-red-500/20 to-red-600/20', borderColor: 'border-red-500/40' },
-  twitter: { icon: 'Twitter', color: 'from-sky-400 to-blue-500', label: 'Twitter/X', bgColor: 'bg-gradient-to-br from-sky-500/20 to-blue-500/20', borderColor: 'border-sky-500/40' },
-  facebook: { icon: 'Facebook', color: 'from-blue-500 to-indigo-600', label: 'Facebook', bgColor: 'bg-gradient-to-br from-blue-500/20 to-indigo-500/20', borderColor: 'border-blue-500/40' },
+  instagram: { icon: 'Instagram', color: 'from-pink-600/60 to-purple-800/60', label: 'Instagram', bgColor: 'bg-pink-600/10', borderColor: 'border-pink-600/20' },
+  tiktok: { icon: 'Music', color: 'from-cyan-700/60 to-pink-700/60', label: 'TikTok', bgColor: 'bg-cyan-700/10', borderColor: 'border-cyan-700/20' },
+  youtube: { icon: 'Youtube', color: 'from-red-800/60 to-red-950/80', label: 'YouTube', bgColor: 'bg-red-800/10', borderColor: 'border-red-800/20' },
+  twitter: { icon: 'Twitter', color: 'from-sky-800/60 to-blue-950/80', label: 'Twitter/X', bgColor: 'bg-sky-800/10', borderColor: 'border-sky-800/20' },
+  facebook: { icon: 'Facebook', color: 'from-blue-800/60 to-indigo-950/80', label: 'Facebook', bgColor: 'bg-blue-800/10', borderColor: 'border-blue-800/20' },
 } as const;
 
-// Engagement type icons and colors - Vibrant unique colors for each type
+// Engagement type icons and colors - Muted deep colors
 export const ENGAGEMENT_CONFIG = {
-  views: { icon: 'Eye', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20', borderColor: 'border-cyan-500/40', label: 'Views', emoji: '👁️' },
-  likes: { icon: 'Heart', color: 'text-rose-400', bgColor: 'bg-rose-500/20', borderColor: 'border-rose-500/40', label: 'Likes', emoji: '❤️' },
-  comments: { icon: 'MessageCircle', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', borderColor: 'border-emerald-500/40', label: 'Comments', emoji: '💬' },
-  saves: { icon: 'Bookmark', color: 'text-amber-400', bgColor: 'bg-amber-500/20', borderColor: 'border-amber-500/40', label: 'Saves', emoji: '📥' },
-  shares: { icon: 'Share2', color: 'text-violet-400', bgColor: 'bg-violet-500/20', borderColor: 'border-violet-500/40', label: 'Shares', emoji: '🔄' },
-  followers: { icon: 'UserPlus', color: 'text-indigo-400', bgColor: 'bg-indigo-500/20', borderColor: 'border-indigo-500/40', label: 'Followers', emoji: '👥' },
-  subscribers: { icon: 'Bell', color: 'text-red-400', bgColor: 'bg-red-500/20', borderColor: 'border-red-500/40', label: 'Subscribers', emoji: '🔔' },
-  watch_hours: { icon: 'Clock', color: 'text-orange-400', bgColor: 'bg-orange-500/20', borderColor: 'border-orange-500/40', label: 'Watch Hours', emoji: '⏱️' },
-  retweets: { icon: 'Repeat', color: 'text-teal-400', bgColor: 'bg-teal-500/20', borderColor: 'border-teal-500/40', label: 'Retweets', emoji: '🔁' },
-  reposts: { icon: 'RefreshCw', color: 'text-pink-400', bgColor: 'bg-pink-500/20', borderColor: 'border-pink-500/40', label: 'Reposts', emoji: '🔄' },
+  views: { icon: 'Eye', color: 'text-cyan-600', bgColor: 'bg-cyan-600/10', borderColor: 'border-cyan-600/20', label: 'Views', emoji: '👁️' },
+  likes: { icon: 'Heart', color: 'text-rose-600', bgColor: 'bg-rose-600/10', borderColor: 'border-rose-600/20', label: 'Likes', emoji: '❤️' },
+  comments: { icon: 'MessageCircle', color: 'text-emerald-700', bgColor: 'bg-emerald-700/10', borderColor: 'border-emerald-700/20', label: 'Comments', emoji: '💬' },
+  saves: { icon: 'Bookmark', color: 'text-amber-700', bgColor: 'bg-amber-700/10', borderColor: 'border-amber-700/20', label: 'Saves', emoji: '📥' },
+  shares: { icon: 'Share2', color: 'text-violet-700', bgColor: 'bg-violet-700/10', borderColor: 'border-violet-700/20', label: 'Shares', emoji: '🔄' },
+  followers: { icon: 'UserPlus', color: 'text-indigo-700', bgColor: 'bg-indigo-700/10', borderColor: 'border-indigo-700/20', label: 'Followers', emoji: '👥' },
+  subscribers: { icon: 'Bell', color: 'text-red-700', bgColor: 'bg-red-700/10', borderColor: 'border-red-700/20', label: 'Subscribers', emoji: '🔔' },
+  watch_hours: { icon: 'Clock', color: 'text-orange-700', bgColor: 'bg-orange-700/10', borderColor: 'border-orange-700/20', label: 'Watch Hours', emoji: '⏱️' },
+  retweets: { icon: 'Repeat', color: 'text-teal-700', bgColor: 'bg-teal-700/10', borderColor: 'border-teal-700/20', label: 'Retweets', emoji: '🔁' },
+  reposts: { icon: 'RefreshCw', color: 'text-pink-700', bgColor: 'bg-pink-700/10', borderColor: 'border-pink-700/20', label: 'Reposts', emoji: '🔄' },
 } as const;
 
 // Default engagement ratios (percentage of base views)

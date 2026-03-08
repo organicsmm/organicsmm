@@ -79,10 +79,15 @@ export default function Auth() {
         const { error } = await signIn(email, password);
         if (error) {
           const msg = error.message.toLowerCase();
-          if (msg.includes('invalid login credentials')) setError('Invalid access credentials.');
-          else if (msg.includes('email not confirmed')) setError('Terminal not verified. Check your inbox.');
-          else if (msg.includes('rate limit')) setError('Rate limit exceeded. Try again in 5 mins.');
-          else setError(error.message || 'Login failed.');
+          if (msg.includes('invalid login credentials')) {
+            setError('Access Denied: Incorrect Key.');
+          } else if (msg.includes('email not confirmed')) {
+            setError('Terminal not verified. Check your inbox.');
+          } else if (msg.includes('rate limit')) {
+            setError('Security Lock: Try again in 5 mins.');
+          } else {
+            setError('Login Failed: Authorization Rejected.');
+          }
           setIsSubmitting(false); return;
         }
         navigate('/engagement-order', { replace: true });
@@ -129,10 +134,10 @@ export default function Auth() {
 
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-10 text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#9b87f5] to-[#7E69AB] rounded-[2.5rem] flex items-center justify-center shadow-[0_0_60px_rgba(155,135,245,0.5)] mb-6 border border-white/30">
-            <Zap className="w-10 h-10 text-white fill-current drop-shadow-[0_0_15px_rgba(255,255,255,0.9)]" />
+          <div className="w-20 h-20 bg-black border-2 border-white/30 rounded-[2.5rem] flex items-center justify-center shadow-[0_0_60px_rgba(155,135,245,0.3)] mb-6 overflow-hidden p-0 group hover:border-primary/50 transition-all duration-500">
+            <img src="/favicon.png" alt="Logo" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           </div>
-          <h1 className="text-4xl font-[1000] text-white tracking-tighter mb-1" style={{ textShadow: '0 0 30px rgba(155,135,245,0.5), 0 0 60px rgba(155,135,245,0.2)' }}>OrganicSMM</h1>
+          <h1 className="text-4xl font-[1000] text-white tracking-tighter mb-1" style={{ textShadow: '0 0 30px rgba(155,135,245,0.4), 0 0 60px rgba(155,135,245,0.1)' }}>OrganicSMM</h1>
           <p className="text-[11px] font-black uppercase tracking-[0.5em] text-[#9b87f5] opacity-80">AUTHENTICATION TERMINAL</p>
         </div>
 
@@ -317,6 +322,29 @@ export default function Auth() {
             <Globe className="h-3 w-3 text-white" />
             <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white">NETWORK</span>
           </div>
+        </div>
+
+        {/* Telegram Channel Link */}
+        <div className="mt-12 group">
+          <a
+            href="https://t.me/organicSMM"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-[#9b87f5]/10 hover:border-[#9b87f5]/30 transition-all duration-300 group/link"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#0088cc]/20 flex items-center justify-center border border-[#0088cc]/30 shadow-inner group-hover/link:bg-[#0088cc]/30 transition-all">
+                <svg className="w-5 h-5 text-[#0088cc] fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.53-1.39.52-.46-.01-1.33-.26-1.98-.48-.8-.27-1.43-.42-1.37-.89.03-.25.38-.51 1.03-.78 4.04-1.76 6.74-2.92 8.09-3.48 3.85-1.61.8-1.88 1.77-1.88.21 0 .69.05.99.23.32.19.43.46.46.72.02.16.01.32-.01.48z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9b87f5] mb-0.5">Community Gateway</p>
+                <p className="text-sm font-bold text-white group-hover/link:text-[#9b87f5] transition-colors">Join Official Telegram</p>
+              </div>
+            </div>
+            <ArrowLeft className="w-5 h-5 text-white/20 rotate-180 group-hover/link:text-[#9b87f5] group-hover/link:translate-x-1 transition-all" />
+          </a>
         </div>
       </div>
     </div>
