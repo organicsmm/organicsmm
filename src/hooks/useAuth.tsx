@@ -21,20 +21,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Check localStorage for stored session for instant render
-  const hasStoredSession = typeof window !== 'undefined' && (
-    localStorage.getItem('sb-nenuwlbnaxesmnpfjlrl-auth-token') ||
-    // Fallback: check for any supabase auth token
-    Object.keys(localStorage).some(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
-  );
-
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
-  // Start with false if we have stored session for instant dashboard render
-  const [isLoading, setIsLoading] = useState(!hasStoredSession);
+
+  // ALWAYS start loading as true to avoid redirecting before Supabase fetch completes
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchUserData = useCallback(async (userId: string) => {
     try {
