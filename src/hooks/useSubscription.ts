@@ -5,7 +5,7 @@ import { useAuth } from './useAuth';
 export interface Subscription {
   id: string;
   user_id: string;
-  plan_type: 'none' | 'monthly' | 'lifetime';
+  plan_type: 'none' | 'monthly' | 'lifetime' | 'trial';
   status: 'inactive' | 'active' | 'expired' | 'cancelled';
   activated_at: string | null;
   expires_at: string | null;
@@ -72,10 +72,10 @@ export function useSubscription() {
     enabled: !!user,
   });
 
-  const hasActiveSubscription = subscription?.status === 'active';
+  const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
   const isSubscriptionExpired = subscription?.status === 'expired';
   const hasPendingRequest = !!pendingRequest;
-  const isTrial = false;
+  const isTrial = subscription?.plan_type === 'trial' && subscription?.status === 'active';
   const trialDaysRemaining = null;
 
   return {

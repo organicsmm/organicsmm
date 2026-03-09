@@ -42,6 +42,32 @@ serve(async (req) => {
 
     const user = { id: claimsData?.claims?.sub as string ?? 'system' }
 
+    // Validate active subscription (Required for new orders)
+    // First, check if user is admin (admins bypass subscription check)
+    if (!isServiceRole) {
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+
+      if (userRole?.role !== 'admin') {
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('status, plan_type')
+          .eq('user_id', user.id)
+          .single()
+
+        if (!subscription || subscription.status !== 'active' || subscription.plan_type === 'trial') {
+          console.error('User does not have an active subscription')
+          return new Response(JSON.stringify({ error: 'Subscription required to place orders. Please select a plan from your dashboard.' }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+      }
+    }
+
     const { order_id, run_id } = await req.json()
 
     console.log(`=== PROCESS ORDER START ===`)

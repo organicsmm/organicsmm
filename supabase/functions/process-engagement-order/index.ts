@@ -11,8 +11,8 @@ const corsHeaders = {
 // Each engagement type has UNIQUE delivery patterns
 // ============================================
 
-type ServiceCategory = 
-  | 'views' | 'likes' | 'comments' | 'followers' | 'subscribers' 
+type ServiceCategory =
+  | 'views' | 'likes' | 'comments' | 'followers' | 'subscribers'
   | 'retweets' | 'shares' | 'saves' | 'watch_hours' | 'reposts' | 'generic'
 
 interface OrganicServiceConfig {
@@ -259,7 +259,7 @@ serve(async (req) => {
         .select('ai_organic_enabled')
         .eq('id', bundle_id)
         .single()
-      
+
       if (bundle) {
         aiOrganicEnabled = bundle.ai_organic_enabled ?? true
         console.log(`Bundle AI Organic Mode: ${aiOrganicEnabled ? 'ON' : 'OFF'}`)
@@ -270,7 +270,7 @@ serve(async (req) => {
     // CRITICAL: PAYMENT FIRST, ORDER SECOND
     // Prevents users from getting free orders!
     // ============================================
-    
+
     // Step 1: Lock wallet row and fetch fresh balance
     // Using FOR UPDATE pattern with RPC to prevent race conditions
     const { data: wallet, error: walletError } = await supabase
@@ -287,7 +287,31 @@ serve(async (req) => {
       })
     }
 
-    // Step 2: Validate balance is sufficient
+    // Step 2: Validate active subscription (Required for new orders)
+    // First, check if user is admin (admins bypass subscription check)
+    const { data: userRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user_id)
+      .single()
+
+    if (userRole?.role !== 'admin') {
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('status, plan_type')
+        .eq('user_id', user_id)
+        .single()
+
+      if (!subscription || subscription.status !== 'active' || subscription.plan_type === 'trial') {
+        console.error('User does not have an active subscription')
+        return new Response(JSON.stringify({ error: 'Subscription required to place orders. Please select a plan from your dashboard.' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+    }
+
+    // Step 3: Validate balance is sufficient
     if (wallet.balance < total_price) {
       console.error('Insufficient balance:', wallet.balance, '<', total_price)
       return new Response(JSON.stringify({ error: 'Insufficient balance. Please add funds to your wallet.' }), {
@@ -296,11 +320,11 @@ serve(async (req) => {
       })
     }
 
-    // Step 3: DEDUCT PAYMENT FIRST before any order creation!
+    // Step 4: DEDUCT PAYMENT FIRST before any order creation!
     // This ensures user pays before order is created
     const newBalance = wallet.balance - total_price
     console.log(`💰 DEDUCTING PAYMENT: $${total_price} from wallet (Balance: $${wallet.balance} → $${newBalance})`)
-    
+
     const { error: paymentError, data: updatedWallet } = await supabase
       .from('wallets')
       .update({
@@ -317,16 +341,16 @@ serve(async (req) => {
     if (paymentError || !updatedWallet) {
       // Payment failed - likely insufficient balance (race condition) or DB error
       console.error('Payment deduction failed:', paymentError)
-      
+
       // Re-check balance to give user accurate error
       const { data: freshWallet } = await supabase
         .from('wallets')
         .select('balance')
         .eq('user_id', user_id)
         .single()
-      
-      return new Response(JSON.stringify({ 
-        error: `Payment failed. Current balance: $${freshWallet?.balance?.toFixed(2) || '0.00'}. Required: $${total_price.toFixed(2)}` 
+
+      return new Response(JSON.stringify({
+        error: `Payment failed. Current balance: $${freshWallet?.balance?.toFixed(2) || '0.00'}. Required: $${total_price.toFixed(2)}`
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -334,7 +358,7 @@ serve(async (req) => {
     }
 
     console.log('✅ Payment deducted successfully BEFORE order creation')
-    
+
     // Create transaction record immediately after payment
     const { error: txError } = await supabase.from('transactions').insert({
       user_id,
@@ -344,7 +368,7 @@ serve(async (req) => {
       description: `Engagement Order Payment (Pending Creation)`,
       status: 'pending', // Will be updated to 'completed' once order is created
     })
-    
+
     if (txError) {
       console.warn('Transaction record failed (non-critical):', txError)
     }
@@ -352,7 +376,7 @@ serve(async (req) => {
     // Pre-validate all engagements for provider minimums (fetch actual from service)
     for (const engagement of engagements) {
       let providerMin = PROVIDER_MINIMUMS[engagement.type] || 10
-      
+
       // If service_id exists, get actual minimum from database
       if (engagement.service_id) {
         const { data: service } = await supabase
@@ -360,30 +384,30 @@ serve(async (req) => {
           .select('min_quantity')
           .eq('id', engagement.service_id)
           .single()
-        
+
         if (service?.min_quantity) {
           providerMin = service.min_quantity
           console.log(`Using actual service min for ${engagement.type}: ${providerMin}`)
         }
       }
-      
+
       if (engagement.quantity < providerMin) {
         console.error(`${engagement.type} quantity ${engagement.quantity} is below minimum ${providerMin}`)
-        
+
         // REFUND: Validation failed after payment
         console.log('⚠️ VALIDATION FAILED - Initiating refund...')
         await supabase.from('wallets').update({
           balance: wallet.balance,
           total_spent: wallet.total_spent || 0,
         }).eq('id', wallet.id)
-        
+
         await supabase.from('transactions')
           .update({ status: 'failed', description: 'Validation failed - Payment refunded' })
           .eq('user_id', user_id)
           .eq('status', 'pending')
-        
-        return new Response(JSON.stringify({ 
-          error: `${engagement.type} minimum quantity is ${providerMin}. Your payment has been refunded.` 
+
+        return new Response(JSON.stringify({
+          error: `${engagement.type} minimum quantity is ${providerMin}. Your payment has been refunded.`
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -410,7 +434,7 @@ serve(async (req) => {
 
     if (orderError || !order) {
       console.error('Failed to create order:', orderError)
-      
+
       // CRITICAL: Refund the payment since order creation failed!
       console.log('⚠️ ORDER CREATION FAILED - Initiating refund...')
       const { error: refundError } = await supabase
@@ -420,7 +444,7 @@ serve(async (req) => {
           total_spent: wallet.total_spent || 0, // Restore original spent
         })
         .eq('id', wallet.id)
-      
+
       if (refundError) {
         console.error('CRITICAL: Refund failed!', refundError)
         // Log failed refund for manual review
@@ -441,7 +465,7 @@ serve(async (req) => {
           .eq('status', 'pending')
           .eq('amount', -total_price)
       }
-      
+
       return new Response(JSON.stringify({ error: 'Failed to create order. Your payment has been refunded.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -463,7 +487,7 @@ serve(async (req) => {
 
       // Resolve service_id
       let finalServiceId = engagement.service_id
-      
+
       if (!finalServiceId && bundle_id) {
         const { data: bundleItem } = await supabase
           .from('bundle_items')
@@ -471,7 +495,7 @@ serve(async (req) => {
           .eq('bundle_id', bundle_id)
           .eq('engagement_type', engType)
           .maybeSingle()
-        
+
         if (bundleItem?.service_id) {
           finalServiceId = bundleItem.service_id
         }
@@ -479,21 +503,21 @@ serve(async (req) => {
 
       if (!finalServiceId) {
         console.error(`❌ BLOCKING: ${engType} has no service configured`)
-        
+
         // Refund
         await supabase.from('wallets').update({
           balance: wallet.balance,
           total_spent: wallet.total_spent || 0,
         }).eq('id', wallet.id)
-        
+
         await supabase.from('transactions')
           .update({ status: 'failed', description: `Service not configured for ${engType} - Payment refunded` })
           .eq('user_id', user_id)
           .eq('status', 'pending')
-        
+
         await supabase.from('engagement_orders').delete().eq('id', order.id)
-        
-        return new Response(JSON.stringify({ 
+
+        return new Response(JSON.stringify({
           error: `No service configured for ${engType}. Please contact admin. Payment refunded.`
         }), {
           status: 400,
@@ -575,8 +599,8 @@ serve(async (req) => {
         const PLATFORM_PRIORITIES: Record<string, Record<string, number>> = {
           instagram: {
             views: 0, impressions: 0, reach: 0,
-            likes: 1, 
-            comments: 2, 
+            likes: 1,
+            comments: 2,
             saves: 3, bookmarks: 3,
             shares: 4, reposts: 4,
             followers: 5,
@@ -737,13 +761,13 @@ serve(async (req) => {
               .eq('id', finalServiceId)
               .single()
             if (service?.min_quantity) providerMin = service.min_quantity
-            
+
             const { data: mappings } = await supabase
               .from('service_provider_mapping')
               .select('provider_service_id')
               .eq('service_id', finalServiceId)
               .eq('is_active', true)
-            
+
             if (mappings && mappings.length > 0) {
               console.log(`  Found ${mappings.length} provider mappings for ${engType}, using service min: ${providerMin}`)
             }
@@ -783,7 +807,7 @@ serve(async (req) => {
           let minIntervalCap = baseMinIntervalCap
 
           let idealRuns = Math.round((engagement.quantity / 1000) * config.runsPerThousand)
-          
+
           // KEY FIX: When providerMin is high, reduce runs so avg batch >> providerMin
           // This gives room for variance ABOVE providerMin
           const minBatchForVariance = providerMin * 2.5 // Need avg to be 2.5x providerMin for good variance
@@ -792,7 +816,7 @@ serve(async (req) => {
             idealRuns = Math.max(3, maxRunsForVariance)
             console.log(`  📊 Reduced idealRuns to ${idealRuns} for ${engType} (providerMin=${providerMin} needs variance room)`)
           }
-          
+
           let targetRuns: number
           let timeLimitApplied = false
 
@@ -842,7 +866,7 @@ serve(async (req) => {
           // ============================================
           const isViewType = ['views', 'impressions', 'reach', 'plays', 'watch_hours'].includes(engType)
           const staggerConfig = platformStagger[engType] || platformStagger['generic'] || { base: 30, variance: 30 }
-          
+
           let initialDelayMinutes: number
           if (isViewType && !viewsFirstRunScheduled) {
             // Primary view type ALWAYS starts first with 2-15 min delay
@@ -853,7 +877,7 @@ serve(async (req) => {
             console.log(`  📍 ${engType} (primary) starts at +${Math.round(initialDelayMinutes)}min`)
           } else if (viewsStartTime) {
             // Stagger after views using PLATFORM-SPECIFIC delays
-            initialDelayMinutes = aiOrganicEnabled 
+            initialDelayMinutes = aiOrganicEnabled
               ? staggerConfig.base + Math.random() * staggerConfig.variance
               : staggerConfig.base + Math.random() * (staggerConfig.variance * 0.5)
             currentTime = new Date(viewsStartTime.getTime() + initialDelayMinutes * 60 * 1000)
@@ -915,7 +939,7 @@ serve(async (req) => {
             const runsLeft = Math.max(1, targetRuns - runNumber + 1)
             const avgForRemaining = Math.ceil(remaining / runsLeft)
             const isLastRun = runNumber === targetRuns || remaining <= maxBatchCap
-            
+
             // KEY INSIGHT: If providerMin >= 60% of avg batch, dips are impossible
             // All "dip" quantities get clamped to providerMin = identical runs = BOTTING
             const providerMinIsHigh = providerMin >= avgForRemaining * 0.6
@@ -929,22 +953,22 @@ serve(async (req) => {
               // NO TIERS! Pure continuous random between providerMin and maxBatch
               // Each quantity is unique - no clustering around multiples
               // ============================================
-              
+
               // 12% chance: SKIP this run (creates organic time gap)
               if (Math.random() < 0.12 && runsLeft > 2) {
                 currentTime = new Date(currentTime.getTime() + intervalMs)
                 continue
               }
-              
+
               // CONTINUOUS random quantity between providerMin and maxBatchCap
               // No tiers, no multipliers - pure uniform random
               const range = maxBatchCap - providerMin
               qty = providerMin + Math.floor(Math.random() * range)
               baseQty = qty
-              
+
               // Apply peak multiplier with damping to stay in range
               qty = Math.round(qty * (0.85 + peakMultiplier * 0.15))
-              
+
               // STRONG ANTI-REPEAT: Check against ALL recent runs (up to 5)
               const recentRuns = scheduleEntries.slice(-5)
               let tooSimilar = true
@@ -963,18 +987,18 @@ serve(async (req) => {
                 }
                 attempts++
               }
-              
+
               // Enforce bounds
               qty = Math.max(providerMin, qty)
               qty = Math.min(qty, maxBatchCap)
               qty = Math.min(qty, remaining)
-              
+
               // Don't leave tiny remainder
               const afterThis = remaining - qty
               if (afterThis > 0 && afterThis < providerMin) {
                 if (remaining <= maxBatchCap) qty = remaining
               }
-              
+
               // Front-loading protection
               if (runsLeft > 3 && qty > remaining * 0.4) {
                 qty = providerMin + Math.floor(Math.random() * Math.round(range * 0.5))
@@ -1005,7 +1029,7 @@ serve(async (req) => {
 
               baseQty = Math.round(avgForRemaining * varianceMultiplier)
               qty = Math.round(baseQty * peakMultiplier)
-              
+
               // PROPORTIONAL JITTER: ±20% of qty (not fixed ±15)
               // For small types like likes (qty~15), this gives ±3
               // For large types like views (qty~200), this gives ±40
@@ -1125,12 +1149,12 @@ serve(async (req) => {
           // This prevents quantity loss when some runs are too small
           const finalEntries: any[] = []
           let carryOver = 0
-          
+
           for (let i = 0; i < scheduleEntries.length; i++) {
             const entry = { ...scheduleEntries[i] }
             entry.quantity_to_send += carryOver
             carryOver = 0
-            
+
             if (entry.quantity_to_send < providerMin) {
               // Too small — carry quantity to next run
               carryOver = entry.quantity_to_send
@@ -1139,7 +1163,7 @@ serve(async (req) => {
               finalEntries.push(entry)
             }
           }
-          
+
           // If carry remains after last run, add to last valid entry
           if (carryOver > 0 && finalEntries.length > 0) {
             finalEntries[finalEntries.length - 1].quantity_to_send += carryOver
@@ -1156,12 +1180,12 @@ serve(async (req) => {
               console.log(`  📦 Collapsed all runs into single run of ${totalQty}`)
             }
           }
-          
+
           // Re-number runs sequentially after merging
           finalEntries.forEach((entry, idx) => {
             entry.run_number = idx + 1
           })
-          
+
           if (finalEntries.length > 0) {
             const { error: scheduleError } = await supabase
               .from('organic_run_schedule')
@@ -1213,8 +1237,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Process engagement order error:', error)
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Internal server error' 
+    return new Response(JSON.stringify({
+      error: error.message || 'Internal server error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

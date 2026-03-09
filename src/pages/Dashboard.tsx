@@ -136,7 +136,6 @@ export default function Dashboard() {
               variant="outline"
               className="gap-2 h-12 rounded-2xl border-white/10 bg-white/5 text-white/60 font-black text-xs uppercase tracking-widest"
               onClick={() => navigate('/engagement-order')}
-              disabled={!hasActiveSubscription}
             >
               <Sparkles className="h-4 w-4 text-primary" />
               Engagement
@@ -144,7 +143,6 @@ export default function Dashboard() {
             <Button
               className="gap-2 h-12 rounded-2xl btn-3d px-6 text-xs"
               onClick={() => navigate('/order')}
-              disabled={!hasActiveSubscription}
             >
               <Zap className="h-4 w-4 fill-current" />
               NEW ORDER
@@ -152,64 +150,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Locked State for Non-Subscribers */}
-        {!hasActiveSubscription && (
-          <div className="relative overflow-hidden rounded-[2.5rem] border border-white/5 bg-white/[0.02] p-8 md:p-12">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px] -mr-48 -mt-48" />
 
-            <div className="relative max-w-2xl">
-              <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-8 border border-white/10 shadow-inner">
-                <LockKeyhole className="h-10 w-10 text-white/20" />
-              </div>
-
-              <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight leading-[1.1]">
-                Growth Console <span className="text-primary italic">Locked.</span>
-              </h2>
-
-              <p className="text-lg text-white/40 font-bold mb-10 leading-relaxed italic">
-                You need an active license to access the Organic Growth Console and start viral campaigns. Choose a plan to unlock immediate access.
-              </p>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                <button
-                  onClick={() => {
-                    setSelectedPlan('monthly');
-                    setShowRequestDialog(true);
-                  }}
-                  className="three-d-card p-6 border-white/5 hover:border-primary/40 transition-all text-left group"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <Zap className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-1 rounded">Popular</span>
-                  </div>
-                  <h3 className="font-black text-white text-lg mb-1">Monthly Pro</h3>
-                  <p className="text-2xl font-black text-white/80 mb-4">$10 <span className="text-xs text-white/20">/ MONTH</span></p>
-                  <div className="h-10 rounded-xl bg-primary text-black flex items-center justify-center font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20">
-                    Activate Console
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSelectedPlan('lifetime');
-                    setShowRequestDialog(true);
-                  }}
-                  className="three-d-card p-6 border-primary/40 bg-primary/5 hover:border-primary transition-all text-left group"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <Crown className="h-6 w-6 text-amber-500 group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-2 py-1 rounded">Best Value</span>
-                  </div>
-                  <h3 className="font-black text-white text-lg mb-1">Lifetime King</h3>
-                  <p className="text-2xl font-black text-white/80 mb-4">$99 <span className="text-xs text-white/20">/ ONE-TIME</span></p>
-                  <div className="h-10 rounded-xl btn-3d bg-primary text-black flex items-center justify-center font-black text-[10px] uppercase tracking-widest">
-                    Get Lifetime Access
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Subscription Banner */}
         {hasActiveSubscription && subscription && (

@@ -172,8 +172,11 @@ export default function Auth() {
                     <Mail className="h-10 w-10 text-[#9b87f5]" />
                   </div>
                   <h3 className="text-2xl font-[1000] text-white mb-4 tracking-tight">Check Your Inbox</h3>
-                  <p className="text-[11px] font-bold text-white/30 mb-10 max-w-[240px] mx-auto leading-relaxed border-t border-white/5 pt-6">
+                  <p className="text-[11px] font-bold text-white/30 mb-2 max-w-[240px] mx-auto leading-relaxed border-t border-white/5 pt-6">
                     A verification link has been sent to your email address.
+                  </p>
+                  <p className="text-[11px] font-bold text-[#9b87f5]/80 mb-8 max-w-[240px] mx-auto leading-relaxed">
+                    Note: If you don't see it, please check your <span className="text-white">spam</span> or <span className="text-white">junk</span> folder.
                   </p>
                   <div className="bg-[#9b87f5]/5 p-5 rounded-2xl border border-[#9b87f5]/20 mb-10 ring-1 ring-[#9b87f5]/10">
                     <span className="text-xs font-black text-[#9b87f5] tracking-tight">{email}</span>
