@@ -752,6 +752,23 @@ export default function EngagementOrder() {
           </Card>
         </div>{/* end AI Automation Toggles grid */}
 
+        {/* Platform Selector */}
+        <Card className="glass-card border-2 border-border">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-foreground/10 flex items-center justify-center">
+                <Rocket className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
+              </div>
+              <Label className="text-base sm:text-lg font-bold tracking-tight text-foreground">Select Platform</Label>
+            </div>
+            <PlatformSelector
+              selected={platform}
+              onSelect={setPlatform}
+              availablePlatforms={availablePlatforms}
+            />
+          </CardContent>
+        </Card>
+
         {/* Link Input */}
         <Card className="glass-card border-2 border-border">
           <CardContent className="p-4 sm:p-6">
