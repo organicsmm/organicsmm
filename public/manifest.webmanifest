@@ -1,11 +1,11 @@
 {
-    "name": "OrganicSMM",
-    "short_name": "OrganicSMM",
+    "name": "Social Media Manager",
+    "short_name": "SMM",
     "description": "Premium High-Growth Social Media Terminal",
     "start_url": "/",
-    "display": "standalone",
+    "display": "fullscreen",
     "background_color": "#0a0a0c",
-    "theme_color": "#9b87f5",
+    "theme_color": "#0a0a0c",
     "orientation": "portrait",
     "icons": [
         {
@@ -14,15 +14,15 @@
             "type": "image/png"
         },
         {
-            "src": "/favicon.png",
+            "src": "/logo.png",
             "sizes": "512x512",
             "type": "image/png"
         },
         {
-            "src": "/logo.png",
+            "src": "/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "maskable"
+            "purpose": "any maskable"
         }
     ],
     "categories": [
@@ -50,15 +50,6 @@
                     "sizes": "192x192"
                 }
             ]
-        }
-    ],
-    "screenshots": [
-        {
-            "src": "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop",
-            "sizes": "2070x1164",
-            "type": "image/jpeg",
-            "form_factor": "wide",
-            "label": "Professional Dashboard"
         }
     ]
 }
