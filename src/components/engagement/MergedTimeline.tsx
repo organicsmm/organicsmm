@@ -2,8 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { format, formatDistanceToNow } from "date-fns";
-import { 
-  Eye, Heart, MessageCircle, Bookmark, Share2, 
+import {
+  Eye, Heart, MessageCircle, Bookmark, Share2,
   Clock, Play, CheckCircle2, XCircle, Pencil, Timer, RefreshCw, Loader2, TrendingUp, CalendarClock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,7 +63,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
 
   const normalizeProviderStatus = (s?: string | null) => (s ?? '').toString().toLowerCase().trim();
 
-  const getEffectiveStatus = (run: MergedRun): 'pending' | 'started' | 'completed' | 'failed' => {
+  const getEffectiveStatus = (run: MergedRun): 'pending' | 'started' | 'completed' | 'failed' | 'cancelled' => {
     const ps = normalizeProviderStatus(run.provider_status);
 
     if (ps === 'completed' || ps === 'complete' || ps === 'partial') return 'completed';
@@ -73,6 +73,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
 
     const s = (run.status || '').toString().toLowerCase().trim();
     if (s === 'processing') return 'started';
+    if (s === 'cancelled' || s === 'canceled') return 'cancelled';
     if (s === 'pending' || s === 'started' || s === 'completed' || s === 'failed') return s as any;
     return 'pending';
   };
@@ -107,30 +108,30 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
   // Sum all runs (except failed) for scheduled, allows dynamic updates on edit
   const cumulativeDelivered: Record<string, number> = {};
   const cumulativeScheduled: Record<string, number> = {};
-  
+
   const runsWithCumulative = sortedRuns.map((run) => {
     const type = run.engagement_type;
     const effective = getEffectiveStatus(run);
 
     // Calculate ACTUAL delivered for this run from provider data
     const actualDelivered = getDeliveredFromProvider(run);
-    
-    // Track scheduled for non-failed runs (NO capping)
-    if (effective !== 'failed') {
+
+    // Track scheduled for non-failed/non-cancelled runs (NO capping)
+    if (effective !== 'failed' && effective !== 'cancelled') {
       const currentScheduled = cumulativeScheduled[type] || 0;
       cumulativeScheduled[type] = currentScheduled + run.quantity_to_send;
     }
-    
+
     // Track delivered (NO capping)
     if (actualDelivered > 0) {
       const currentDelivered = cumulativeDelivered[type] || 0;
       cumulativeDelivered[type] = currentDelivered + actualDelivered;
     }
-    
+
     return {
       ...run,
       actualDeliveredThisRun: actualDelivered,
-      scheduledThisRun: effective !== 'failed' ? run.quantity_to_send : 0,
+      scheduledThisRun: (effective !== 'failed' && effective !== 'cancelled') ? run.quantity_to_send : 0,
       deliveredSnapshot: { ...cumulativeDelivered },
       scheduledSnapshot: { ...cumulativeScheduled },
       cumulativeAtThisPoint: cumulativeDelivered[type] || 0,
@@ -139,7 +140,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
 
   // Dynamic targets per type = max(original target, total scheduled)
   const overallScheduledByType: Record<string, number> =
-    runsWithCumulative.length > 0 ? (runsWithCumulative[runsWithCumulative.length - 1].scheduledSnapshot as Record<string, number>) : {}; 
+    runsWithCumulative.length > 0 ? (runsWithCumulative[runsWithCumulative.length - 1].scheduledSnapshot as Record<string, number>) : {};
 
   const refreshRunStatus = async (runId: string) => {
     setRefreshingRunId(runId);
@@ -147,9 +148,9 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
       const { data, error } = await supabase.functions.invoke('check-order-status', {
         body: { runId }
       });
-      
+
       if (error) throw error;
-      
+
       toast.success('Status updated from provider!');
       onRefresh?.();
     } catch (err: any) {
@@ -164,9 +165,9 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
     setIsGlobalRefreshing(true);
     try {
       const { data, error } = await supabase.functions.invoke('check-order-status');
-      
+
       if (error) throw error;
-      
+
       toast.success(`Checked ${data?.completed + data?.stillProcessing || 0} runs from provider`);
       onRefresh?.();
     } catch (err: any) {
@@ -240,7 +241,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
             const isCompleted = run.status === 'completed';
             const isFailed = run.status === 'failed';
             const isCancelled = run.status === 'cancelled';
-            
+
             const isAlreadyExecuted = isCompleted || isFailed || isActive;
             const isScheduledInPast = scheduledDate < now;
             const isUpcoming = isPending && !isScheduledInPast;
@@ -263,33 +264,31 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
             // Provider progress data
             const providerRemains = run.provider_remains ?? null;
             const delivered = providerRemains !== null ? (run.quantity_to_send - providerRemains) : null;
-            const progressPercent = providerRemains !== null && run.quantity_to_send > 0 
+            const progressPercent = providerRemains !== null && run.quantity_to_send > 0
               ? Math.min(100, Math.max(0, ((run.quantity_to_send - providerRemains) / run.quantity_to_send) * 100))
               : null;
 
             return (
               <div
                 key={run.id}
-                className={`rounded-xl border transition-all ${
-                  isActive 
-                    ? 'bg-amber-500/10 border-2 border-amber-500/40 shadow-lg shadow-amber-500/10' 
-                    : isCompleted
-                      ? 'bg-emerald-500/10 border border-emerald-500/30'
-                      : isFailed
-                        ? 'bg-rose-500/10 border border-rose-500/30'
-                        : 'bg-violet-500/5 border border-violet-500/20 hover:bg-violet-500/10 cursor-pointer'
-                }`}
+                className={`rounded-xl border transition-all ${isActive
+                  ? 'bg-amber-500/10 border-2 border-amber-500/40 shadow-lg shadow-amber-500/10'
+                  : isCompleted
+                    ? 'bg-emerald-500/10 border border-emerald-500/30'
+                    : isFailed
+                      ? 'bg-rose-500/10 border border-rose-500/30'
+                      : 'bg-violet-500/5 border border-violet-500/20 hover:bg-violet-500/10 cursor-pointer'
+                  }`}
                 onClick={() => isPending && onEditRun(run)}
               >
                 {/* Main Row */}
                 <div className="p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                   {/* Run Number Circle - Colorful Gradient */}
-                  <div className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full font-bold text-sm sm:text-base shrink-0 ${
-                    isCompleted ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' :
+                  <div className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full font-bold text-sm sm:text-base shrink-0 ${isCompleted ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' :
                     isActive ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white animate-pulse' :
-                    isFailed ? 'bg-gradient-to-br from-rose-500 to-red-500 text-white' :
-                    'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
-                  }`}>
+                      isFailed ? 'bg-gradient-to-br from-rose-500 to-red-500 text-white' :
+                        'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
+                    }`}>
                     #{index + 1}
                   </div>
 
@@ -297,13 +296,12 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       {/* Status Badge - Colorful */}
-                      <Badge className={`text-sm px-3 py-1 ${
-                        isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
+                      <Badge className={`text-sm px-3 py-1 ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
                         isActive ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
-                        isFailed ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' :
-                        isUpcoming ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' :
-                        'bg-violet-500/20 text-violet-400 border border-violet-500/40'
-                      }`}>
+                          isFailed ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' :
+                            isUpcoming ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' :
+                              'bg-violet-500/20 text-violet-400 border border-violet-500/40'
+                        }`}>
                         {isCompleted && <CheckCircle2 className="h-4 w-4 mr-1.5" />}
                         {isActive && <Play className="h-4 w-4 mr-1.5" />}
                         {isPending && isUpcoming && <CalendarClock className="h-4 w-4 mr-1.5" />}
@@ -318,7 +316,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                         <span className="font-bold text-base sm:text-lg text-cyan-400">
                           +{run.quantity_to_send.toLocaleString()} {engConfig.label}
                         </span>
-                        
+
                         {/* Variance indicator - Sky/Pink */}
                         {run.variance_applied !== undefined && run.variance_applied !== 0 && (
                           <span className={`text-xs font-medium ${run.variance_applied > 0 ? 'text-sky-400' : 'text-pink-400'}`}>
@@ -326,7 +324,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                           </span>
                         )}
                       </div>
-                      
+
                       {/* Provider source badge - shows where this came from */}
                       {run.provider_account_name && (
                         <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/40 text-xs truncate max-w-[200px] sm:max-w-none">
@@ -378,7 +376,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                       <span className="flex items-center gap-1.5">
                         📅 {format(scheduledDate, 'MMM d, hh:mm a')}
                       </span>
-                      
+
                       {isAlreadyExecuted ? (
                         <span className="font-medium text-muted-foreground">
                           ({formatDistanceToNow(scheduledDate)} ago)
@@ -392,7 +390,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                           ⚠️ Overdue by {formatDistanceToNow(scheduledDate)}
                         </span>
                       )}
-                      
+
                       {run.started_at && (
                         <span className="flex items-center gap-1.5 text-blue-400">
                           ▶ Started: {format(new Date(run.started_at), 'hh:mm a')}
@@ -407,19 +405,18 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
 
                     {/* SMART STATUS MESSAGE - Shows real-time provider status */}
                     {(run.error_message || run.provider_status || run.provider_order_id) && (
-                      <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${
-                        run.provider_status === 'Completed' || run.provider_status === 'Partial'
-                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                          : run.provider_status === 'In progress' || run.provider_status === 'Processing'
-                            ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
-                            : run.provider_status === 'Pending'
-                              ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
-                              : run.error_message?.includes('Auto-completed')
-                                ? 'bg-teal-500/10 border border-teal-500/30 text-teal-400'
-                                : isFailed
-                                  ? 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
-                                  : 'bg-secondary/50 border border-border text-muted-foreground'
-                      }`}>
+                      <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${run.provider_status === 'Completed' || run.provider_status === 'Partial'
+                        ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                        : run.provider_status === 'In progress' || run.provider_status === 'Processing'
+                          ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
+                          : run.provider_status === 'Pending'
+                            ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+                            : run.error_message?.includes('Auto-completed')
+                              ? 'bg-teal-500/10 border border-teal-500/30 text-teal-400'
+                              : isFailed
+                                ? 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
+                                : 'bg-secondary/50 border border-border text-muted-foreground'
+                        }`}>
                         <div className="flex items-center gap-2">
                           {/* Provider Status with Real-time Info */}
                           {run.provider_status === 'Completed' && (
@@ -473,7 +470,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                             </span>
                           )}
                         </div>
-                        
+
                         {/* Time since last check */}
                         {run.last_status_check && (
                           <div className="text-xs opacity-70 mt-1">
@@ -485,7 +482,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                   </div>
 
                   {/* Provider Name + ID + Actions */}
-                    <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0 flex-wrap">
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0 flex-wrap">
                     {/* Provider/Service Name - visible to all users */}
                     {run.provider_account_name && (
                       <div className="text-right">
@@ -493,18 +490,18 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                         <p className="text-sm font-bold text-purple-400">{run.provider_account_name}</p>
                       </div>
                     )}
-                    
+
                     {run.provider_order_id && (
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground uppercase">Order ID</p>
                         <p className="text-sm font-mono text-teal-400">{run.provider_order_id}</p>
                       </div>
                     )}
-                    
+
                     {isActive && run.provider_order_id && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="h-8 px-3 text-blue-400 border-blue-500/30 hover:bg-blue-500/10"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -520,11 +517,11 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                         Check Now
                       </Button>
                     )}
-                    
+
                     {isPending && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 px-3 text-muted-foreground hover:text-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -548,7 +545,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                   </div>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
                     {/* Show only types that exist in this order, or all if no typeTargets provided */}
-                    {(typeTargets.length > 0 
+                    {(typeTargets.length > 0
                       ? ALL_ENGAGEMENT_TYPES.filter(t => typeTargets.some(tt => tt.type === t))
                       : ALL_ENGAGEMENT_TYPES
                     ).map((type) => {
@@ -561,28 +558,25 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                       const overallScheduled = overallScheduledByType[type] || 0;
                       const dynamicTarget = Math.max(originalTarget, overallScheduled, scheduled);
                       const hasValue = dynamicTarget > 0 || scheduled > 0 || delivered > 0;
-                      
+
                       return (
-                        <div 
+                        <div
                           key={type}
-                          className={`flex flex-col items-center p-2 rounded-lg ${
-                            delivered > 0 
-                              ? `${typeConfig?.bg} border ${typeConfig?.border}` 
-                              : hasValue
-                                ? 'bg-amber-500/10 border border-amber-500/30'
-                                : 'bg-secondary/30 border border-border/50 opacity-50'
-                          }`}
+                          className={`flex flex-col items-center p-2 rounded-lg ${delivered > 0
+                            ? `${typeConfig?.bg} border ${typeConfig?.border}`
+                            : hasValue
+                              ? 'bg-amber-500/10 border border-amber-500/30'
+                              : 'bg-secondary/30 border border-border/50 opacity-50'
+                            }`}
                         >
-                          <TypeIcon className={`h-4 w-4 mb-1 ${
-                            delivered > 0 ? typeConfig?.color : hasValue ? 'text-amber-400' : 'text-muted-foreground'
-                          }`} />
-                          <span className={`font-mono font-bold text-[11px] sm:text-sm ${
-                            delivered > 0 ? typeConfig?.color : hasValue ? 'text-amber-400' : 'text-muted-foreground'
-                          }`}>
-                            {delivered > 0 
-                              ? `${delivered.toLocaleString()}/${dynamicTarget.toLocaleString()}` 
-                              : hasValue 
-                                ? `${scheduled.toLocaleString()}/${dynamicTarget.toLocaleString()}` 
+                          <TypeIcon className={`h-4 w-4 mb-1 ${delivered > 0 ? typeConfig?.color : hasValue ? 'text-amber-400' : 'text-muted-foreground'
+                            }`} />
+                          <span className={`font-mono font-bold text-[11px] sm:text-sm ${delivered > 0 ? typeConfig?.color : hasValue ? 'text-amber-400' : 'text-muted-foreground'
+                            }`}>
+                            {delivered > 0
+                              ? `${delivered.toLocaleString()}/${dynamicTarget.toLocaleString()}`
+                              : hasValue
+                                ? `${scheduled.toLocaleString()}/${dynamicTarget.toLocaleString()}`
                                 : '—'}
                           </span>
                           <span className="text-[10px] text-muted-foreground uppercase">{typeConfig?.label}</span>

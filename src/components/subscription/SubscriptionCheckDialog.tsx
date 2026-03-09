@@ -49,7 +49,7 @@ export function SubscriptionCheckDialog({ open, onOpenChange }: SubscriptionChec
 
           <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#9b87f5]/10 border border-[#9b87f5]/20">
             <Sparkles className="h-4 w-4 text-[#9b87f5] shrink-0" />
-            <p className="text-sm font-semibold text-[#1a1a2e]/60">
+            <p className="text-sm font-semibold text-foreground/80">
               🚀 High-performance Organic Growth for Serious Builders.
             </p>
           </div>
@@ -62,7 +62,7 @@ export function SubscriptionCheckDialog({ open, onOpenChange }: SubscriptionChec
                   <Clock className="h-5 w-5 text-warning" />
                   <div>
                     <p className="font-medium text-warning">Request Pending</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-foreground/80">
                       Your subscription request is being reviewed. We'll contact you soon!
                     </p>
                   </div>
@@ -89,12 +89,12 @@ export function SubscriptionCheckDialog({ open, onOpenChange }: SubscriptionChec
                       <CheckCircle2 className="h-4 w-4 text-primary" />
                     )}
                   </div>
-                  <h3 className="font-semibold text-sm mb-1">Monthly Plan</h3>
+                  <h3 className="font-semibold text-sm mb-1 text-foreground">Monthly Plan</h3>
                   <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-2xl font-[1000] text-[#1a1a2e]">$10</span>
-                    <span className="text-xs font-bold text-zinc-400">/month</span>
+                    <span className="text-2xl font-[1000] text-foreground">$10</span>
+                    <span className="text-xs font-bold text-muted-foreground">/month</span>
                   </div>
-                  <ul className="space-y-1 text-[11px] font-bold text-zinc-500">
+                  <ul className="space-y-1 text-[11px] font-bold text-muted-foreground/80">
                     <li className="flex items-center gap-1.5 transition-all hover:translate-x-1">
                       <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                       Global Markup Control
@@ -130,12 +130,12 @@ export function SubscriptionCheckDialog({ open, onOpenChange }: SubscriptionChec
                       <CheckCircle2 className="h-4 w-4 text-primary" />
                     )}
                   </div>
-                  <h3 className="font-semibold text-sm mb-1">Lifetime Plan</h3>
+                  <h3 className="font-semibold text-sm mb-1 text-foreground">Lifetime Plan</h3>
                   <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-2xl font-[1000] text-[#1a1a2e]">$99</span>
-                    <span className="text-xs font-bold text-zinc-400">one-time</span>
+                    <span className="text-2xl font-[1000] text-foreground">$99</span>
+                    <span className="text-xs font-bold text-muted-foreground">one-time</span>
                   </div>
-                  <ul className="space-y-1 text-[11px] font-bold text-zinc-500">
+                  <ul className="space-y-1 text-[11px] font-bold text-muted-foreground/80">
                     <li className="flex items-center gap-1.5 transition-all hover:translate-x-1">
                       <CheckCircle2 className="h-3 w-3 text-amber-500" />
                       Lifetime Console Access
