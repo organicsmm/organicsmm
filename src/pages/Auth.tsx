@@ -134,21 +134,19 @@ export default function Auth() {
 
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-10 text-center">
-          <div className="w-20 h-20 bg-black border-2 border-white/30 rounded-[2.5rem] flex items-center justify-center shadow-[0_0_60px_rgba(155,135,245,0.3)] mb-6 overflow-hidden p-0 group hover:border-primary/50 transition-all duration-500">
-            <img src="/favicon.png" alt="Logo" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          <div className="w-20 h-20 bg-black border-2 border-white/20 rounded-[2.5rem] flex items-center justify-center mb-6 overflow-hidden p-0">
+            <img src="/favicon.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-4xl font-[1000] text-white tracking-tighter mb-1" style={{ textShadow: '0 0 30px rgba(155,135,245,0.4), 0 0 60px rgba(155,135,245,0.1)' }}>OrganicSMM</h1>
-          <p className="text-[11px] font-black uppercase tracking-[0.5em] text-[#9b87f5] opacity-80">AUTHENTICATION TERMINAL</p>
+          <h1 className="text-4xl font-[1000] text-white tracking-tighter mb-1">OrganicSMM</h1>
+          <p className="text-[11px] font-black uppercase tracking-[0.5em] text-[#9b87f5] opacity-80">AUTHENTICATION</p>
         </div>
 
-        {/* The Glass Card Container with platform glow */}
+        {/* The Glass Card Container */}
         <div className="relative">
-          <div className="absolute -inset-4 bg-[#9b87f5]/10 blur-[40px] rounded-[4rem] opacity-50" />
-
-          <div className="bg-[#121216]/90 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-8 md:p-14 shadow-[0_50px_120px_rgba(0,0,0,0.8)] relative overflow-hidden ring-1 ring-white/5">
+          <div className="bg-[#121216]/90 backdrop-blur-3xl border border-white/10 rounded-[3.5rem] p-8 md:p-14 relative overflow-hidden ring-1 ring-white/5">
 
             {/* Upper Light Line */}
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#9b87f5] to-transparent opacity-60" />
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-60" />
 
             {/* Home Redirect */}
             <Link to="/" className="absolute top-8 right-10 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-[#9b87f5] transition-none flex items-center gap-2 group">
@@ -156,26 +154,26 @@ export default function Auth() {
             </Link>
 
             <div className="mt-4">
-              <h2 className="text-2xl font-[1000] text-white mb-2 leading-none" style={{ textShadow: '0 0 15px rgba(255,255,255,0.2)' }}>
-                {isForgotPassword ? 'Reset Access' : isLogin ? 'Authenticate.' : 'Initialize Access.'}
+              <h2 className="text-2xl font-[1000] text-white mb-2 leading-none">
+                {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back.' : 'Create Account.'}
               </h2>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#9b87f5]/60 mb-10">
                 {isForgotPassword
-                  ? 'DECRYPTION PROTOCOL ACTIVE'
+                  ? 'ENTER EMAIL TO CONTINUE'
                   : isLogin
-                    ? 'SECURITY CLEARANCE REQUIRED'
-                    : 'NEW NODE COMMISSIONING'}
+                    ? 'SIGN IN TO CONTINUE'
+                    : 'JOIN THE PLATFORM'}
               </p>
 
               {/* ──── Verification Screen ──── */}
               {showVerifyEmail ? (
                 <div className="text-center py-6">
-                  <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[3rem] flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(155,135,245,0.2)]">
-                    <Mail className="h-10 w-10 text-[#9b87f5] drop-shadow-[0_0_10px_rgba(155,135,245,0.5)]" />
+                  <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[3rem] flex items-center justify-center mx-auto mb-8">
+                    <Mail className="h-10 w-10 text-[#9b87f5]" />
                   </div>
-                  <h3 className="text-2xl font-[1000] text-white mb-4 tracking-tight">Check Terminal.智</h3>
+                  <h3 className="text-2xl font-[1000] text-white mb-4 tracking-tight">Check Your Inbox</h3>
                   <p className="text-[11px] font-bold text-white/30 mb-10 max-w-[240px] mx-auto leading-relaxed border-t border-white/5 pt-6">
-                    An encrypted validation sequence has been dispatched to your subspace email.
+                    A verification link has been sent to your email address.
                   </p>
                   <div className="bg-[#9b87f5]/5 p-5 rounded-2xl border border-[#9b87f5]/20 mb-10 ring-1 ring-[#9b87f5]/10">
                     <span className="text-xs font-black text-[#9b87f5] tracking-tight">{email}</span>
@@ -186,16 +184,16 @@ export default function Auth() {
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={isForgotPassword ? handleForgotPassword : handleSubmit} className="space-y-6">
 
                   {isForgotPassword ? (
                     /* ───── Forgot Password ───── */
                     <div className="space-y-6">
                       <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">TERMINAL EMAIL</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">EMAIL ADDRESS</Label>
                         <Input
                           type="email"
-                          placeholder="agent@organicsmm.pro"
+                          placeholder="name@example.com"
                           value={email}
                           onChange={e => setEmail(e.target.value)}
                           className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none"
@@ -203,7 +201,7 @@ export default function Auth() {
                       </div>
 
                       {error && (
-                        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center">
                           <Shield className="h-4 w-4 text-rose-500 shrink-0" />
                           <p className="text-xs font-bold text-rose-200">{error}</p>
                         </div>
@@ -216,16 +214,16 @@ export default function Auth() {
                         </div>
                       )}
 
-                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#9b87f5] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest shadow-2xl shadow-[#9b87f5]/20 group">
+                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#9b87f5] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest transition-none">
                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                           <span className="flex items-center gap-2">
-                            REQUEST DECRYPTION <ArrowLeft className="w-4 h-4 rotate-180 transition-none group-hover:translate-x-1" />
+                            SEND RESET LINK <ArrowLeft className="w-4 h-4 rotate-180" />
                           </span>
                         )}
                       </Button>
 
                       <button type="button" onClick={() => setIsForgotPassword(false)} className="w-full text-center text-[10px] font-[1000] uppercase tracking-[0.2em] text-white/20 hover:text-white transition-none">
-                        ABORT RESET
+                        BACK TO LOGIN
                       </button>
                     </div>
                   ) : (
@@ -234,9 +232,9 @@ export default function Auth() {
 
                       {!isLogin && (
                         <div className="space-y-3">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">AGENT IDENTIFIER</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">FULL NAME</Label>
                           <Input
-                            placeholder="OPERATOR NAME"
+                            placeholder="John Doe"
                             value={fullName}
                             onChange={e => setFullName(e.target.value)}
                             className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
@@ -245,10 +243,10 @@ export default function Auth() {
                       )}
 
                       <div className="space-y-3">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">TERMINAL EMAIL</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-white/30 ml-1">EMAIL ADDRESS</Label>
                         <Input
                           type="email"
-                          placeholder="agent@organicsmm.pro"
+                          placeholder="name@example.com"
                           value={email}
                           onChange={e => setEmail(e.target.value)}
                           className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/50 text-white font-bold px-6 border-2 transition-none placeholder:text-white/10"
@@ -257,10 +255,10 @@ export default function Auth() {
 
                       <div className="space-y-3">
                         <div className="flex items-center justify-between px-1">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">ACCESS CODE [PWD]</Label>
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-white/30">PASSWORD</Label>
                           {isLogin && (
                             <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[9px] font-black uppercase tracking-widest text-[#9b87f5]/40 hover:text-[#9b87f5] transition-none">
-                              LOST KEY?
+                              FORGOT PASSWORD?
                             </button>
                           )}
                         </div>
@@ -270,7 +268,7 @@ export default function Auth() {
                             placeholder="••••••••"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/80 text-white font-bold px-6 border-2 transition-none placeholder:text-white/5 pr-14 shadow-inner"
+                            className="h-14 rounded-2xl border-white/5 bg-white/5 focus:bg-white/10 focus:border-[#9b87f5]/80 text-white font-bold px-6 border-2 transition-none placeholder:text-white/5 pr-14"
                           />
                           <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-[#9b87f5] transition-none">
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -279,25 +277,25 @@ export default function Auth() {
                       </div>
 
                       {error && (
-                        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center shadow-[0_0_20px_rgba(244,63,94,0.1)]">
+                        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex gap-3 items-center">
                           <Shield className="h-4 w-4 text-rose-500 shrink-0" />
                           <p className="text-[11px] font-bold text-rose-200 leading-tight">{error}</p>
                         </div>
                       )}
 
-                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-[1.25rem] bg-white text-black hover:bg-white/95 font-black text-sm uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(255,255,255,0.1)] transition-none group border-b-4 border-zinc-300">
+                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-[1.25rem] bg-white text-black hover:bg-white/95 font-black text-sm uppercase tracking-[0.3em] transition-none border-b-4 border-zinc-300">
                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
                           <span className="flex items-center gap-2">
-                            {isLogin ? 'INITIALIZE SCAN' : 'GENERATE ACCESS'}
-                            <Zap className="w-4 h-4 fill-current transition-none group-hover:scale-125 group-hover:text-[#9b87f5]" />
+                            {isLogin ? 'SIGN IN' : 'SIGN UP'}
+                            <Zap className="w-4 h-4 fill-current" />
                           </span>
                         )}
                       </Button>
 
                       <div className="pt-4 text-center">
                         <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-[10px] font-bold text-white/20 tracking-widest uppercase">
-                          {isLogin ? "No access key? " : 'Key already exists? '}
-                          <span className="text-[#9b87f5] font-black ml-1 border-b border-[#9b87f5]/30 hover:text-white transition-colors">{isLogin ? 'REGISTER' : 'AUTHORIZE'}</span>
+                          {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                          <span className="text-[#9b87f5] font-black ml-1 border-b border-[#9b87f5]/30 hover:text-white transition-colors">{isLogin ? 'SIGN UP' : 'SIGN IN'}</span>
                         </button>
                       </div>
                     </div>
