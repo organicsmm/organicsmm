@@ -1,5 +1,5 @@
 # OrganicSMM - Robots.txt
-# https://whopdad.lovable.app
+# https://organicflow-main.vercel.app
 
 User-agent: Googlebot
 Allow: /
@@ -28,4 +28,4 @@ Disallow: /settings
 Disallow: /support
 
 # Sitemap
-Sitemap: https://whopdad.lovable.app/sitemap.xml
+Sitemap: https://organicflow-main.vercel.app/sitemap.xml

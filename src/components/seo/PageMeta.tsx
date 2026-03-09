@@ -9,39 +9,39 @@ interface PageMetaProps {
 
 const DEFAULT_DESCRIPTION = 'OrganicSMM - Revolutionary organic social media growth platform. Get natural engagement with variable delivery patterns. 100% safe for your accounts.';
 const SITE_NAME = 'OrganicSMM';
-const BASE_URL = 'https://whopdad.lovable.app';
+const BASE_URL = 'https://organicflow-main.vercel.app';
 
-export function PageMeta({ 
-  title, 
+export function PageMeta({
+  title,
   description = DEFAULT_DESCRIPTION,
   canonicalPath,
-  noIndex = false 
+  noIndex = false
 }: PageMetaProps) {
   useEffect(() => {
     // Set title
-    const fullTitle = title === 'Home' 
+    const fullTitle = title === 'Home'
       ? `${SITE_NAME} - Grow Your Social Media The Natural Way`
       : `${title} | ${SITE_NAME}`;
     document.title = fullTitle;
-    
+
     // Update meta description
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       metaDescription.setAttribute('content', description);
     }
-    
+
     // Update OG title
     const ogTitle = document.querySelector('meta[property="og:title"]');
     if (ogTitle) {
       ogTitle.setAttribute('content', fullTitle);
     }
-    
+
     // Update OG description
     const ogDescription = document.querySelector('meta[property="og:description"]');
     if (ogDescription) {
       ogDescription.setAttribute('content', description);
     }
-    
+
     // Handle canonical URL
     let canonicalLink = document.querySelector('link[rel="canonical"]');
     if (canonicalPath) {
@@ -54,7 +54,7 @@ export function PageMeta({
     } else if (canonicalLink) {
       canonicalLink.remove();
     }
-    
+
     // Handle robots meta for noindex
     let robotsMeta = document.querySelector('meta[name="robots"]');
     if (noIndex) {
@@ -67,7 +67,7 @@ export function PageMeta({
     } else if (robotsMeta) {
       robotsMeta.remove();
     }
-    
+
     // Cleanup on unmount
     return () => {
       if (robotsMeta && noIndex) {
@@ -75,6 +75,6 @@ export function PageMeta({
       }
     };
   }, [title, description, canonicalPath, noIndex]);
-  
+
   return null;
 }
