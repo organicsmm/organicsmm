@@ -67,6 +67,7 @@ import {
   Sparkle,
   Settings2,
   Globe,
+  X,
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { Slider } from '@/components/ui/slider';
@@ -421,6 +422,7 @@ export default function AdminBundles() {
             provider_id: providerId,
             action: 'import',
             service_ids: Array.from(serviceIds),
+            markup_percent: 0,
           },
         });
 
@@ -966,9 +968,14 @@ function BundleCard({
 
                   {/* Linked badge */}
                   {item.service_id && (
-                    <Badge className="bg-success/20 text-success text-[10px] gap-1 shrink-0">
-                      <Link2 className="h-3 w-3" />
-                      Linked
+                    <Badge
+                      className="bg-success/20 text-success text-[10px] gap-1 shrink-0 cursor-pointer hover:bg-destructive/20 hover:text-destructive transition-colors group"
+                      onClick={() => onUpdateItem(item.id, null)}
+                    >
+                      <Link2 className="h-3 w-3 group-hover:hidden" />
+                      <X className="h-3 w-3 hidden group-hover:block" />
+                      <span className="group-hover:hidden">Linked</span>
+                      <span className="hidden group-hover:inline">Unlink</span>
                     </Badge>
                   )}
 

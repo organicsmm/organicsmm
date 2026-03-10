@@ -1,12 +1,25 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   ShoppingCart,
   Search,
@@ -31,6 +44,34 @@ export default function AdminOrders() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data, error } = await supabase.functions.invoke('cancel-order', {
+        body: { order_id: orderId }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-all-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-organic-runs'] });
+      toast({
+        title: "Order Cancelled",
+        description: `Refunded: $${data.refundAmount?.toFixed(2) || '0.00'} (${data.refundedQuantity || 0} units)`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Cancellation Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['admin-all-orders'],
@@ -82,6 +123,8 @@ export default function AdminOrders() {
         return 'bg-muted text-muted-foreground';
       case 'partial':
         return 'bg-secondary text-muted-foreground';
+      case 'cancelled':
+        return 'bg-muted text-muted-foreground';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -99,6 +142,8 @@ export default function AdminOrders() {
         return XCircle;
       case 'partial':
         return AlertTriangle;
+      case 'cancelled':
+        return XCircle;
       default:
         return Clock;
     }
@@ -111,6 +156,7 @@ export default function AdminOrders() {
     'completed',
     'partial',
     'failed',
+    'cancelled',
   ];
 
   // Stats
@@ -220,11 +266,10 @@ export default function AdminOrders() {
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  statusFilter === status
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${statusFilter === status
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
@@ -300,6 +345,38 @@ export default function AdminOrders() {
                           <StatusIcon className="h-3 w-3" />
                           {order.status}
                         </Badge>
+
+                        {order.status !== 'cancelled' && order.status !== 'failed' && order.status !== 'completed' && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-7 text-xs text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive">
+                                  Cancel & Refund
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Cancel Order #{order.order_number}?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will cancel all pending runs and immediately refund the remaining unspent amount to the user's wallet.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Keep Order</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => cancelOrderMutation.mutate(order.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    {cancelOrderMutation.isPending && order.id === cancelOrderMutation.variables ? (
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : null}
+                                    Yes, Cancel & Refund
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                         {order.is_organic_mode && (
                           <div className="text-muted-foreground">
                             {expandedOrder === order.id ? (
@@ -330,13 +407,12 @@ export default function AdminOrders() {
                           {organicRuns.map((run) => (
                             <div
                               key={run.id}
-                              className={`p-3 rounded-xl ${
-                                run.status === 'completed'
+                              className={`p-3 rounded-xl ${run.status === 'completed'
                                   ? 'bg-success/10 border border-success/20'
                                   : run.status === 'started'
-                                  ? 'bg-warning/10 border border-warning/20'
-                                  : 'bg-background border border-border'
-                              }`}
+                                    ? 'bg-warning/10 border border-warning/20'
+                                    : 'bg-background border border-border'
+                                }`}
                             >
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-medium">

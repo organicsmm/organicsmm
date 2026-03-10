@@ -24,7 +24,7 @@ interface ProviderService {
 function transformService(s: ProviderService, provider_id: string, markup_percent: number, categoryOverride?: string) {
   const baseRate = parseFloat(s.rate) || 0
   const markedUpRate = baseRate * (1 + markup_percent / 100)
-  
+
   let speed = 'medium'
   const nameLower = s.name.toLowerCase()
   if (nameLower.includes('instant') || nameLower.includes('fast')) {
@@ -42,11 +42,11 @@ function transformService(s: ProviderService, provider_id: string, markup_percen
 
   // Use category override if provided (from bundle auto-import)
   let category = categoryOverride || s.category || s.type || 'Other'
-  
+
   // Only auto-detect category if no override provided
   if (!categoryOverride) {
     const catLower = category.toLowerCase()
-    
+
     if (catLower.includes('instagram')) {
       if (nameLower.includes('followers')) category = 'Instagram Followers'
       else if (nameLower.includes('like')) category = 'Instagram Likes'
@@ -76,7 +76,7 @@ function transformService(s: ProviderService, provider_id: string, markup_percen
     name: s.name,
     category,
     description: s.desc || null,
-    price: Math.round(markedUpRate * 100) / 100,
+    price: Number(markedUpRate.toFixed(4)),
     min_quantity: parseInt(s.min) || 10,
     max_quantity: parseInt(s.max) || 100000,
     speed,
@@ -110,7 +110,7 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
+
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -131,9 +131,9 @@ serve(async (req) => {
       })
     }
 
-    const { 
-      provider_id, 
-      markup_percent = 30, 
+    const {
+      provider_id,
+      markup_percent = 30,
       action = 'fetch', // 'fetch' = get list, 'import' = import specific services
       service_ids = [],  // Array of service IDs to import
       search_query = '',  // Search query for filtering
@@ -187,7 +187,7 @@ serve(async (req) => {
             api_url: account.api_url,
             is_active: true,
           }, { onConflict: 'id' })
-        
+
         console.log(`Auto-created provider entry for: ${provider_id}`)
       }
     }
@@ -215,9 +215,9 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text()
       console.error(`API Error: ${errorText}`)
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: `Provider API error: ${response.status}`,
-        details: errorText 
+        details: errorText
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -225,13 +225,13 @@ serve(async (req) => {
     }
 
     const rawResponse = await response.json()
-    
+
     // Handle provider error responses (they return { error: "..." } instead of array)
     if (!Array.isArray(rawResponse)) {
       // Check if it's an error response from the provider
       if (rawResponse?.error) {
         console.error('Provider returned error:', rawResponse.error)
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           error: `Provider error: ${rawResponse.error}`,
           details: rawResponse
         }), {
@@ -239,9 +239,9 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
       }
-      
+
       console.error('Invalid API response format:', JSON.stringify(rawResponse).slice(0, 500))
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: 'Invalid API response format',
         received: typeof rawResponse,
         preview: JSON.stringify(rawResponse).slice(0, 200)
@@ -250,7 +250,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-    
+
     // Cast to proper type after validation
     const servicesData: ProviderService[] = rawResponse
 
@@ -263,7 +263,7 @@ serve(async (req) => {
       // Apply search filter
       if (search_query) {
         const query = search_query.toLowerCase()
-        filtered = servicesData.filter(s => 
+        filtered = servicesData.filter(s =>
           s.service.toString().includes(query) ||
           s.name.toLowerCase().includes(query) ||
           (s.category && s.category.toLowerCase().includes(query))
@@ -302,7 +302,7 @@ serve(async (req) => {
       }
 
       // Filter to only selected services
-      const selectedServices = servicesData.filter(s => 
+      const selectedServices = servicesData.filter(s =>
         service_ids.includes(s.service.toString())
       )
 
@@ -314,7 +314,7 @@ serve(async (req) => {
       }
 
       // Transform and insert - use category_override if provided
-      const servicesToInsert = selectedServices.map(s => 
+      const servicesToInsert = selectedServices.map(s =>
         transformService(s, provider_id, markup_percent, category_override || undefined)
       )
 
@@ -373,7 +373,7 @@ serve(async (req) => {
       // Delete existing services from this provider
       await supabase.from('services').delete().eq('provider_id', provider_id)
 
-      const servicesToInsert = servicesData.map(s => 
+      const servicesToInsert = servicesData.map(s =>
         transformService(s, provider_id, markup_percent)
       )
 
@@ -384,7 +384,7 @@ serve(async (req) => {
       for (let i = 0; i < servicesToInsert.length; i += BATCH_SIZE) {
         const batch = servicesToInsert.slice(i, i + BATCH_SIZE)
         const { error } = await supabase.from('services').insert(batch)
-        
+
         if (!error) {
           imported += batch.length
         }
@@ -406,8 +406,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Import error:', error)
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Internal server error' 
+    return new Response(JSON.stringify({
+      error: error.message || 'Internal server error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
