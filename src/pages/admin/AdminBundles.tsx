@@ -1131,6 +1131,7 @@ function ProviderMappingDialog({
             action: 'import',
             service_ids: [data.serviceId.trim()],
             category_override: categoryOverride,
+            markup_percent: 0,
           },
         });
 
@@ -1270,6 +1271,7 @@ function ProviderMappingDialog({
               action: 'import',
               service_ids: Array.from(serviceIds),
               category_override: categoryOverride,
+              markup_percent: 0,
             },
           }).then(res => {
             console.log(`[ProviderMapping] Price refresh for provider ${providerId}:`, res.data);
