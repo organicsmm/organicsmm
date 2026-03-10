@@ -396,8 +396,8 @@ export function generateOrganicSchedule(
   // For totals up to 25x the provider minimum, we use a denser splitting logic
   const shouldSmallQuantitySplit = maxRunsByMin >= 2 && totalQuantity < providerMin * 25;
   if (shouldSmallQuantitySplit) {
-    // Distribute across 2-10 runs naturally
-    const numRuns = Math.max(2, Math.min(10, maxRunsByMin));
+    // Distribute across 2-8 runs naturally, but leave "quantity budget" for variety
+    const numRuns = Math.max(2, Math.min(8, Math.floor(maxRunsByMin * 0.7)));
     let remainingForSmall = totalQuantity;
 
     const istOffset = 5.5 * 60 * 60 * 1000;
@@ -428,7 +428,7 @@ export function generateOrganicSchedule(
           let attempts = 0;
           const primeJitters = [1, 2, 3, 5, 7];
 
-          while (usedQuantities.includes(batchQty) && attempts < 15 && maxAllowed - minAllowed > 2) {
+          while (usedQuantities.includes(batchQty) && attempts < 15 && maxAllowed > minAllowed) {
             const nudge = primeJitters[attempts % primeJitters.length];
             const nextUp = batchQty + nudge;
             const nextDown = batchQty - nudge;
@@ -443,10 +443,10 @@ export function generateOrganicSchedule(
             attempts++;
           }
         }
-        // Final Anti-Round: No multiples of 5/10
+        // Final Anti-Round: ensure no round multiples of 5/10 if range allows
         if (batchQty % 5 === 0 && batchQty > minAllowed) {
-          batchQty += (Math.random() > 0.5 ? 1 : -1);
-          batchQty = Math.max(minAllowed, Math.min(batchQty, maxAllowed));
+          if (batchQty + 1 <= maxAllowed) batchQty += 1;
+          else if (batchQty - 1 >= minAllowed) batchQty -= 1;
         }
       }
 
@@ -519,7 +519,13 @@ export function generateOrganicSchedule(
     // Estimate run count from batch sizing, but cap for performance
     const avgBatchGuess = (effectiveMinBatch + Math.max(effectiveMinBatch, typeRunSize.max)) / 2;
     let targetRuns = Math.ceil(totalQuantity / Math.max(1, avgBatchGuess));
-    targetRuns = Math.min(300, maxRunsByTime, Math.max(1, targetRuns));
+
+    // Reduce target runs to leave budget for randomness
+    const maxPossibleRuns = Math.floor(totalQuantity / providerMin);
+    if (targetRuns > maxPossibleRuns * 0.75 && maxPossibleRuns > 2) {
+      targetRuns = Math.max(2, Math.floor(maxPossibleRuns * 0.75));
+    }
+    targetRuns = Math.min(300, maxPossibleRuns, Math.max(1, targetRuns));
 
     if (targetRuns <= 1) {
       const t = scheduleStartMs;

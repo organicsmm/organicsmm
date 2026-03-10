@@ -851,6 +851,11 @@ serve(async (req) => {
           const maxBatch = Math.max(minBatch + 1, Math.min(maxBatchCap, Math.ceil(avgBatchSize * 1.8)))
 
           const maxPossibleRunsForQuantity = Math.max(1, Math.floor(engagement.quantity / providerMin))
+
+          // CRITICAL: Reduce targetRuns to ~75% of max possible to ensure we have "variety budget"
+          if (targetRuns > maxPossibleRunsForQuantity * 0.75 && maxPossibleRunsForQuantity > 2) {
+            targetRuns = Math.max(2, Math.floor(maxPossibleRunsForQuantity * 0.75))
+          }
           if (targetRuns > maxPossibleRunsForQuantity) {
             targetRuns = maxPossibleRunsForQuantity
           }
