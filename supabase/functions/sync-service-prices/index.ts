@@ -135,12 +135,37 @@ Deno.serve(async (req) => {
       }
 
       if (highestRate > 0) {
+        let finalRateUsd = highestRate;
+
+        try {
+          // If the provider returns results in INR, we need to convert it to USD
+          // so that the website's currency component (which assumes DB is in USD)
+          // doesn't multiply it again and result in a 83x markup.
+          const providerCurrency = Deno.env.get("PROVIDER_CURRENCY") || 'INR';
+
+          if (providerCurrency === 'INR') {
+            const extReq = await fetch(`${supabaseUrl}/functions/v1/get-exchange-rates`);
+            if (extReq.ok) {
+              const ratesData = await extReq.json();
+              const inrRate = ratesData?.rates?.INR || 83.5;
+              finalRateUsd = Number((highestRate / inrRate).toFixed(6));
+              console.log(`[CURRENCY CONVERSION] Provider raw rate: ${highestRate} INR -> Converted to: ${finalRateUsd} USD (Exchange rate: ${inrRate})`);
+            } else {
+              // Fallback if the edge function call fails
+              finalRateUsd = Number((highestRate / 83.5).toFixed(6));
+            }
+          }
+        } catch (e) {
+          console.error("Failed to convert currency, using fallback", e);
+          finalRateUsd = Number((highestRate / 83.5).toFixed(6));
+        }
+
         const oldPrice = currentPriceMap[serviceId]?.price ?? 0;
 
-        // Update service price to highest provider rate
+        // Update service price to highest provider rate (converted to USD)
         const { error: updateError } = await supabase
           .from("services")
-          .update({ price: highestRate })
+          .update({ price: finalRateUsd })
           .eq("id", serviceId);
 
         if (updateError) {
@@ -149,7 +174,7 @@ Deno.serve(async (req) => {
           results.push({
             serviceId,
             oldPrice,
-            newPrice: highestRate,
+            newPrice: finalRateUsd,
             source: highestSource,
           });
         }
