@@ -164,10 +164,21 @@ export default function EngagementOrder() {
     if (!bundles || bundles.length === 0) return [];
     const bundle = bundles[0];
     if (!bundle?.items) return [];
-    // Return unique engagement types from bundle items
+    // Return unique engagement types sorted by preferred order
     const types = bundle.items
       .map(item => item.engagement_type as EngagementType);
-    return [...new Set(types)];
+    const uniqueTypes = [...new Set(types)];
+
+    const PREFERRED_ORDER: Record<string, number> = {
+      views: 1,
+      likes: 2,
+      comments: 3,
+      shares: 4,
+      reposts: 5,
+      saves: 6,
+    };
+
+    return uniqueTypes.sort((a, b) => (PREFERRED_ORDER[a] || 99) - (PREFERRED_ORDER[b] || 99));
   }, [bundles]);
 
   // Base per-type quantities (used as "100%" reference for draw-mode scaling)
