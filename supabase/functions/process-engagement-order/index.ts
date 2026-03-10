@@ -106,8 +106,8 @@ const SERVICE_CONFIGS: Record<ServiceCategory, OrganicServiceConfig> = {
     baseIntervalMinutes: 65, intervalVariance: 35, quantityVariancePercent: 60,
     spikeChance: 0.06, spikeMagnitude: [1.2, 1.5], dipChance: 0.25, dipMagnitude: [0.45, 0.75],
     burstChance: 0.04, pauseChance: 0.30, patternBreakerChance: 0.35,
-    peakHourBoost: 1.25, nightReduction: 0.20, runsPerThousand: 60,
-    minRunsPerOrder: 20, maxRunsPerOrder: 200, targetHumanScore: [88, 99], defaultMinQty: 10
+    peakHourBoost: 1.25, nightReduction: 0.20, runsPerThousand: 100, // Increased runs per 1k
+    minRunsPerOrder: 5, maxRunsPerOrder: 200, targetHumanScore: [88, 99], defaultMinQty: 10
   },
   comments: {
     baseIntervalMinutes: 150, intervalVariance: 80, quantityVariancePercent: 75,
@@ -141,15 +141,15 @@ const SERVICE_CONFIGS: Record<ServiceCategory, OrganicServiceConfig> = {
     baseIntervalMinutes: 100, intervalVariance: 55, quantityVariancePercent: 65,
     spikeChance: 0.05, spikeMagnitude: [1.15, 1.4], dipChance: 0.28, dipMagnitude: [0.45, 0.7],
     burstChance: 0.03, pauseChance: 0.35, patternBreakerChance: 0.32,
-    peakHourBoost: 1.2, nightReduction: 0.18, runsPerThousand: 150,
-    minRunsPerOrder: 15, maxRunsPerOrder: 120, targetHumanScore: [88, 99], defaultMinQty: 10
+    peakHourBoost: 1.2, nightReduction: 0.18, runsPerThousand: 250, // Increased runs per 1k
+    minRunsPerOrder: 3, maxRunsPerOrder: 120, targetHumanScore: [88, 99], defaultMinQty: 10
   },
   saves: {
     baseIntervalMinutes: 110, intervalVariance: 60, quantityVariancePercent: 65,
     spikeChance: 0.04, spikeMagnitude: [1.15, 1.4], dipChance: 0.30, dipMagnitude: [0.45, 0.72],
     burstChance: 0.03, pauseChance: 0.38, patternBreakerChance: 0.30,
-    peakHourBoost: 1.18, nightReduction: 0.15, runsPerThousand: 100,
-    minRunsPerOrder: 12, maxRunsPerOrder: 100, targetHumanScore: [86, 98], defaultMinQty: 10
+    peakHourBoost: 1.18, nightReduction: 0.15, runsPerThousand: 180, // Increased runs per 1k
+    minRunsPerOrder: 2, maxRunsPerOrder: 100, targetHumanScore: [86, 98], defaultMinQty: 10
   },
   watch_hours: {
     baseIntervalMinutes: 480, intervalVariance: 240, quantityVariancePercent: 55,
@@ -162,15 +162,15 @@ const SERVICE_CONFIGS: Record<ServiceCategory, OrganicServiceConfig> = {
     baseIntervalMinutes: 85, intervalVariance: 45, quantityVariancePercent: 60,
     spikeChance: 0.07, spikeMagnitude: [1.2, 1.5], dipChance: 0.22, dipMagnitude: [0.42, 0.68],
     burstChance: 0.05, pauseChance: 0.28, patternBreakerChance: 0.28,
-    peakHourBoost: 1.28, nightReduction: 0.20, runsPerThousand: 70,
-    minRunsPerOrder: 15, maxRunsPerOrder: 120, targetHumanScore: [84, 97], defaultMinQty: 10
+    peakHourBoost: 1.28, nightReduction: 0.20, runsPerThousand: 120, // Increased runs per 1k
+    minRunsPerOrder: 2, maxRunsPerOrder: 120, targetHumanScore: [84, 97], defaultMinQty: 10
   },
   generic: {
     baseIntervalMinutes: 80, intervalVariance: 45, quantityVariancePercent: 60,
     spikeChance: 0.05, spikeMagnitude: [1.15, 1.4], dipChance: 0.25, dipMagnitude: [0.45, 0.72],
     burstChance: 0.04, pauseChance: 0.32, patternBreakerChance: 0.30,
     peakHourBoost: 1.2, nightReduction: 0.20, runsPerThousand: 50,
-    minRunsPerOrder: 15, maxRunsPerOrder: 150, targetHumanScore: [85, 98], defaultMinQty: 10
+    minRunsPerOrder: 2, maxRunsPerOrder: 150, targetHumanScore: [85, 98], defaultMinQty: 10
   }
 }
 
@@ -652,7 +652,7 @@ serve(async (req) => {
         const PLATFORM_STAGGER: Record<string, Record<string, { base: number; variance: number }>> = {
           instagram: {
             views: { base: 0, variance: 0 },
-            likes: { base: 15, variance: 25 },      // 15-40 min after views
+            likes: { base: 25, variance: 45 },      // Increased base (25-70 min) after views
             comments: { base: 45, variance: 60 },    // 45-105 min after views
             saves: { base: 90, variance: 90 },       // 90-180 min after views
             shares: { base: 120, variance: 120 },    // 2-4 hours after views
@@ -660,21 +660,21 @@ serve(async (req) => {
           },
           tiktok: {
             views: { base: 0, variance: 0 },
-            likes: { base: 8, variance: 15 },        // TikTok likes come FAST (8-23 min)
+            likes: { base: 15, variance: 25 },        // TikTok likes slower (15-40 min)
             comments: { base: 30, variance: 45 },    // 30-75 min
             shares: { base: 60, variance: 90 },      // 1-2.5 hours
             followers: { base: 120, variance: 120 },
           },
           youtube: {
             views: { base: 0, variance: 0 },
-            likes: { base: 20, variance: 40 },       // After watching (20-60 min)
+            likes: { base: 35, variance: 55 },       // After watching (35-90 min)
             comments: { base: 60, variance: 120 },   // 1-3 hours (YouTube comments are slower)
             subscribers: { base: 90, variance: 180 }, // 1.5-4.5 hours
             shares: { base: 120, variance: 180 },
           },
           twitter: {
             views: { base: 0, variance: 0 },
-            likes: { base: 3, variance: 10 },        // Twitter likes are INSTANT (3-13 min)
+            likes: { base: 10, variance: 20 },        // X likes slightly slower (10-30 min)
             retweets: { base: 8, variance: 20 },     // Retweets peak quickly (8-28 min)
             comments: { base: 15, variance: 45 },    // Replies slower (15-60 min)
             shares: { base: 25, variance: 60 },      // Quote tweets slower
@@ -850,9 +850,18 @@ serve(async (req) => {
           const minBatch = Math.max(providerMin, Math.ceil(avgBatchSize * 0.4))
           const maxBatch = Math.max(minBatch + 1, Math.min(maxBatchCap, Math.ceil(avgBatchSize * 1.8)))
 
-          const maxPossibleRunsForQuantity = Math.ceil(engagement.quantity / minBatch)
+          const maxPossibleRunsForQuantity = Math.max(1, Math.floor(engagement.quantity / providerMin))
           if (targetRuns > maxPossibleRunsForQuantity) {
             targetRuns = maxPossibleRunsForQuantity
+          }
+
+          // FORCE multiple runs for ALL types if quantity is at least 2x providerMin
+          if (targetRuns < 2 && engagement.quantity >= providerMin * 2) {
+            targetRuns = 2
+          }
+          // FORCE more runs for likes/shares/reposts if possible
+          if (['likes', 'shares', 'reposts', 'comments'].includes(engType) && targetRuns < 3 && engagement.quantity >= providerMin * 3) {
+            targetRuns = 3
           }
 
           let remaining = engagement.quantity
