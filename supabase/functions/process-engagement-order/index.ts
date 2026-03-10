@@ -1201,7 +1201,7 @@ serve(async (req) => {
         // Trigger instant execution
         console.log('🚀 Background: Triggering instant execution...')
         try {
-          const executeResponse = await fetch(
+          fetch(
             `${Deno.env.get('SUPABASE_URL')}/functions/v1/execute-all-runs`,
             {
               method: 'POST',
@@ -1211,8 +1211,8 @@ serve(async (req) => {
               },
               body: JSON.stringify({ instant: true, order_id: order.id })
             }
-          )
-          console.log('✅ Background execution triggered:', executeResponse.status)
+          ).catch(e => console.error('Fetch execute-all-runs error:', e))
+          console.log('✅ Background execution triggered')
         } catch (e) {
           console.error('⚠️ Background execution failed (cron will pick up):', e)
         }
@@ -1221,8 +1221,17 @@ serve(async (req) => {
       }
     }
 
-    // Fire background work - user gets response NOW
-    EdgeRuntime.waitUntil(backgroundWork())
+    // Fire background work - ensure it doesn't crash on EdgeRuntime
+    try {
+      if (typeof (globalThis as any).EdgeRuntime !== 'undefined' && (globalThis as any).EdgeRuntime.waitUntil) {
+        (globalThis as any).EdgeRuntime.waitUntil(backgroundWork())
+      } else {
+        // Without waitUntil, await it directly to ensure isolate doesn't freeze and kill DB inserts
+        await backgroundWork()
+      }
+    } catch (e) {
+      console.error('Background task init failed:', e)
+    }
 
     return new Response(JSON.stringify({
       success: true,
