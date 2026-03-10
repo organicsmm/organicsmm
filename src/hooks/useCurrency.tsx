@@ -67,7 +67,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const setCurrency = useCallback(async (code: CurrencyCode) => {
     setCurrencyState(code);
     localStorage.setItem('preferred_currency', code);
-    
+
     // Persist to profile
     if (user) {
       await supabase
@@ -78,9 +78,18 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const convertFromUSD = useCallback((usdAmount: number): number => {
-    if (currency === 'USD') return usdAmount;
-    const rate = rates[currency] || 1;
-    return usdAmount * rate;
+    // Read the base currency from env, defaulting to INR since prices are entered as INR in DB
+    const baseCode = import.meta.env.VITE_BASE_CURRENCY || 'INR';
+    if (currency === baseCode) return usdAmount; // Prevent multiplying INR by 83+ again!
+
+    let amountInUsd = usdAmount;
+    if (baseCode !== 'USD') {
+      const baseRate = rates[baseCode] || 1;
+      amountInUsd = usdAmount / baseRate;
+    }
+
+    if (currency === 'USD') return amountInUsd;
+    return amountInUsd * (rates[currency] || 1);
   }, [currency, rates]);
 
   const currencyInfo = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
@@ -88,7 +97,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const formatPrice = useCallback((usdAmount: number, options?: { compact?: boolean; decimals?: number }): string => {
     const converted = convertFromUSD(usdAmount);
     const { symbol } = currencyInfo;
-    
+
     // Smart decimal handling
     let decimals = options?.decimals;
     if (decimals === undefined) {
@@ -131,7 +140,7 @@ export function useCurrency() {
     // Fallback for components outside provider (like landing page)
     return {
       currency: 'USD' as CurrencyCode,
-      setCurrency: () => {},
+      setCurrency: () => { },
       rates: { USD: 1 },
       isLoadingRates: false,
       formatPrice: (usdAmount: number) => `$${usdAmount.toFixed(2)}`,
