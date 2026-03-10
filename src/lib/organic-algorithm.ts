@@ -388,17 +388,16 @@ export function generateOrganicSchedule(
   }
 
   // Small-quantity organic mode (still respects provider minimum)
-  // Problem this solves: for totals like 25 with min 10, we should split into 2 runs (10 + 15),
-  // not force a single 25 batch or create illegal <min batches.
   const maxRunsByMin = Math.floor(totalQuantity / providerMin);
 
   // Get type delays early (used by both small + normal modes)
   const typeDelays = TYPE_START_DELAYS[engagementType] || { min: 5, max: 40 };
 
-  const shouldSmallQuantitySplit = maxRunsByMin >= 2 && totalQuantity < providerMin * 15;
+  // For totals up to 25x the provider minimum, we use a denser splitting logic
+  const shouldSmallQuantitySplit = maxRunsByMin >= 2 && totalQuantity < providerMin * 25;
   if (shouldSmallQuantitySplit) {
-    // Distribute across 2-5 runs naturally
-    const numRuns = Math.max(2, Math.min(5, maxRunsByMin));
+    // Distribute across 2-10 runs naturally
+    const numRuns = Math.max(2, Math.min(10, maxRunsByMin));
     let remainingForSmall = totalQuantity;
 
     const istOffset = 5.5 * 60 * 60 * 1000;
@@ -425,17 +424,19 @@ export function generateOrganicSchedule(
 
         // Avoid near-identical consecutive batches - stronger check
         if (runs.length > 0) {
-          const prev = runs[runs.length - 1].quantity;
-          if (batchQty === prev || Math.abs(batchQty - prev) < Math.max(2, prev * 0.2)) {
-            const nudge = Math.random() > 0.5 ? 1 : -1;
-            const nudgeAmount = Math.max(providerMin, Math.ceil(Math.random() * providerMin * 0.5));
-            batchQty = Math.max(minAllowed, Math.min(batchQty + nudge * nudgeAmount, maxAllowed));
+          const prevValues = runs.slice(-3).map(r => r.quantity);
+          let attempts = 0;
+          while ((prevValues.includes(batchQty) || Math.abs(batchQty - prevValues[prevValues.length - 1]) < 2) && attempts < 10) {
+            const primeJitters = [3, 7, 11, 13];
+            const jitter = primeJitters[Math.floor(Math.random() * primeJitters.length)];
+            batchQty = Math.max(minAllowed, Math.min(batchQty + (Math.random() > 0.5 ? jitter : -jitter), maxAllowed));
+            attempts++;
           }
         }
-        // Anti-round: avoid multiples of 5
-        if (batchQty % 5 === 0 && batchQty > minAllowed && maxAllowed - minAllowed > 5) {
-          batchQty += Math.ceil(Math.random() * 3);
-          batchQty = Math.min(batchQty, maxAllowed);
+        // Anti-round: avoid multiples of 5 or 10
+        if (batchQty % 5 === 0 && batchQty > minAllowed) {
+          batchQty += (Math.random() > 0.5 ? 1 : -1) * (1 + Math.floor(Math.random() * 2));
+          batchQty = Math.max(minAllowed, Math.min(batchQty, maxAllowed));
         }
       }
 

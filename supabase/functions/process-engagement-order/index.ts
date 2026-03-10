@@ -979,18 +979,20 @@ serve(async (req) => {
               qty = Math.round(qty * (0.85 + peakMultiplier * 0.15))
 
               // STRONG ANTI-REPEAT: Check against ALL recent runs (up to 5)
-              const recentRuns = scheduleEntries.slice(-5)
+              const recentRuns = scheduleEntries.slice(-5).map(r => r.quantity_to_send)
               let tooSimilar = true
               let attempts = 0
-              while (tooSimilar && attempts < 8) {
+              while (tooSimilar && attempts < 20) {
                 tooSimilar = false
-                for (const prev of recentRuns) {
-                  const diff = Math.abs(qty - prev.quantity_to_send)
-                  const threshold = Math.max(prev.quantity_to_send, qty) * 0.25
-                  if (diff < threshold) {
+                for (const prevQty of recentRuns) {
+                  const diff = Math.abs(qty - prevQty)
+                  const threshold = Math.max(prevQty, qty) * 0.20
+                  if (diff < 2 || diff < threshold) {
                     tooSimilar = true
-                    // Generate completely new random value
-                    qty = providerMin + Math.floor(Math.random() * range)
+                    // Generate completely new random value with prime jitter
+                    const primeJitters = [3, 7, 11, 13, 17]
+                    const jitter = primeJitters[Math.floor(Math.random() * primeJitters.length)]
+                    qty = providerMin + Math.floor(Math.random() * range) + (Math.random() > 0.5 ? jitter : -jitter)
                     break
                   }
                 }
