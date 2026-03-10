@@ -968,15 +968,21 @@ function BundleCard({
 
                   {/* Linked badge */}
                   {item.service_id && (
-                    <Badge
-                      className="bg-success/20 text-success text-[10px] gap-1 shrink-0 cursor-pointer hover:bg-destructive/20 hover:text-destructive transition-colors group"
-                      onClick={() => onUpdateItem(item.id, null)}
-                    >
-                      <Link2 className="h-3 w-3 group-hover:hidden" />
-                      <X className="h-3 w-3 hidden group-hover:block" />
-                      <span className="group-hover:hidden">Linked</span>
-                      <span className="hidden group-hover:inline">Unlink</span>
-                    </Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge className="bg-success/20 text-success text-[10px] gap-1 shrink-0">
+                        <Link2 className="h-3 w-3" />
+                        Linked
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onUpdateItem(item.id, null)}
+                        className="h-6 px-2 text-[10px] text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0 gap-1 border border-destructive/20"
+                      >
+                        <X className="h-3 w-3" />
+                        Unlink
+                      </Button>
+                    </div>
                   )}
 
                   <ProviderMappingDialog
