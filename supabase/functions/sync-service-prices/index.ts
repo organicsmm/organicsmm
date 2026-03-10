@@ -88,6 +88,65 @@ Deno.serve(async (req) => {
     const currentPriceMap: Record<string, { price: number; name: string }> = {};
     (currentServices || []).forEach(s => { currentPriceMap[s.id] = { price: s.price, name: s.name }; });
 
+    // 1. Fetch exchange rates
+    let exchangeRates: Record<string, number> = { USD: 1, INR: 83.5, EUR: 0.92, GBP: 0.79, AED: 3.67 };
+    try {
+      const extReq = await fetch(`${supabaseUrl}/functions/v1/get-exchange-rates`);
+      if (extReq.ok) {
+        const ratesData = await extReq.json();
+        if (ratesData.rates) exchangeRates = ratesData.rates;
+      }
+    } catch (e) {
+      console.error("Failed to fetch exchange rates, using fallbacks:", e);
+    }
+
+    // 2. Fetch unique provider currencies
+    const uniqueProviders: Array<any> = [];
+    const providerMapByName = new Map();
+    for (const mappings of Object.values(serviceMap)) {
+      for (const p of mappings) {
+        if (!providerMapByName.has(p.accountName)) {
+          providerMapByName.set(p.accountName, p);
+          uniqueProviders.push(p);
+        }
+      }
+    }
+
+    const providerCurrencyCache: Record<string, string> = {};
+    const TARGET_CURRENCY = Deno.env.get("PROVIDER_CURRENCY") || 'INR';
+
+    for (const p of uniqueProviders) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(`${p.apiUrl}?key=${p.apiKey}&action=balance`, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (response.ok) {
+          const data = await response.json();
+          providerCurrencyCache[p.accountName] = data.currency || "USD";
+          console.log(`[CURRENCY] Provider ${p.accountName} currency detected as ${providerCurrencyCache[p.accountName]}`);
+        } else {
+          providerCurrencyCache[p.accountName] = "USD";
+        }
+      } catch (e) {
+        providerCurrencyCache[p.accountName] = "USD";
+      }
+    }
+
+    function convertToTarget(amount: number, fromCurrency?: string): number {
+      const fromUpper = (fromCurrency || 'USD').toUpperCase();
+      const targetUpper = TARGET_CURRENCY.toUpperCase();
+      if (fromUpper === targetUpper) return amount;
+
+      const fromRate = exchangeRates[fromUpper] || 1;
+      const targetRate = exchangeRates[targetUpper] || exchangeRates['INR'] || 83.5;
+
+      const amountUsd = amount / fromRate;
+      const amountTarget = amountUsd * targetRate;
+      // Round to 4 decimals for precision
+      return Number(amountTarget.toFixed(4));
+    }
+
     // For each service, query all mapped providers and find highest rate
     for (const [serviceId, providers] of Object.entries(serviceMap)) {
       let highestRate = 0;
@@ -117,8 +176,12 @@ Deno.serve(async (req) => {
             rate = parseFloat(data.rate) || 0;
           }
 
-          console.log(`[RATE] ${p.accountName} service=${p.providerServiceId} rate=${rate} (raw response items: ${Array.isArray(data) ? data.length : 'object'})`);
-          return { rate, source: p.accountName, providerServiceId: p.providerServiceId };
+          // Convert the fetched rate to the TARGET DB Currency (usually INR)
+          const rawCurrency = providerCurrencyCache[p.accountName] || "USD";
+          const convertedRate = convertToTarget(rate, rawCurrency);
+
+          console.log(`[RATE] ${p.accountName} service=${p.providerServiceId} raw=${rate} ${rawCurrency} -> converted=${convertedRate} ${TARGET_CURRENCY}`);
+          return { rate: convertedRate, source: p.accountName, providerServiceId: p.providerServiceId };
         } catch (e) {
           console.error(`Error fetching rate from ${p.accountName} for service ${p.providerServiceId}:`, e);
           return null;
