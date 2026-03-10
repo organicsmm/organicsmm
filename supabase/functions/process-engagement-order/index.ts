@@ -978,25 +978,23 @@ serve(async (req) => {
               // Apply peak multiplier with damping to stay in range
               qty = Math.round(qty * (0.85 + peakMultiplier * 0.15))
 
-              // STRONG ANTI-REPEAT: Check against ALL recent runs (up to 5)
-              const recentRuns = scheduleEntries.slice(-5).map(r => r.quantity_to_send)
-              let tooSimilar = true
+              // ULTRA-STRICT ANTI-REPEAT: Never use same quantity twice in one schedule
+              const usedQuantities = scheduleEntries.map(r => r.quantity_to_send)
+              let duplicates = true
               let attempts = 0
-              while (tooSimilar && attempts < 20) {
-                tooSimilar = false
-                for (const prevQty of recentRuns) {
-                  const diff = Math.abs(qty - prevQty)
-                  const threshold = Math.max(prevQty, qty) * 0.20
-                  if (diff < 2 || diff < threshold) {
-                    tooSimilar = true
-                    // Generate completely new random value with prime jitter
-                    const primeJitters = [3, 7, 11, 13, 17]
-                    const jitter = primeJitters[Math.floor(Math.random() * primeJitters.length)]
-                    qty = providerMin + Math.floor(Math.random() * range) + (Math.random() > 0.5 ? jitter : -jitter)
-                    break
-                  }
+              while (duplicates && attempts < 25 && range > 3) {
+                duplicates = usedQuantities.includes(qty)
+                if (duplicates) {
+                  const primeJitters = [1, 2, 3, 5, 7]
+                  qty = providerMin + Math.floor(Math.random() * range) + (Math.random() > 0.5 ? primeJitters[attempts % 5] : -primeJitters[attempts % 5])
+                  qty = Math.max(providerMin, Math.min(qty, maxBatchCap))
                 }
                 attempts++
+              }
+
+              // Final Anti-Round: No multiples of 5/10
+              if (qty % 5 === 0 && qty > providerMin && qty < maxBatchCap) {
+                qty += (Math.random() > 0.5 ? 1 : -1)
               }
 
               // Enforce bounds

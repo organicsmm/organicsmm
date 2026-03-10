@@ -422,20 +422,30 @@ export function generateOrganicSchedule(
         const ideal = Math.round((remainingForSmall / runsLeft) * (0.6 + Math.random() * 0.8));
         batchQty = Math.max(minAllowed, Math.min(ideal, maxAllowed));
 
-        // Avoid near-identical consecutive batches - stronger check
+        // ULTRA-STRICT ANTI-REPEAT: Never use same quantity twice in one schedule for small orders
         if (runs.length > 0) {
-          const prevValues = runs.slice(-3).map(r => r.quantity);
+          const usedQuantities = runs.map(r => r.quantity);
           let attempts = 0;
-          while ((prevValues.includes(batchQty) || Math.abs(batchQty - prevValues[prevValues.length - 1]) < 2) && attempts < 10) {
-            const primeJitters = [3, 7, 11, 13];
-            const jitter = primeJitters[Math.floor(Math.random() * primeJitters.length)];
-            batchQty = Math.max(minAllowed, Math.min(batchQty + (Math.random() > 0.5 ? jitter : -jitter), maxAllowed));
+          const primeJitters = [1, 2, 3, 5, 7];
+
+          while (usedQuantities.includes(batchQty) && attempts < 15 && maxAllowed - minAllowed > 2) {
+            const nudge = primeJitters[attempts % primeJitters.length];
+            const nextUp = batchQty + nudge;
+            const nextDown = batchQty - nudge;
+
+            if (nextUp <= maxAllowed && !usedQuantities.includes(nextUp)) {
+              batchQty = nextUp;
+              break;
+            } else if (nextDown >= minAllowed && !usedQuantities.includes(nextDown)) {
+              batchQty = nextDown;
+              break;
+            }
             attempts++;
           }
         }
-        // Anti-round: avoid multiples of 5 or 10
+        // Final Anti-Round: No multiples of 5/10
         if (batchQty % 5 === 0 && batchQty > minAllowed) {
-          batchQty += (Math.random() > 0.5 ? 1 : -1) * (1 + Math.floor(Math.random() * 2));
+          batchQty += (Math.random() > 0.5 ? 1 : -1);
           batchQty = Math.max(minAllowed, Math.min(batchQty, maxAllowed));
         }
       }
