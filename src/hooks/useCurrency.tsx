@@ -78,9 +78,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const convertFromUSD = useCallback((usdAmount: number): number => {
-    // Read the base currency from env, defaulting to INR since prices are entered as INR in DB
-    const baseCode = import.meta.env.VITE_BASE_CURRENCY || 'INR';
-    if (currency === baseCode) return usdAmount; // Prevent multiplying INR by 83+ again!
+    // Read the base currency from env, defaulting to USD since prices/wallets are in USD in DB
+    const baseCode = import.meta.env.VITE_BASE_CURRENCY || 'USD';
+    if (currency === baseCode) return usdAmount; // Prevent unnecessary conversion
 
     let amountInUsd = usdAmount;
     if (baseCode !== 'USD') {
