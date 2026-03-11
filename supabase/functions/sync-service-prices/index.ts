@@ -113,7 +113,10 @@ Deno.serve(async (req) => {
     }
 
     const providerCurrencyCache: Record<string, string> = {};
-    const TARGET_CURRENCY = Deno.env.get("PROVIDER_CURRENCY") || 'INR';
+
+    // TARGET_CURRENCY for the Database is now ALWAYS USD to match wallet balances.
+    const TARGET_CURRENCY = 'USD';
+    const DEFAULT_PROVIDER_CURRENCY = Deno.env.get("PROVIDER_CURRENCY") || 'INR';
 
     for (const p of uniqueProviders) {
       try {
@@ -123,28 +126,28 @@ Deno.serve(async (req) => {
         clearTimeout(timeout);
         if (response.ok) {
           const data = await response.json();
-          providerCurrencyCache[p.accountName] = data.currency || "USD";
+          providerCurrencyCache[p.accountName] = data.currency || DEFAULT_PROVIDER_CURRENCY;
           console.log(`[CURRENCY] Provider ${p.accountName} currency detected as ${providerCurrencyCache[p.accountName]}`);
         } else {
-          providerCurrencyCache[p.accountName] = "USD";
+          providerCurrencyCache[p.accountName] = DEFAULT_PROVIDER_CURRENCY;
         }
       } catch (e) {
-        providerCurrencyCache[p.accountName] = "USD";
+        providerCurrencyCache[p.accountName] = DEFAULT_PROVIDER_CURRENCY;
       }
     }
 
     function convertToTarget(amount: number, fromCurrency?: string): number {
-      const fromUpper = (fromCurrency || 'USD').toUpperCase();
+      const fromUpper = (fromCurrency || DEFAULT_PROVIDER_CURRENCY).toUpperCase();
       const targetUpper = TARGET_CURRENCY.toUpperCase();
       if (fromUpper === targetUpper) return amount;
 
-      const fromRate = exchangeRates[fromUpper] || 1;
-      const targetRate = exchangeRates[targetUpper] || exchangeRates['INR'] || 83.5;
+      const fromRate = exchangeRates[fromUpper] || (fromUpper === 'INR' ? 83.5 : 1);
+      const targetRate = exchangeRates[targetUpper] || 1;
 
       const amountUsd = amount / fromRate;
       const amountTarget = amountUsd * targetRate;
-      // Round to 4 decimals for precision
-      return Number(amountTarget.toFixed(4));
+      // Round to 5 decimals for precision (because USD prices can be very small)
+      return Number(amountTarget.toFixed(5));
     }
 
     // For each service, query all mapped providers and find highest rate

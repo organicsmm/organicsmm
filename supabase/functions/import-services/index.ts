@@ -76,7 +76,7 @@ function transformService(s: ProviderService, provider_id: string, markup_percen
     name: s.name,
     category,
     description: s.desc || null,
-    price: Number(markedUpRate.toFixed(4)),
+    price: Number(markedUpRate.toFixed(5)),
     min_quantity: parseInt(s.min) || 10,
     max_quantity: parseInt(s.max) || 100000,
     speed,
@@ -86,6 +86,16 @@ function transformService(s: ProviderService, provider_id: string, markup_percen
     refill: s.refill ? 'Yes' : 'No',
     cancel_allowed: s.cancel ? 'Yes' : 'No',
   }
+}
+
+// Convert provider currency to USD
+function convertRateToUSD(rate: string, providerCurrency: string, exchangeRates: Record<string, number>): number {
+  const baseRate = parseFloat(rate) || 0;
+  const fromUpper = providerCurrency.toUpperCase();
+  if (fromUpper === 'USD') return baseRate;
+
+  const fromRate = exchangeRates[fromUpper] || (fromUpper === 'INR' ? 83.5 : 1);
+  return baseRate / fromRate;
 }
 
 serve(async (req) => {
@@ -255,6 +265,39 @@ serve(async (req) => {
     const servicesData: ProviderService[] = rawResponse
 
     console.log(`Received ${servicesData.length} services from API`)
+
+    // 1. Fetch exchange rates
+    let exchangeRates: Record<string, number> = { USD: 1, INR: 83.5, EUR: 0.92, GBP: 0.79, AED: 3.67 };
+    try {
+      const extReq = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/get-exchange-rates`);
+      if (extReq.ok) {
+        const ratesData = await extReq.json();
+        if (ratesData.rates) exchangeRates = ratesData.rates;
+      }
+    } catch (e) {
+      console.error("Failed to fetch exchange rates, using fallbacks:", e);
+    }
+
+    // 2. Fetch unique provider currency
+    const DEFAULT_PROVIDER_CURRENCY = Deno.env.get("PROVIDER_CURRENCY") || 'INR';
+    let providerCurrency = DEFAULT_PROVIDER_CURRENCY;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const balResponse = await fetch(`${apiUrl}?key=${apiKey}&action=balance`, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (balResponse.ok) {
+        const data = await balResponse.json();
+        if (data.currency) providerCurrency = data.currency;
+      }
+    } catch (e) {
+      console.error("Failed to detect provider currency, using default");
+    }
+
+    // Process all rates into USD
+    for (const s of servicesData) {
+      s.rate = convertRateToUSD(s.rate, providerCurrency, exchangeRates).toString();
+    }
 
     // ACTION: FETCH - Return list of services for selection
     if (action === 'fetch') {
