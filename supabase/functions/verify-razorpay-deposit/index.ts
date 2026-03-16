@@ -153,6 +153,21 @@ Deno.serve(async (req) => {
 
         if (txErr) throw txErr;
 
+        // 7. Notify Admin
+        try {
+            await supabaseAdmin.functions.invoke('send-telegram-notification', {
+                body: {
+                    message: `<b>✅ AUTO DEPOSIT SUCCESS</b>\n\n` +
+                        `👤 <b>User:</b> ${user.email}\n` +
+                        `💰 <b>Amount:</b> $${actualUsd.toFixed(2)} (₹${paidInr})\n` +
+                        `💳 <b>Method:</b> ${payment.method}\n` +
+                        `🆔 <b>Ref:</b> <code>${paymentId}</code>`
+                }
+            });
+        } catch (e) {
+            console.error("Failed to send telegram notification", e);
+        }
+
         return new Response(JSON.stringify({
             success: true,
             amount: actualUsd,

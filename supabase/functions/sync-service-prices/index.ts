@@ -16,20 +16,27 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify admin
+    // Verify admin OR service role
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Not authenticated");
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) throw new Error("Not authenticated");
+    
+    // Bypass for cron/system calls
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const isSystemCall = (token === serviceRoleKey) || (anonKey && token === anonKey);
 
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!roleData) throw new Error("Admin access required");
+    if (!isSystemCall) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) throw new Error("Not authenticated");
+
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!roleData) throw new Error("Admin access required");
+    }
 
     // Optional: sync only specific service IDs
     const body = await req.json().catch(() => ({}));
