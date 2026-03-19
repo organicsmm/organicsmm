@@ -372,8 +372,7 @@ serve(async (req) => {
           .select('id')
           .eq('provider_id', provider_id)
           .eq('provider_service_id', service.provider_service_id)
-          .single()
-
+          .maybeSingle()
         if (existing) {
           const { error } = await supabase
             .from('services')
@@ -384,16 +383,56 @@ serve(async (req) => {
             errors.push(`Update ${service.name}: ${error.message}`)
           } else {
             updated++
+            
+            // Auto-link in mapping table
+            const { data: accounts } = await supabase
+              .from('provider_accounts')
+              .select('id')
+              .eq('provider_id', provider_id)
+              .eq('is_active', true)
+              .limit(1)
+            
+            if (accounts?.[0]) {
+              await supabase.from('service_provider_mapping').upsert({
+                service_id: existing.id,
+                provider_account_id: accounts[0].id,
+                provider_service_id: service.provider_service_id,
+                sort_order: 1,
+                is_active: true
+              }, { onConflict: 'service_id,provider_account_id' })
+            }
           }
         } else {
-          const { error } = await supabase
+          const { data: inserted, error } = await supabase
             .from('services')
             .insert(service)
+            .select('id')
+            .single()
 
           if (error) {
             errors.push(`Insert ${service.name}: ${error.message}`)
           } else {
             imported++
+            
+            // Auto-link in mapping table
+            if (inserted) {
+              const { data: accounts } = await supabase
+                .from('provider_accounts')
+                .select('id')
+                .eq('provider_id', provider_id)
+                .eq('is_active', true)
+                .limit(1)
+              
+              if (accounts?.[0]) {
+                await supabase.from('service_provider_mapping').insert({
+                  service_id: inserted.id,
+                  provider_account_id: accounts[0].id,
+                  provider_service_id: service.provider_service_id,
+                  sort_order: 1,
+                  is_active: true
+                })
+              }
+            }
           }
         }
       }

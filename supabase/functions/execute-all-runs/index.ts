@@ -450,12 +450,11 @@ serve(async (req) => {
 
     console.log(`Fetched ${pendingEngagementRuns?.length || 0} pending runs, ${activeEngagementRuns.length} active (excluded ${(pendingEngagementRuns?.length || 0) - activeEngagementRuns.length} paused/cancelled)`)
 
-    // PARALLEL EXECUTION PER ITEM:
-    // Allow up to 4 pending runs per item (one per available provider account).
-    // The per-ACCOUNT busy check (later in the code) prevents same-account conflicts.
-    // This means: if Account A is busy with Run #4, Run #5 can go to free Account B simultaneously.
+    // SEQUENTIAL EXECUTION PER ITEM:
+    // Only process ONE run per item at a time to ensure strict priority-based delivery
+    // and avoid "active order" conflicts on the same link across different providers.
     const itemRunCount = new Map<string, number>()
-    const MAX_CONCURRENT_PER_ITEM = 4 // Max parallel runs per item (= max provider accounts)
+    const MAX_CONCURRENT_PER_ITEM = 1 // Strict sequential delivery - one run per item per cycle
     
     const deduplicatedRuns = activeEngagementRuns.filter(run => {
       const itemId = run.engagement_order_item_id
@@ -839,16 +838,16 @@ serve(async (req) => {
       
       // Log busy accounts
       if (busyAccountIds.length > 0) {
-        console.log(`⚠️ ${busyAccountIds.length} accounts busy for ${item.engagement_type} (service ${currentServiceId}) on this link - will exclude: ${busyAccountIds.join(', ')}`)
-        console.log(`   (Other services like different platform views CAN still use these accounts)`)
+        console.log(`⚠️ ${busyAccountIds.length} accounts busy for ${item.engagement_type} (service ${currentServiceId}) on this link — will EXCLUDE and try next priority provider`)
       }
 
       // ============================================
-      // PROVIDER ROTATION: Normal priority-based rotation
-      // Any account can be used, just exclude busy ones
+      // PRIORITY-BASED PROVIDER SELECTION WITH FAILOVER
+      // Try providers strictly in priority order (sort_order ASC).
+      // If provider #1 is busy or has no balance → fallback to provider #2, etc.
       // ============================================
       
-      // Get ALL available provider accounts for this service/link, excluding busy ones
+      // Get available provider accounts EXCLUDING busy ones, sorted by priority
       const availableAccounts = await getAllAvailableProviderAccounts(
         supabase,
         item.service.id,
@@ -921,7 +920,7 @@ serve(async (req) => {
         continue
       }
       
-      console.log(`🔄 Will try ${accountsToTry.length} accounts: ${accountsToTry.map(a => a.account.name).join(', ')}`)
+      console.log(`🔄 PRIORITY FAILOVER: Will try ${accountsToTry.length} accounts in order: ${accountsToTry.map((a, i) => `${i+1}. ${a.account.name}`).join(' → ')}`)
 
       // ============================================
       // SMART MINIMUM QUANTITY HANDLING

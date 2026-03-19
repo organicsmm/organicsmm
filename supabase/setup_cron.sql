@@ -14,7 +14,7 @@ SELECT cron.schedule(
   $$
     SELECT net.http_post(
         url:='https://nenuwlbnaxesmnpfjlrl.supabase.co/functions/v1/execute-all-runs',
-        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY"}'::jsonb,
+        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY", "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY"}'::jsonb,
         body:='{}'::jsonb
     ) as request_id;
   $$
@@ -27,7 +27,7 @@ SELECT cron.schedule(
   $$
     SELECT net.http_post(
         url:='https://nenuwlbnaxesmnpfjlrl.supabase.co/functions/v1/check-order-status',
-        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY"}'::jsonb,
+        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY", "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY"}'::jsonb,
         body:='{}'::jsonb
     ) as request_id;
   $$
@@ -40,7 +40,7 @@ SELECT cron.schedule(
   $$
     SELECT net.http_post(
         url:='https://nenuwlbnaxesmnpfjlrl.supabase.co/functions/v1/sync-service-prices',
-        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY"}'::jsonb,
+        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY", "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lbnV3bGJuYXhlc21ucGZqbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1OTY3MjksImV4cCI6MjA4ODE3MjcyOX0.DM1vKF5CJxrwg5T_XJE_nr5LTNtr4pKNkTQUqvPhuiY"}'::jsonb,
         body:='{}'::jsonb
     ) as request_id;
   $$

@@ -1094,15 +1094,42 @@ serve(async (req) => {
               if (afterThis > 0 && afterThis < providerMin) {
                 if (remaining <= maxBatchCap) qty = remaining
               }
-
               if (runsLeft > 3 && qty > remaining * 0.4) {
                 qty = Math.round(remaining * (0.15 + Math.random() * 0.25))
                 qty = Math.max(providerMin, qty)
               }
             }
 
+            // ============================================
+            // STRICT UNIQUE CHECK: Ensure no quantity repeats 
+            // making it 100% organic and natural looking
+            // ============================================
+            const usedQuantities = scheduleEntries.map(r => r.quantity_to_send)
+            const rangeForUnique = maxBatchCap - providerMin
+
+            if (rangeForUnique > 3 && !isLastRun) {
+              let uniqueAttempts = 0
+              while (usedQuantities.includes(qty) && uniqueAttempts < 20) {
+                const primeJitters = [1, 2, 3, 5, 7, 11, 13]
+                qty += (Math.random() > 0.5 ? 1 : -1) * primeJitters[uniqueAttempts % primeJitters.length]
+                qty = Math.max(providerMin, Math.min(qty, Math.min(maxBatchCap, remaining)))
+                uniqueAttempts++
+              }
+            }
+
             const qtyToSend = Math.min(qty, maxBatchCap, remaining)
-            const finalQty = qtyToSend >= providerMin ? qtyToSend : remaining
+            // FIX: Don't dump ALL remaining when qty is below providerMin
+            // Instead, clamp UP to providerMin (or take remaining if it's the last bit)
+            let finalQty: number
+            if (qtyToSend >= providerMin) {
+              finalQty = qtyToSend
+            } else if (remaining <= maxBatchCap && remaining <= providerMin * 1.5) {
+              // Small remaining amount — take it all as last run
+              finalQty = remaining
+            } else {
+              // Below providerMin but more remains — clamp to providerMin
+              finalQty = Math.min(providerMin, remaining)
+            }
 
             scheduleEntries.push({
               engagement_order_item_id: itemId,
@@ -1159,8 +1186,8 @@ serve(async (req) => {
             remaining = 0
           }
 
-          // SMART INSERT: Instead of dropping runs below providerMin, merge them into adjacent runs
-          // This prevents quantity loss when some runs are too small
+          // SMART INSERT v2: Merge runs below providerMin into adjacent runs
+          // BUT NEVER collapse into 1 run for engagement types that need organic spread
           const finalEntries: any[] = []
           let carryOver = 0
 
@@ -1183,15 +1210,25 @@ serve(async (req) => {
             finalEntries[finalEntries.length - 1].quantity_to_send += carryOver
             console.log(`  📦 Added remaining ${carryOver} to last run`)
           } else if (carryOver > 0 && finalEntries.length === 0) {
-            // All runs were below min — create single run with total
+            // All runs were below min — instead of collapsing to 1 run,
+            // create multiple runs at providerMin each (organic spread)
             const totalQty = scheduleEntries.reduce((sum, e) => sum + e.quantity_to_send, 0)
             if (totalQty >= providerMin) {
-              finalEntries.push({
-                ...scheduleEntries[0],
-                quantity_to_send: totalQty,
-                run_number: 1,
-              })
-              console.log(`  📦 Collapsed all runs into single run of ${totalQty}`)
+              const numRuns = Math.max(2, Math.min(scheduleEntries.length, Math.floor(totalQty / providerMin)))
+              const perRun = Math.floor(totalQty / numRuns)
+              let leftover = totalQty - (perRun * numRuns)
+              
+              for (let r = 0; r < numRuns; r++) {
+                const runQty = perRun + (r === numRuns - 1 ? leftover : 0)
+                // Use the schedule timing from original entries (preserve organic intervals)
+                const sourceEntry = scheduleEntries[Math.min(r, scheduleEntries.length - 1)]
+                finalEntries.push({
+                  ...sourceEntry,
+                  quantity_to_send: runQty,
+                  run_number: r + 1,
+                })
+              }
+              console.log(`  📦 Split ${totalQty} into ${numRuns} organic runs instead of 1 (was: ${scheduleEntries.length} below-min runs)`)
             }
           }
 
