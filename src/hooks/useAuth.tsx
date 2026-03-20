@@ -128,10 +128,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Clear any stale session first (wrapped in try-catch to prevent abort errors)
-      try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) { }
-      await new Promise(r => setTimeout(r, 100));
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
@@ -151,10 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     try {
-      // Clear any stale session first (wrapped in try-catch to prevent abort errors)
-      try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) { }
-      await new Promise(r => setTimeout(r, 100));
-
       const redirectUrl = `${window.location.origin}/engagement-order`;
 
       const { data, error } = await supabase.auth.signUp({

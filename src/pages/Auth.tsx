@@ -220,7 +220,7 @@ export default function Auth() {
                       <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#9b87f5] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest transition-none disabled:opacity-80">
                         {isSubmitting ? (
                           <span className="flex items-center gap-2">
-                            <Loader2 className="h-5 w-5 animate-spin" /> 
+                            <Loader2 className="h-5 w-5 animate-spin" style={{ animation: 'spin 1s linear infinite' }} /> 
                             SENDING...
                           </span>
                         ) : (
@@ -294,7 +294,7 @@ export default function Auth() {
                       <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-[1.25rem] bg-white text-black hover:bg-white/95 font-black text-sm uppercase tracking-[0.3em] transition-none border-b-4 border-zinc-300 disabled:opacity-90 disabled:bg-zinc-200">
                         {isSubmitting ? (
                           <span className="flex items-center gap-2 text-zinc-600">
-                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <Loader2 className="h-5 w-5 animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
                             {isLogin ? 'AUTHENTICATING...' : 'CREATING O-TERMINAL...'}
                           </span>
                         ) : (
