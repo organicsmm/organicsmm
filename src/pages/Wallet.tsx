@@ -14,6 +14,8 @@ import {
   ArrowDownLeft,
   RefreshCw,
   ExternalLink,
+  IndianRupee,
+  Zap,
 } from 'lucide-react';
 
 export default function Wallet() {
