@@ -75,11 +75,14 @@ export default function Auth() {
     console.log('--- Auth Submit Started ---');
     
     const timeoutId = setTimeout(() => {
-      if (isSubmitting) {
-        setIsSubmitting(false);
-        setError('Connection Timeout. Request is taking too long.');
-        console.error('--- Auth Timeout Reached ---');
-      }
+      setIsSubmitting(current => {
+        if (current) {
+          setError('Connection Timeout. Request is taking too long.');
+          console.error('--- Auth Timeout Reached ---');
+          return false;
+        }
+        return false;
+      });
     }, 20000);
 
     try {
@@ -110,9 +113,14 @@ export default function Auth() {
           if (msg.includes('already registered')) setError('This terminal email is already registered.');
           else if (msg.includes('rate limit')) setError('Too many attempts. Please wait 5 minutes.');
           else setError(error.message || 'Signup failed.');
-          setIsSubmitting(false); return;
+          setIsSubmitting(false); clearTimeout(timeoutId); return;
         }
-        setShowVerifyEmail(true);
+        
+        console.log('--- Signup Success ---');
+        // Since Email Confirmation is now OFF in Supabase, 
+        // the user is often logged in immediately or can just switch to login.
+        setSuccessMessage('Account Created Successfully!');
+        setTimeout(() => setIsLogin(true), 2000);
       }
     } catch (err: any) {
       if (!err?.message?.includes('abort')) {
@@ -125,6 +133,7 @@ export default function Auth() {
       }
     } finally { 
       setIsSubmitting(false); 
+      clearTimeout(timeoutId);
       console.log('--- Auth Handled ---');
     }
   };
