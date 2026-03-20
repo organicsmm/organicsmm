@@ -381,22 +381,42 @@ export default function RazorpayDepositCard() {
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* Telegram DM Option */}
-            <a
-              href={TELEGRAM_SUPPORT}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-4 p-5 rounded-2xl bg-[#229ED9]/5 border border-[#229ED9]/20 hover:bg-[#229ED9]/10 hover:border-[#229ED9]/30 transition-all group cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-[#229ED9]/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <Send className="h-6 w-6 text-[#229ED9]" />
+            {/* Help & Support Footer */}
+            <div className="pt-6 border-t border-white/5 space-y-4">
+              <div className="flex items-center justify-between px-2">
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
+                  <ShieldCheck className="h-3 w-3 text-emerald-500" />
+                  Official Live Support
+                </span>
+                <Badge variant="outline" className="text-[10px] bg-emerald-500/5 text-emerald-400 border-emerald-500/20 px-2 py-0.5 rounded-lg animate-pulse">
+                  ONLINE
+                </Badge>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-black text-white">Send Screenshot on Telegram</p>
-                <p className="text-[10px] text-[#229ED9] font-bold uppercase tracking-wider">@HenryMiller08 • Instant Support</p>
-              </div>
-              <MessageCircle className="h-5 w-5 text-[#229ED9]/50 group-hover:text-[#229ED9] transition-colors" />
-            </a>
+
+              <a
+                href={TELEGRAM_SUPPORT}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 p-5 rounded-3xl bg-gradient-to-br from-[#229ED9]/10 via-[#229ED9]/5 to-transparent border border-[#229ED9]/20 hover:border-[#229ED9]/40 transition-all group scale-100 hover:scale-[1.02] active:scale-95 shadow-lg shadow-[#229ED9]/5"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#229ED9] to-[#128C7E] flex items-center justify-center shrink-0 shadow-[0_8px_20px_rgba(34,158,217,0.3)] group-hover:rotate-6 transition-transform">
+                  <Send className="h-7 w-7 text-white fill-white/20" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-black text-white tracking-tight">Payment Issue? Chat Now</p>
+                  <p className="text-[11px] text-[#229ED9] font-black uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                    Live Support <span className="w-1 h-1 rounded-full bg-[#229ED9]" /> @HenryMiller08
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#229ED9]/20 transition-colors">
+                  <MessageCircle className="h-5 w-5 text-white/50 group-hover:text-white" />
+                </div>
+              </a>
+              
+              <p className="text-center text-[9px] text-muted-foreground font-bold uppercase tracking-[0.3em] opacity-40">
+                Response Time: ~2 Minutes • Verified Service
+              </p>
+            </div>
 
             <button
               onClick={() => setStep('pay')}
