@@ -1101,34 +1101,42 @@ serve(async (req) => {
             }
 
             // ============================================
-            // STRICT UNIQUE CHECK: Ensure no quantity repeats 
-            // making it 100% organic and natural looking
+            // Base finalQty
             // ============================================
-            const usedQuantities = scheduleEntries.map(r => r.quantity_to_send)
-            const rangeForUnique = maxBatchCap - providerMin
-
-            if (rangeForUnique > 3 && !isLastRun) {
-              let uniqueAttempts = 0
-              while (usedQuantities.includes(qty) && uniqueAttempts < 20) {
-                const primeJitters = [1, 2, 3, 5, 7, 11, 13]
-                qty += (Math.random() > 0.5 ? 1 : -1) * primeJitters[uniqueAttempts % primeJitters.length]
-                qty = Math.max(providerMin, Math.min(qty, Math.min(maxBatchCap, remaining)))
-                uniqueAttempts++
-              }
-            }
-
-            const qtyToSend = Math.min(qty, maxBatchCap, remaining)
-            // FIX: Don't dump ALL remaining when qty is below providerMin
-            // Instead, clamp UP to providerMin (or take remaining if it's the last bit)
             let finalQty: number
-            if (qtyToSend >= providerMin) {
-              finalQty = qtyToSend
+            if (qty >= providerMin) {
+              finalQty = qty
             } else if (remaining <= maxBatchCap && remaining <= providerMin * 1.5) {
               // Small remaining amount — take it all as last run
               finalQty = remaining
             } else {
-              // Below providerMin but more remains — clamp to providerMin
-              finalQty = Math.min(providerMin, remaining)
+              // Below providerMin but more remains — add jitter to providerMin to avoid identical clamps
+              finalQty = providerMin + Math.floor(Math.random() * Math.min(6, maxBatchCap - providerMin + 1))
+            }
+
+            finalQty = Math.max(providerMin, Math.min(finalQty, remaining, maxBatchCap))
+
+            // ============================================
+            // STRICT UNIQUE CHECK (Post-clamp to prevent repetition)
+            // ============================================
+            const usedQuantities = scheduleEntries.map(r => r.quantity_to_send)
+            const rangeForUnique = maxBatchCap - providerMin
+
+            // Only attempt unique if we have room to jitter and it's not the final constraining run
+            if (rangeForUnique >= 1 && !isLastRun && finalQty >= providerMin) {
+              let uniqueAttempts = 0
+              while (usedQuantities.includes(finalQty) && uniqueAttempts < 25) {
+                const primeJitters = [1, 2, 3, 4, 5, 7, 11]
+                // We strongly prefer moving UP if we are at providerMin to avoid falling below it
+                if (finalQty <= providerMin + 1) {
+                   finalQty += primeJitters[uniqueAttempts % primeJitters.length]
+                } else {
+                   finalQty += (Math.random() > 0.5 ? 1 : -1) * primeJitters[uniqueAttempts % primeJitters.length]
+                }
+                
+                finalQty = Math.max(providerMin, Math.min(finalQty, remaining, maxBatchCap))
+                uniqueAttempts++
+              }
             }
 
             scheduleEntries.push({

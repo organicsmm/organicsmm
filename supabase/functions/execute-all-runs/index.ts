@@ -924,60 +924,35 @@ serve(async (req) => {
 
       // ============================================
       // SMART MINIMUM QUANTITY HANDLING
-      // Instead of blindly bumping up (which over-delivers), merge small runs
+      // DEPRECATED AGGRESSIVE MERGE: We no longer merge runs here!
+      // process-engagement-order ALREADY ensures quantities meet providerMin.
+      // If a provider rejects this because their min changed, we let it FAIL OVER
+      // to the next provider automatically! Merging destroys the organic spread.
       // ============================================
       let quantityToSend = run.quantity_to_send
       const serviceMinQty = item.service.min_quantity || 10
       
       if (quantityToSend < serviceMinQty) {
-        console.log(`⚠️ Quantity ${quantityToSend} below service minimum ${serviceMinQty} for ${item.engagement_type}`)
+        // We only bump the very last run slightly if it's naturally small,
+        // otherwise we let the API handle the rejection and failover normally.
+        console.log(`⚠️ Quantity ${quantityToSend} below service fallback minimum ${serviceMinQty} for ${item.engagement_type} — checking if bump needed...`)
         
-        // Check how many more pending runs exist for this item
         const { data: remainingRuns } = await supabase
           .from('organic_run_schedule')
-          .select('id, quantity_to_send, run_number')
+          .select('id')
           .eq('engagement_order_item_id', run.engagement_order_item_id)
           .eq('status', 'pending')
           .neq('id', run.id)
-          .order('run_number', { ascending: true })
-          .limit(10)
-        
-        if (remainingRuns && remainingRuns.length > 0) {
-          // MERGE: Absorb quantity from next pending runs until we meet minimum
-          let mergedQty = quantityToSend
-          const runsToCancel: string[] = []
+          .limit(1)
           
-          for (const nextRun of remainingRuns) {
-            if (mergedQty >= serviceMinQty) break
-            mergedQty += nextRun.quantity_to_send
-            runsToCancel.push(nextRun.id)
-            console.log(`  📦 Merging run #${nextRun.run_number} (+${nextRun.quantity_to_send}) → total: ${mergedQty}`)
-          }
-          
-          // Cancel the merged runs
-          if (runsToCancel.length > 0) {
-            await supabase.from('organic_run_schedule')
-              .update({ 
-                status: 'cancelled', 
-                error_message: `Merged into run #${run.run_number} (below provider min ${serviceMinQty})`,
-                completed_at: new Date().toISOString(),
-              })
-              .in('id', runsToCancel)
-            console.log(`  ✅ Cancelled ${runsToCancel.length} runs, merged quantity: ${mergedQty}`)
-          }
-          
-          quantityToSend = mergedQty
-        } else {
-          // This is the LAST run — send as-is, many providers accept final small batches
-          // But if still below min, bump up to minimum as fallback
-          console.log(`  📍 Last run for this item — bumping to minimum ${serviceMinQty}`)
-          quantityToSend = serviceMinQty
+        if (!remainingRuns || remainingRuns.length === 0) {
+           console.log(`  📍 Last run for this item — bumping ${quantityToSend} to minimum ${serviceMinQty} to ensure completion`)
+           quantityToSend = Math.max(quantityToSend, serviceMinQty)
+           // Update the run's quantity
+           await supabase.from('organic_run_schedule')
+             .update({ quantity_to_send: quantityToSend })
+             .eq('id', run.id)
         }
-        
-        // Update the run's quantity to reflect the merge
-        await supabase.from('organic_run_schedule')
-          .update({ quantity_to_send: quantityToSend })
-          .eq('id', run.id)
       }
       
       // ALSO check per-provider minimum: the mapped provider service might have a different min
