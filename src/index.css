@@ -84,10 +84,9 @@ html {
   font-size: 14px;
 }
 
-/* Global Zero Animation Override */
+/* Global Policy: Minimal transitions, but animations allowed for loaders */
 * {
   transition: none !important;
-  animation: none !important;
 }
 
 @layer base {
@@ -248,11 +247,7 @@ html {
   }
 }
 
-/* Completely disabled animations */
-.animate-spin,
-.animate-bounce,
-.animate-pulse,
-.animate-in,
-.animate-out {
-  animation: none !important;
+/* Minimal animation utility support */
+.animate-spin {
+  animation: spin 1s linear infinite !important;
 }

@@ -127,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUserData]);
 
   const signIn = async (email: string, password: string) => {
+    console.log('--- useAuth: signIn started ---');
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
@@ -134,18 +135,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        console.error('Sign in error:', error.message);
+        console.error('--- useAuth: signIn error ---', error.message);
         return { error: error as Error };
       }
 
+      console.log('--- useAuth: signIn success ---');
       return { error: null };
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('--- useAuth: signIn catch ---', error);
       return { error: error as Error };
     }
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
+    console.log('--- useAuth: signUp started ---');
     try {
       const redirectUrl = `${window.location.origin}/engagement-order`;
 
@@ -161,18 +164,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        console.error('Sign up error:', error.message);
+        console.error('--- useAuth: signUp error ---', error.message);
         return { error: error as Error };
       }
 
       // If user already exists, Supabase returns data but with identities = []
       if (data.user && data.user.identities && data.user.identities.length === 0) {
+        console.warn('--- useAuth: signUp user already exists ---');
         return { error: new Error('This email is already registered. Please login instead.') };
       }
 
+      console.log('--- useAuth: signUp success ---');
       return { error: null };
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error('--- useAuth: signUp catch ---', error);
       return { error: error as Error };
     }
   };
