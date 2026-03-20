@@ -217,8 +217,13 @@ export default function Auth() {
                         </div>
                       )}
 
-                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#9b87f5] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest transition-none">
-                        {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-2xl bg-[#9b87f5] hover:bg-[#8b76e5] text-white font-black text-sm uppercase tracking-widest transition-none disabled:opacity-80">
+                        {isSubmitting ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-5 w-5 animate-spin" /> 
+                            SENDING...
+                          </span>
+                        ) : (
                           <span className="flex items-center gap-2">
                             SEND RESET LINK <ArrowLeft className="w-4 h-4 rotate-180" />
                           </span>
@@ -286,8 +291,13 @@ export default function Auth() {
                         </div>
                       )}
 
-                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-[1.25rem] bg-white text-black hover:bg-white/95 font-black text-sm uppercase tracking-[0.3em] transition-none border-b-4 border-zinc-300">
-                        {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                      <Button type="submit" disabled={isSubmitting} className="w-full h-16 rounded-[1.25rem] bg-white text-black hover:bg-white/95 font-black text-sm uppercase tracking-[0.3em] transition-none border-b-4 border-zinc-300 disabled:opacity-90 disabled:bg-zinc-200">
+                        {isSubmitting ? (
+                          <span className="flex items-center gap-2 text-zinc-600">
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            {isLogin ? 'AUTHENTICATING...' : 'CREATING O-TERMINAL...'}
+                          </span>
+                        ) : (
                           <span className="flex items-center gap-2">
                             {isLogin ? 'SIGN IN' : 'SIGN UP'}
                             <Zap className="w-4 h-4 fill-current" />
