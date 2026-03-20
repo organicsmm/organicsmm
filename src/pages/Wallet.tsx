@@ -90,18 +90,7 @@ export default function Wallet() {
         </div>
 
         {/* Deposit Section */}
-        <Tabs defaultValue="razorpay" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4 h-12 glass-card p-1">
-            <TabsTrigger value="razorpay" className="rounded-lg font-bold">Razorpay (UPI/Cards)</TabsTrigger>
-            <TabsTrigger value="usdt" className="rounded-lg font-bold">USDT (BEP20)</TabsTrigger>
-          </TabsList>
-          <TabsContent value="razorpay">
-            <RazorpayDepositCard />
-          </TabsContent>
-          <TabsContent value="usdt">
-            <InlineDepositCard />
-          </TabsContent>
-        </Tabs>
+        <RazorpayDepositCard />
 
         {/* Transaction History */}
         <div className="glass-card p-6">
