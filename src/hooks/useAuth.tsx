@@ -99,17 +99,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // INITIAL load - controls isLoading, fetches data ONCE
+    // Has a 10-second safety timeout to prevent infinite freeze
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session fetch timed out')), 10000)
+        );
+
+        const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
         if (!isMounted) return;
 
+        const session = result?.data?.session ?? null;
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          await fetchUserData(session.user.id);
+          // Fetch user data with its own timeout
+          try {
+            await Promise.race([
+              fetchUserData(session.user.id),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Data fetch timed out')), 10000))
+            ]);
+          } catch (e) {
+            console.warn('User data fetch timed out, will retry on next action');
+          }
         }
+      } catch (err) {
+        console.warn('initializeAuth timed out or failed:', err);
+        // Still allow the page to render (show login form)
       } finally {
         if (isMounted) {
           setIsLoading(false);
