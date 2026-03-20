@@ -72,6 +72,16 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(''); setSuccessMessage(''); setIsSubmitting(true);
+    console.log('--- Auth Submit Started ---');
+    
+    const timeoutId = setTimeout(() => {
+      if (isSubmitting) {
+        setIsSubmitting(false);
+        setError('Connection Timeout. Request is taking too long.');
+        console.error('--- Auth Timeout Reached ---');
+      }
+    }, 20000);
+
     try {
       if (isLogin) {
         const v = loginSchema.safeParse({ email, password });
@@ -113,7 +123,10 @@ export default function Auth() {
           setError('Authorization terminal error. Please refresh.');
         }
       }
-    } finally { setIsSubmitting(false); }
+    } finally { 
+      setIsSubmitting(false); 
+      console.log('--- Auth Handled ---');
+    }
   };
 
   const reset = () => { setError(''); setSuccessMessage(''); setShowVerifyEmail(false); };
@@ -122,6 +135,12 @@ export default function Auth() {
     <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center p-4 md:p-10 font-sans selection:bg-[#9b87f5]/40 overflow-hidden relative">
 
       {/* ── DYNAMIC 3D BACKGROUND ── */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}} />
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none bg-[#08080a]">
         <div className="absolute top-[-20%] right-[-10%] w-[70%] h-[70%] bg-[#9b87f5]/20 blur-[150px] rounded-full" />
         <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#d946ef]/10 blur-[120px] rounded-full" />
