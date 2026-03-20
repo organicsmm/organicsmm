@@ -9,7 +9,7 @@ interface PageMetaProps {
 
 const DEFAULT_DESCRIPTION = 'OrganicSMM - Revolutionary organic social media growth platform. Get natural engagement with variable delivery patterns. 100% safe for your accounts.';
 const SITE_NAME = 'OrganicSMM';
-const BASE_URL = 'https://organicflow-main.vercel.app';
+const BASE_URL = 'https://organicsmm.pro';
 
 export function PageMeta({
   title,
