@@ -26,11 +26,8 @@ export function useServices() {
     refetchOnWindowFocus: false,
   });
 
-  // Apply global markup to all service prices
-  const services = rawServices?.map(s => ({
-    ...s,
-    price: Math.max(0, applyMarkup(s.price)),
-  }));
+// No longer applying frontend-side markup as it is baked into the database prices via edge functions
+const services = rawServices;
 
   return { 
     services, 

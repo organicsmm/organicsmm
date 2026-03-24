@@ -94,26 +94,26 @@ export default function Wallet() {
         {/* Deposit Section */}
         <Tabs defaultValue="upi" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8 h-14 glass-card p-1.5 rounded-2xl border border-white/5">
-            <TabsTrigger 
-              value="upi" 
+            <TabsTrigger
+              value="upi"
               className="rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-emerald-500 data-[state=active]:text-black transition-all duration-500"
             >
               <IndianRupee className="h-3.5 w-3.5 mr-2" />
               UPI / Cards
             </TabsTrigger>
-            <TabsTrigger 
-              value="usdt" 
+            <TabsTrigger
+              value="usdt"
               className="rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-all duration-500"
             >
               <Zap className="h-3.5 w-3.5 mr-2" />
               USDT (BEP20)
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="upi" className="mt-0 focus-visible:outline-none">
             <RazorpayDepositCard />
           </TabsContent>
-          
+
           <TabsContent value="usdt" className="mt-0 focus-visible:outline-none">
             <InlineDepositCard />
           </TabsContent>
