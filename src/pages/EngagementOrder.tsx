@@ -233,7 +233,7 @@ export default function EngagementOrder() {
       // 1) Try the linked service first
       if (item.service && item.service.price > 0) {
         prices[item.engagement_type] = {
-          pricePerK: item.service.price,
+          pricePerK: applyMarkup(item.service.price),
           serviceId: item.service.id,
           minQuantity: item.service.min_quantity,
         };
@@ -256,7 +256,7 @@ export default function EngagementOrder() {
 
         if (match) {
           prices[item.engagement_type] = {
-            pricePerK: match.price,
+            pricePerK: applyMarkup(match.price),
             serviceId: match.id,
             minQuantity: match.min_quantity,
           };
@@ -267,14 +267,14 @@ export default function EngagementOrder() {
       // 3) Even if linked but price=0, still register the service for order routing
       if (item.service) {
         prices[item.engagement_type] = {
-          pricePerK: item.service.price,
+          pricePerK: applyMarkup(item.service.price),
           serviceId: item.service.id,
           minQuantity: item.service.min_quantity,
         };
       }
     });
     return prices;
-  }, [bundles, allServices, platform]);
+  }, [bundles, applyMarkup, allServices, platform]);
 
   // Update engagement configs when bundle or base quantity changes
   // Use debounced value to prevent excessive recalculations

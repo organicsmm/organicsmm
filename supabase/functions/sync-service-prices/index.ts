@@ -157,15 +157,9 @@ Deno.serve(async (req) => {
       return Number(amountTarget.toFixed(5));
     }
 
-    // 3. Fetch global markup settings
-    const { data: settings } = await supabase
-      .from("platform_settings")
-      .select("global_markup_percent")
-      .eq("id", "global")
-      .maybeSingle();
-
-    const globalMarkup = settings?.global_markup_percent ?? 0;
-    console.log(`[MARKUP] Global markup detected as ${globalMarkup}%`);
+    // NOTE: Markup is NOT applied here. Database stores RAW provider cost.
+    // Markup is applied DYNAMICALLY by the frontend & API using platform_settings.global_markup_percent.
+    // This way, admin can change markup % and it instantly reflects everywhere without re-syncing.
 
     // For each service, query all mapped providers and find highest rate
     for (const [serviceId, providers] of Object.entries(serviceMap)) {
@@ -220,16 +214,16 @@ Deno.serve(async (req) => {
       if (highestRate > 0) {
         const oldPrice = currentPriceMap[serviceId]?.price ?? 0;
 
-        // APPLY GLOBAL MARKUP!
-        const markedUpPrice = Number((highestRate * (1 + globalMarkup / 100)).toFixed(5));
+        // Store RAW provider cost (no markup). Frontend applies markup dynamically.
+        const rawCost = Number(highestRate.toFixed(5));
 
-        console.log(`[UPDATE] service=${serviceId} name="${currentPriceMap[serviceId]?.name}" cost=${highestRate} markup=${globalMarkup}% -> final=${markedUpPrice}`);
+        console.log(`[UPDATE] service=${serviceId} name="${currentPriceMap[serviceId]?.name}" rawCost=${rawCost} from=${highestSource}`);
 
-        // Update service price to marked-up provider rate
+        // Update service price to RAW provider cost
         const { error: updateError } = await supabase
           .from("services")
           .update({ 
-            price: markedUpPrice,
+            price: rawCost,
             updated_at: new Date().toISOString()
           })
           .eq("id", serviceId);
@@ -240,7 +234,7 @@ Deno.serve(async (req) => {
           results.push({
             serviceId,
             oldPrice,
-            newPrice: markedUpPrice,
+            newPrice: rawCost,
             source: highestSource,
           });
         }
@@ -250,9 +244,8 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      message: `Synced ${results.length} service prices with ${globalMarkup}% markup`,
+      message: `Synced ${results.length} service prices (raw provider costs). Markup applied dynamically by frontend.`,
       updated: results.length,
-      markup_applied: globalMarkup,
       results,
       errors: errors.length > 0 ? errors : undefined,
     }), {

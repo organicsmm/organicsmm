@@ -26,8 +26,11 @@ export function useServices() {
     refetchOnWindowFocus: false,
   });
 
-// No longer applying frontend-side markup as it is baked into the database prices via edge functions
-const services = rawServices;
+  // Apply dynamic markup from admin panel settings to raw provider costs
+  const services = rawServices?.map(s => ({
+    ...s,
+    price: applyMarkup(s.price),
+  }));
 
   return { 
     services, 
