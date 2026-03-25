@@ -432,7 +432,7 @@ serve(async (req) => {
       .not('engagement_order_item_id', 'is', null)
       .lte('scheduled_at', now)
       .order('run_number', { ascending: true })
-      .limit(500)
+      .limit(50)
 
     if (engagementRunsError) {
       console.error('Error fetching engagement runs:', engagementRunsError)
@@ -487,7 +487,7 @@ serve(async (req) => {
       .lt('retry_count', 99)  // Only skip permanently blocked runs (retry_count=99)
       .not('engagement_order_item_id', 'is', null)
       .order('completed_at', { ascending: true })
-      .limit(500)
+      .limit(50)
 
     // PRE-FILTER failed runs: Remove runs belonging to cancelled/paused orders
     const activeFailedRuns = (failedEngagementRuns || []).filter(run => {
