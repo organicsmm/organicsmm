@@ -861,28 +861,21 @@ export function generateOrganicSchedule(
       peakMultiplier = sCurveMultiplier * viralDipMultiplier * (0.7 + Math.random() * 0.6);
     }
 
-    // TRULY RANDOM quantity generation - uses FULL range from providerMin to max
-    // This prevents the "all same quantity" drip-feed look
+    // TRULY RANDOM quantity generation centered around average for organic split
+    // This prevents the "all same quantity" drip-feed look while maintaining multi-run spread
+    // Fixed: Centering around average ensures intended number of runs are used
     let baseQty: number;
 
-    // Use multiple distribution tiers for visible randomness
-    const tierRoll = Math.random();
-    if (tierRoll < 0.05) {
-      // MEGA SPIKE: use spike max (rare but dramatic)
-      baseQty = Math.floor(typeRunSize.max + Math.random() * (spikeMax - typeRunSize.max));
-    } else if (tierRoll < 0.20) {
-      // BIG batch: upper 60-100% of range
-      baseQty = Math.floor(effectiveMinBatch + (0.6 + Math.random() * 0.4) * (typeRunSize.max - effectiveMinBatch));
-    } else if (tierRoll < 0.45) {
-      // MEDIUM batch: middle 30-60% of range
-      baseQty = Math.floor(effectiveMinBatch + (0.3 + Math.random() * 0.3) * (typeRunSize.max - effectiveMinBatch));
-    } else if (tierRoll < 0.70) {
-      // SMALL batch: lower 0-30% of range (near providerMin)
-      baseQty = Math.floor(effectiveMinBatch + Math.random() * 0.3 * (typeRunSize.max - effectiveMinBatch));
-    } else {
-      // EXACT minimum or near it (creates natural "dip" in charts)
-      baseQty = effectiveMinBatch + Math.floor(Math.random() * Math.max(1, effectiveMinBatch * 0.15));
-    }
+    // Estimate avg batch size based on remaining and target runs
+    const runsLeft = Math.max(1, estimatedTotalRuns - runNumber + 1);
+    const avgForRemaining = Math.max(effectiveMinBatch, remaining / runsLeft);
+
+    // Pick a variance around the average (0.8x to 1.3x)
+    const varianceMultiplier = 0.8 + Math.random() * 0.5;
+    baseQty = Math.round(avgForRemaining * varianceMultiplier);
+    
+    // Ensure we don't fall below effectiveMinBatch
+    baseQty = Math.max(effectiveMinBatch, baseQty);
 
     baseQty = Math.round(baseQty * sessionMult.quantity);
 

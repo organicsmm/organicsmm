@@ -640,8 +640,13 @@ serve(async (req) => {
             generic: 10,
           },
           generic: {
-            views: 0, likes: 1, comments: 2, saves: 3, shares: 4,
-            followers: 5, subscribers: 6, retweets: 1, reposts: 1, generic: 10,
+            views: 0, impressions: 0, reach: 0, plays: 0, watch_hours: 0,
+            likes: 1, favorites: 1,
+            comments: 2,
+            saves: 3, bookmarks: 3,
+            retweets: 4, reposts: 4, shares: 4,
+            followers: 5, subscribers: 5,
+            generic: 10,
           },
         }
 
@@ -652,48 +657,48 @@ serve(async (req) => {
         const PLATFORM_STAGGER: Record<string, Record<string, { base: number; variance: number }>> = {
           instagram: {
             views: { base: 0, variance: 0 },
-            likes: { base: 25, variance: 45 },      // Increased base (25-70 min) after views
-            comments: { base: 45, variance: 60 },    // 45-105 min after views
-            saves: { base: 90, variance: 90 },       // 90-180 min after views
-            shares: { base: 120, variance: 120 },    // 2-4 hours after views
-            followers: { base: 180, variance: 180 }, // 3-6 hours after views
+            likes: { base: 65, variance: 85 },      // 65-150 min after views start
+            comments: { base: 95, variance: 120 },   // 1.5 - 3.5 hours after views
+            saves: { base: 150, variance: 150 },     // 2.5 - 5 hours after views
+            shares: { base: 210, variance: 180 },    // 3.5 - 6.5 hours after views
+            followers: { base: 300, variance: 240 }, // 5-9 hours after views
           },
           tiktok: {
             views: { base: 0, variance: 0 },
-            likes: { base: 15, variance: 25 },        // TikTok likes slower (15-40 min)
-            comments: { base: 30, variance: 45 },    // 30-75 min
-            shares: { base: 60, variance: 90 },      // 1-2.5 hours
-            followers: { base: 120, variance: 120 },
+            likes: { base: 45, variance: 65 },       // 45-110 min after views
+            comments: { base: 75, variance: 95 },    // 75-170 min
+            shares: { base: 120, variance: 150 },    // 2-4.5 hours
+            followers: { base: 240, variance: 180 },
           },
           youtube: {
             views: { base: 0, variance: 0 },
-            likes: { base: 35, variance: 55 },       // After watching (35-90 min)
-            comments: { base: 60, variance: 120 },   // 1-3 hours (YouTube comments are slower)
-            subscribers: { base: 90, variance: 180 }, // 1.5-4.5 hours
-            shares: { base: 120, variance: 180 },
+            likes: { base: 95, variance: 120 },      // YouTube likes much later
+            comments: { base: 150, variance: 180 },  // 2.5 - 5.5 hours
+            subscribers: { base: 240, variance: 240 }, // 4-8 hours
+            shares: { base: 300, variance: 240 },
           },
           twitter: {
             views: { base: 0, variance: 0 },
-            likes: { base: 10, variance: 20 },        // X likes slightly slower (10-30 min)
-            retweets: { base: 8, variance: 20 },     // Retweets peak quickly (8-28 min)
-            comments: { base: 15, variance: 45 },    // Replies slower (15-60 min)
-            shares: { base: 25, variance: 60 },      // Quote tweets slower
-            followers: { base: 60, variance: 120 },
+            likes: { base: 35, variance: 45 },
+            retweets: { base: 25, variance: 35 },
+            comments: { base: 55, variance: 75 },
+            shares: { base: 85, variance: 95 },
+            followers: { base: 180, variance: 180 },
           },
           facebook: {
             views: { base: 0, variance: 0 },
-            likes: { base: 12, variance: 20 },
-            comments: { base: 40, variance: 60 },
-            shares: { base: 75, variance: 90 },
-            followers: { base: 120, variance: 120 },
+            likes: { base: 45, variance: 55 },
+            comments: { base: 110, variance: 90 },
+            shares: { base: 180, variance: 120 },
+            followers: { base: 240, variance: 240 },
           },
           generic: {
             views: { base: 0, variance: 0 },
-            likes: { base: 15, variance: 25 },
-            comments: { base: 45, variance: 60 },
-            saves: { base: 90, variance: 90 },
-            shares: { base: 120, variance: 120 },
-            followers: { base: 180, variance: 180 },
+            likes: { base: 60, variance: 90 },
+            comments: { base: 120, variance: 120 },
+            saves: { base: 180, variance: 180 },
+            shares: { base: 240, variance: 240 },
+            followers: { base: 300, variance: 240 },
           },
         }
 
@@ -891,17 +896,28 @@ serve(async (req) => {
             console.log(`  📍 ${engType} (primary) starts at +${Math.round(initialDelayMinutes)}min`)
           } else if (viewsStartTime) {
             // Stagger after views using PLATFORM-SPECIFIC delays
+            const baseStagger = staggerConfig.base
+            const varianceStagger = staggerConfig.variance
+            
+            // DYNAMIC DELAY: If views are large, push engagements back even further
+            // Scale: +15 min for every 1000 views in the base_quantity
+            const viewVolumeDelay = Math.min(480, (base_quantity / 1000) * 15)
+            
             initialDelayMinutes = aiOrganicEnabled
-              ? staggerConfig.base + Math.random() * staggerConfig.variance
-              : staggerConfig.base + Math.random() * (staggerConfig.variance * 0.5)
+              ? baseStagger + viewVolumeDelay + Math.random() * varianceStagger
+              : baseStagger + viewVolumeDelay + Math.random() * (varianceStagger * 0.5)
+              
             currentTime = new Date(viewsStartTime.getTime() + initialDelayMinutes * 60 * 1000)
-            console.log(`  📍 ${engType} starts at +${Math.round(initialDelayMinutes)}min after views (${platform} pattern)`)
+            console.log(`  📍 ${engType} starts at +${Math.round(initialDelayMinutes)}min after views (${platform} pattern, volume delay: ${Math.round(viewVolumeDelay)}min)`)
           } else {
             // No views in this order - use stagger config with absolute offset
             const priority = platformPriorities[engType] ?? 3
+            const baseStagger = staggerConfig.base
+            const varianceStagger = staggerConfig.variance
+
             initialDelayMinutes = aiOrganicEnabled
-              ? staggerConfig.base + (priority * 15) + Math.random() * staggerConfig.variance
-              : staggerConfig.base + (priority * 10) + Math.random() * (staggerConfig.variance * 0.5)
+              ? baseStagger + (priority * 45) + Math.random() * varianceStagger
+              : baseStagger + (priority * 30) + Math.random() * (varianceStagger * 0.5)
             currentTime = new Date(startTime.getTime() + initialDelayMinutes * 60 * 1000)
             console.log(`  📍 ${engType} starts at +${Math.round(initialDelayMinutes)}min (no views, ${platform} pattern)`)
           }
@@ -974,10 +990,17 @@ serve(async (req) => {
                 continue
               }
 
-              // CONTINUOUS random quantity between providerMin and maxBatchCap
-              // No tiers, no multipliers - pure uniform random
+              // CONTINUOUS random quantity centered around average
+              // Ensures order is distributed across intended number of runs
               const range = maxBatchCap - providerMin
-              qty = providerMin + Math.floor(Math.random() * range)
+              
+              // Base qty is avgForRemaining with small variance (0.8x to 1.3x)
+              // This prevents picking 56/56 in the first run!
+              const varianceMultiplier = 0.8 + Math.random() * 0.5
+              qty = Math.round(avgForRemaining * varianceMultiplier)
+              
+              // Ensure we don't fall below providerMin
+              qty = Math.max(providerMin, qty)
               baseQty = qty
 
               // Apply peak multiplier with damping to stay in range
