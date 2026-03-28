@@ -885,9 +885,10 @@ export function generateOrganicSchedule(
     let qty = Math.round(baseQty * peakMultiplier * varianceFactor);
 
     // DYNAMIC SPLIT SAFETY: If we have room for multiple runs, don't consume everything in one go
-    // If total remaining is not huge, don't take more than 40-50% in one run
-    if (remaining > providerMin * 3) {
-      const maxSafeQty = Math.floor(remaining * (0.35 + Math.random() * 0.15));
+    // If we have more than one run left, ensure this run doesn't take too much
+    if (runsLeft > 1 && remaining > providerMin * 1.5) {
+      // Max 45% of total remaining in one go to ensure at least 3+ runs for medium orders
+      const maxSafeQty = Math.floor(remaining * (0.35 + Math.random() * 0.1)); 
       qty = Math.min(qty, Math.max(providerMin, maxSafeQty));
     }
 
