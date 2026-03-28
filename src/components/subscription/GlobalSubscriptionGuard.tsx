@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+ab import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
@@ -23,7 +23,7 @@ export function GlobalSubscriptionGuard({ children }: GlobalSubscriptionGuardPro
 
   const isPublicRoute = useMemo(() => PUBLIC_ROUTES.includes(location.pathname), [location.pathname]);
   const isAdminRoute = useMemo(() => location.pathname.startsWith('/admin'), [location.pathname]);
-  
+
   // Maintenance mode: show maintenance page to non-admin users
   if (isMaintenanceMode && !isAdmin && !isAdminRoute && !isPublicRoute) {
     return <MaintenancePage />;
