@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 // ============================================
-// SERVICE-SPECIFIC ORGANIC SCHEDULING v7.0
+// SERVICE-SPECIFIC ORGANIC SCHEDULING v6.0
 // Each engagement type has UNIQUE delivery patterns
 // ============================================
 
@@ -968,14 +968,14 @@ serve(async (req) => {
             // ============================================
             const runsLeft = Math.max(1, targetRuns - runNumber + 1)
             const avgForRemaining = Math.ceil(remaining / runsLeft)
-            
+            // FIXED: Only trigger last run if we reached targetRuns OR if remaining is too small to split
+            const isLastRun = runNumber === targetRuns || (remaining < providerMin * 1.8 && runNumber > 1);
+
             // KEY INSIGHT: If providerMin >= 60% of avg batch, dips are impossible
             // All "dip" quantities get clamped to providerMin = identical runs = BOTTING
-            // KEY INSIGHT: isLastRun should only be true if we reached the target or remainder is too small to split
-            const isLastRun = runNumber >= targetRuns || remaining < providerMin * 2
             const providerMinIsHigh = providerMin >= avgForRemaining * 0.6
 
-            if (isLastRun) {
+            if (isLastRun && remaining <= maxBatchCap) {
               qty = remaining
               baseQty = qty
             } else if (providerMinIsHigh) {
