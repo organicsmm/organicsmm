@@ -26,6 +26,12 @@ const TEMPORARY_ERRORS = [
   'timeout',
   'temporarily',
   'too many requests',
+  'already in progress',
+  'task is already exist',
+  'task already exist',
+  'similar order',
+  'already active',
+  'in progress',
 ]
 
 // Errors that should try NEXT account (the key might work on another account)
@@ -887,8 +893,12 @@ serve(async (req) => {
       // Build list - priority rotation, any available account
       const accountsToTry: { account: ProviderAccount; providerServiceId: string }[] = [...availableAccounts]
       
-      // Add default provider if not already in the list
-      if (defaultProvider && !accountsToTry.some(a => a.account.id === defaultProvider!.id)) {
+      // Add default provider if not already in the list AND not busy
+      if (
+        defaultProvider && 
+        !accountsToTry.some(a => a.account.id === defaultProvider!.id) &&
+        !busyAccountIds.includes(defaultProvider.id)
+      ) {
         accountsToTry.push({
           account: defaultProvider,
           providerServiceId: item.service.provider_service_id
@@ -1091,8 +1101,14 @@ serve(async (req) => {
             providerResult = result
             
             // Check if this is an "active order" error - try next account immediately
-            const isActiveOrderError = lastError.toLowerCase().includes('active order') || 
-                                       lastError.toLowerCase().includes('wait until order')
+            const lowerError = lastError.toLowerCase()
+            const isActiveOrderError = lowerError.includes('active order') || 
+                                       lowerError.includes('wait until order') ||
+                                       lowerError.includes('already in progress') ||
+                                       lowerError.includes('task is already exist') ||
+                                       lowerError.includes('task already exist') ||
+                                       lowerError.includes('already active') ||
+                                       lowerError.includes('similar order')
             
             if (isActiveOrderError) {
               console.log(`⏩ Active order conflict on ${selectedAccount.name}, trying next account...`)
