@@ -14,7 +14,6 @@ export default function RefundPolicy() {
           <h1 className="text-3xl font-bold mb-2">Refund Policy</h1>
           <p className="text-muted-foreground mb-8">Last updated: February 22, 2026</p>
 
-          {/* Warning box */}
           <div className="flex gap-3 p-4 mb-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400/90">
             <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
             <p className="text-sm leading-relaxed">

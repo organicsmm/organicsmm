@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap&font-display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,8 +16,7 @@ input[type="number"] {
   appearance: textfield;
 }
 
-/* Font loading */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap&font-display=swap');
+
 
 @layer base {
   :root {
@@ -251,3 +251,6 @@ html {
 .animate-spin {
   animation: spin 1s linear infinite !important;
 }
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

@@ -26,7 +26,6 @@ import ApiAccess from "./pages/ApiAccess";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 
-
 // Engagement pages
 import EngagementOrder from "./pages/EngagementOrder";
 import EngagementOrders from "./pages/EngagementOrders";
@@ -58,29 +57,31 @@ const queryClient = new QueryClient({
       gcTime: 15 * 60 * 1000,          // 15 min cache retention
       refetchOnWindowFocus: false,      // Don't refetch on tab switch
       refetchOnReconnect: false,        // Don't refetch on reconnect
-      refetchOnMount: false,            // Use cached data on navigation
-      retry: 2,
-      retryDelay: (i) => Math.min(1000 * 2 ** i, 10000),
-    },
-    mutations: {
-      retry: 1,
-      retryDelay: 1000,
+      retry: 1,                       // Retry once on failure
     },
   },
 });
 
 const App = () => {
   useEffect(() => {
-    const handleRejection = (e: PromiseRejectionEvent) => {
-      console.error("Unhandled rejection:", e.reason);
-      toast.error("An error occurred. Please try again.");
-      e.preventDefault();
+    // Global event listener for Supabase auth/network errors
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      if (event.reason?.message?.includes('JWT') || event.reason?.status === 401) {
+        console.warn("Auth token expired or invalid");
+      }
     };
-    const handleError = (e: ErrorEvent) => {
-      console.error("Unhandled error:", e.error || e.message);
+
+    const handleError = (event: ErrorEvent) => {
+      // Silence ResizeObserver loop errors (common in Recharts)
+      if (event.message?.includes("ResizeObserver loop limit exceeded")) {
+        event.stopImmediatePropagation();
+        return;
+      }
     };
+
     window.addEventListener("unhandledrejection", handleRejection);
     window.addEventListener("error", handleError);
+
     return () => {
       window.removeEventListener("unhandledrejection", handleRejection);
       window.removeEventListener("error", handleError);
@@ -93,16 +94,19 @@ const App = () => {
         <CurrencyProvider>
           <TooltipProvider>
             <Toaster />
-            <Sonner />
+            <Sonner position="top-right" theme="dark" closeButton richColors />
             <AppErrorBoundary>
               <BrowserRouter>
                 <ScrollToTop />
                 <GlobalSubscriptionGuard>
                   <Routes>
-                    {/* User pages */}
+                    {/* Public/Global pages */}
                     <Route path="/" element={<Index />} />
-                    <Route path="*" element={<NotFound />} />
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
+                    
+                    {/* User pages */}
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/services" element={<Services />} />
                     <Route path="/order" element={<Order />} />
@@ -111,9 +115,6 @@ const App = () => {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/support" element={<Support />} />
                     <Route path="/api-access" element={<ApiAccess />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/contact" element={<Contact />} />
-
 
                     {/* Engagement */}
                     <Route path="/engagement-order" element={<EngagementOrder />} />
@@ -138,6 +139,9 @@ const App = () => {
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/refund" element={<RefundPolicy />} />
                     <Route path="/cookies" element={<CookiePolicy />} />
+
+                    {/* Fallback */}
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </GlobalSubscriptionGuard>
               </BrowserRouter>
@@ -150,3 +154,4 @@ const App = () => {
 };
 
 export default App;
+

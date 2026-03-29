@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageMeta } from "@/components/seo/PageMeta";
@@ -110,7 +110,7 @@ export default function PrivacyPolicy() {
 
             <section className="space-y-3">
               <h2 className="text-xl font-semibold text-foreground">11. Contact Us</h2>
-              <p>If you have questions or concerns about this Privacy Policy or our data practices, please contact us through our Support page or email us at privacy@organicsmm.com.</p>
+              <p>If you have questions or concerns about this Privacy Policy or our data practices, please contact us through our Support page or email us at <strong className="text-foreground">support@organicsmm.pro</strong>.</p>
             </section>
           </div>
         </div>

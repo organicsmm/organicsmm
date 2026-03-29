@@ -204,15 +204,8 @@ const Index = () => {
         </div>
       </footer>
 
-      {/* Extra CSS for hiding scrollbar visually but keeping function */}
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
-
     </main>
   );
 };
 
 export default Index;
-
