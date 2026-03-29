@@ -702,7 +702,9 @@ serve(async (req) => {
       // 2. Check COMPLETED runs where provider_status is STILL ACTIVE (non-terminal)
       // LIVE CHECK: For each such run, verify with provider API if still active
       // If provider says terminal, update our DB and FREE the account
+      // IMPORTANT: Only consider runs completed within the last 3 hours — older ones are assumed done
       const nonTerminalStatuses = ['Pending', 'In progress', 'Processing', 'Partial']
+      const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
       const { data: providerActiveRuns } = await supabase
         .from('organic_run_schedule')
         .select(`
@@ -717,6 +719,7 @@ serve(async (req) => {
         .not('provider_account_id', 'is', null)
         .not('provider_order_id', 'is', null)
         .in('provider_status', nonTerminalStatuses)
+        .gte('completed_at', threeHoursAgo) // Only recent runs can block — old ones are assumed done
       
       // Filter to same link + same service_id
       const providerActiveForLinkAndType = (providerActiveRuns || []).filter(r => {
@@ -767,13 +770,18 @@ serve(async (req) => {
               busyAccountIds.push(activeRun.provider_account_id)
             }
           } else {
-            // If live check fails, err on the side of caution — block
-            console.log(`⚠️ Live check failed for run #${activeRun.run_number} on ${provAccount.name}: ${liveResult.error} — blocking to be safe`)
-            busyAccountIds.push(activeRun.provider_account_id)
+            // Live check FAILED (API error / order not found) — assume it's done, DO NOT block
+            // This prevents stale DB entries from permanently blocking all providers
+            console.log(`⚠️ Live check failed for run #${activeRun.run_number} on ${provAccount.name}: ${liveResult.error} — assuming DONE, NOT blocking`)
+            // Mark as completed in DB so it stops being checked
+            await supabase.from('organic_run_schedule').update({
+              provider_status: 'Completed',
+              last_status_check: new Date().toISOString(),
+            }).eq('id', activeRun.id)
           }
         } else {
-          busyAccountIds.push(activeRun.provider_account_id)
-          console.log(`🔴 Account ${activeRun.provider_account_id} has non-terminal provider order — blocking same link`)
+          // No provider_order_id — can't verify, assume done (don't block)
+          console.log(`⚠️ Run #${activeRun.run_number} has no provider_order_id — assuming done, NOT blocking`)
         }
       }
       
