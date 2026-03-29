@@ -140,6 +140,70 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ── PROFESSIONAL FOOTER ── */}
+      <footer className="w-full bg-white border-t border-purple-50 py-20 px-5 md:px-10 mt-12 relative z-10">
+        <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+          {/* Brand Col */}
+          <div className="md:col-span-1 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center p-1">
+                <img src="/favicon.png" alt="Logo" className="w-full h-full object-cover rounded-lg" />
+              </div>
+              <span className="text-xl font-[1000] tracking-tighter text-purple-950">OrganicSMM</span>
+            </div>
+            <p className="text-sm font-bold text-purple-900/40 leading-relaxed">
+              Leading the next wave of social growth simulation. Established in 2026 to provide brands with elite organic behavior modeling.
+            </p>
+          </div>
+
+          {/* Links Col 1: Platform */}
+          <div>
+            <h4 className="text-[11px] font-[1000] uppercase tracking-[0.2em] text-purple-900/30 mb-6">Platform</h4>
+            <ul className="space-y-4">
+              <li><Link to="/auth" className="text-sm font-black text-purple-950/60 hover:text-purple-600 transition-colors">Digital Console</Link></li>
+              <li><Link to="/about" className="text-sm font-black text-purple-950/60 hover:text-purple-600 transition-colors">About Technology</Link></li>
+              <li><Link to="/services" className="text-sm font-black text-purple-950/60 hover:text-purple-600 transition-colors">Global Services</Link></li>
+              <li><Link to="/contact" className="text-sm font-black text-purple-950/60 hover:text-purple-600 transition-colors">Help Center</Link></li>
+            </ul>
+          </div>
+
+          {/* Links Col 2: Legal (IMPORTANT) */}
+          <div>
+            <h4 className="text-[11px] font-[1000] uppercase tracking-[0.2em] text-purple-900/30 mb-6">Legal Compliance</h4>
+            <ul className="space-y-4">
+              <li><Link to="/terms" className="text-sm font-black text-purple-950/60 hover:text-purple-600 transition-colors">Terms of Service</Link></li>
+              <li><Link to="/privacy" className="text-sm font-black text-purple-950/60 hover:text-purple-600 transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/refund" className="text-sm font-black text-purple-950/60 hover:text-purple-600 transition-colors">Refund & Cancellation</Link></li>
+              <li><Link to="/cookies" className="text-sm font-black text-purple-950/60 hover:text-purple-600 transition-colors">Cookie Policy</Link></li>
+            </ul>
+          </div>
+
+          {/* Trust Col */}
+          <div className="space-y-6">
+            <h4 className="text-[11px] font-[1000] uppercase tracking-[0.2em] text-purple-900/30 mb-6">Operational Status</h4>
+            <div className="flex items-center gap-3 bg-purple-50 px-4 py-3 rounded-2xl border border-purple-100">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Servers: Normal</span>
+            </div>
+            <p className="text-[10px] font-bold text-purple-900/30">
+              Technical Support: 24/7/365<br />
+              Email: support@organicsmm.pro
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-[1200px] mx-auto mt-20 pt-8 border-t border-purple-50 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-[10px] font-black text-purple-900/20 uppercase tracking-widest">
+            © 2026 OrganicFlow Marketing Solutions. All rights reserved.
+          </p>
+          <div className="flex gap-6 opacity-20 hover:opacity-100 transition-opacity">
+            <Shield className="w-4 h-4 text-purple-900" />
+            <Target className="w-4 h-4 text-purple-900" />
+            <Sparkles className="w-4 h-4 text-purple-900" />
+          </div>
+        </div>
+      </footer>
+
       {/* Extra CSS for hiding scrollbar visually but keeping function */}
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
@@ -151,3 +215,4 @@ const Index = () => {
 };
 
 export default Index;
+

@@ -96,7 +96,7 @@ export default function CookiePolicy() {
 
             <section className="space-y-3">
               <h2 className="text-xl font-semibold text-foreground">9. Contact Us</h2>
-              <p>If you have any questions about our use of cookies, please contact us through our Support page or email us at privacy@organicsmm.com.</p>
+              <p>If you have any questions about our use of cookies, please contact us through our Support page or email us at <strong className="text-foreground">support@organicsmm.pro</strong>.</p>
             </section>
           </div>
         </div>
