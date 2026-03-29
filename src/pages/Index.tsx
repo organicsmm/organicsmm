@@ -141,7 +141,7 @@ const Index = () => {
       </section>
 
       {/* ── PROFESSIONAL FOOTER ── */}
-      <footer className="w-full bg-white border-t border-purple-50 py-20 px-5 md:px-10 mt-12 relative z-10">
+      <footer className="w-full bg-white border-t border-purple-100 py-32 px-5 md:px-10 mt-20 relative z-[100] shadow-[0_-20px_50px_rgba(0,0,0,0.05)]">
         <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand Col */}
           <div className="md:col-span-1 space-y-6">
