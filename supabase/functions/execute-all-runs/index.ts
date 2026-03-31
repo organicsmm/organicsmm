@@ -438,7 +438,7 @@ serve(async (req) => {
       .not('engagement_order_item_id', 'is', null)
       .lte('scheduled_at', now)
       .order('scheduled_at', { ascending: true }) // CRITICAL: Process OLDEST runs first, not by run_number
-      .limit(100) // Increased batch size for faster queue clearance
+      .limit(1000) // Increased batch size drastically to prevent head-of-line blocking from stalled runs
 
     if (engagementRunsError) {
       console.error('Error fetching engagement runs:', engagementRunsError)
