@@ -98,6 +98,12 @@ Deno.serve(async (req) => {
 
     if (targetRunId) {
       engagementQuery = engagementQuery.eq('id', targetRunId)
+    } else {
+      // Process in batches of 100 to avoid function timeouts
+      // Order by last_status_check (nulls first) so we always check the most STALE runs
+      engagementQuery = engagementQuery
+        .order('last_status_check', { ascending: true, nullsFirst: true })
+        .limit(100)
     }
 
     const { data: engagementRuns, error: engagementError } = await engagementQuery

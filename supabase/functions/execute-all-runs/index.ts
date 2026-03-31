@@ -437,8 +437,8 @@ serve(async (req) => {
       .eq('status', 'pending')
       .not('engagement_order_item_id', 'is', null)
       .lte('scheduled_at', now)
-      .order('run_number', { ascending: true })
-      .limit(50)
+      .order('scheduled_at', { ascending: true }) // CRITICAL: Process OLDEST runs first, not by run_number
+      .limit(100) // Increased batch size for faster queue clearance
 
     if (engagementRunsError) {
       console.error('Error fetching engagement runs:', engagementRunsError)
@@ -531,6 +531,47 @@ serve(async (req) => {
       return null
     }
 
+    // ============================================
+    // STEP 0.5: Pre-fetch busy status snapshots
+    // This dramatically reduces DB queries from 2N to 2
+    // ============================================
+    console.log(`\n--- Pre-fetching Busy Account Snapshots ---`)
+    
+    // 1. Fetch ALL started runs (actively in progress)
+    const { data: allStartedRuns } = await supabase
+      .from('organic_run_schedule')
+      .select(`
+        id, run_number, provider_status, started_at, provider_account_id, provider_order_id,
+        engagement_order_item:engagement_order_items(
+          engagement_type,
+          service_id,
+          engagement_order:engagement_orders(link)
+        )
+      `)
+      .eq('status', 'started')
+      .not('provider_account_id', 'is', null)
+    
+    // 2. Fetch ALL recent completed runs that are still active at provider
+    const nonTerminalStatuses = ['Pending', 'In progress', 'Processing', 'Partial']
+    const threeHoursAgoForSnapshot = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+    const { data: allProviderActiveRuns } = await supabase
+      .from('organic_run_schedule')
+      .select(`
+        id, run_number, provider_account_id, provider_order_id, completed_at, provider_status,
+        engagement_order_item:engagement_order_items(
+          engagement_type,
+          service_id,
+          engagement_order:engagement_orders(link)
+        )
+      `)
+      .eq('status', 'completed')
+      .not('provider_account_id', 'is', null)
+      .not('provider_order_id', 'is', null)
+      .in('provider_status', nonTerminalStatuses)
+      .gte('completed_at', threeHoursAgoForSnapshot)
+
+    console.log(`Snapshot cached: ${allStartedRuns?.length || 0} started, ${allProviderActiveRuns?.length || 0} recently active`)
+
     // Process each engagement run (pending + retry)
     for (const run of allEngagementRuns) {
       const isRetry = run.status === 'failed'
@@ -548,49 +589,27 @@ serve(async (req) => {
         continue
       }
 
-      // SKIP PAUSED/CANCELLED ORDERS: Check if parent engagement order OR item is paused/cancelled
+      // SKIP PAUSED/CANCELLED ORDERS
       const engagementOrderStatus = item.engagement_order?.status
       const itemStatus = item.status
-      
-      // 🚫 CANCELLED = PERMANENT BLOCK - Mark all pending runs as cancelled too
-      if (engagementOrderStatus === 'cancelled') {
-        console.log(`🚫 CANCELLING Run #${run.run_number} - engagement order is cancelled`)
+      if (engagementOrderStatus === 'cancelled' || itemStatus === 'cancelled') {
+        console.log(`🚫 CANCELLING Run #${run.run_number} - order/item cancelled`)
         await supabase.from('organic_run_schedule').update({
           status: 'cancelled',
-          error_message: 'Order cancelled by user',
+          error_message: 'Order/item cancelled by user',
           completed_at: new Date().toISOString(),
         }).eq('id', run.id)
         skipped++
         continue
       }
-      
-      // Item-level cancellation - also permanent
-      if (itemStatus === 'cancelled') {
-        console.log(`🚫 CANCELLING Run #${run.run_number} - engagement order ITEM is cancelled`)
-        await supabase.from('organic_run_schedule').update({
-          status: 'cancelled',
-          error_message: 'Item cancelled by user',
-          completed_at: new Date().toISOString(),
-        }).eq('id', run.id)
-        skipped++
-        continue
-      }
-      
-      // ⏸️ PAUSED = TEMPORARY - Just skip, don't modify run status (can resume later)
-      if (engagementOrderStatus === 'paused') {
-        console.log(`⏸️ Run #${run.run_number} skipped - engagement order is paused (will resume when unpaused)`)
-        skipped++
-        continue
-      }
-      
-      if (itemStatus === 'paused') {
-        console.log(`⏸️ Run #${run.run_number} skipped - engagement order ITEM is paused (will resume when unpaused)`)
+      if (engagementOrderStatus === 'paused' || itemStatus === 'paused') {
+        console.log(`⏸️ Run #${run.run_number} skipped - order/item paused`)
         skipped++
         continue
       }
 
+      // Service fallback & validation
       if (!item.service) {
-        // FALLBACK: Try to find service from bundle items
         console.log(`Run ${run.id} missing service, attempting bundle fallback...`)
         const bundleId = item.engagement_order?.bundle_id
         if (bundleId) {
@@ -606,184 +625,68 @@ serve(async (req) => {
           if (bundleItem?.service) {
             console.log(`✅ Found fallback service from bundle: ${bundleItem.service.name}`)
             item.service = bundleItem.service
-            // Update the item's service_id for future runs
-            await supabase.from('engagement_order_items')
-              .update({ service_id: bundleItem.service_id })
-              .eq('id', item.id)
+            await supabase.from('engagement_order_items').update({ service_id: bundleItem.service_id }).eq('id', item.id)
           }
         }
         
         if (!item.service) {
-          console.log(`Run ${run.id} service not found even after bundle fallback, reverting to pending for retry`)
-          const retryCount = (run.retry_count || 0) + 1
-          if (retryCount >= MAX_RUN_RETRIES) {
-            await supabase.from('organic_run_schedule').update({
-              status: 'failed',
-              error_message: `Service not found after ${MAX_RUN_RETRIES} retries`,
-              retry_count: 99,
-            }).eq('id', run.id)
-            failed++
-          } else {
-            // Revert to pending so it gets picked up next cycle (service might be re-added)
-            await supabase.from('organic_run_schedule').update({
-              status: 'failed',
-              error_message: 'Service not found - will retry',
-              retry_count: retryCount,
-            }).eq('id', run.id)
-            skipped++
-          }
+          console.log(`Run ${run.id} service not found, skipping`)
           continue
         }
       }
 
-      // 🚫 CRITICAL: Platform mismatch detection - BLOCK wrong platform orders
+      // Platform mismatch blocker
       const orderLink = item.engagement_order?.link || ''
       const linkPlatform = detectPlatformFromLink(orderLink)
       const servicePlatform = detectPlatformFromService(item.service.name || '')
-      
       if (linkPlatform && servicePlatform && linkPlatform !== servicePlatform) {
-        console.error(`❌ PLATFORM MISMATCH BLOCKED: Link is ${linkPlatform} but service is ${servicePlatform}`)
-        console.error(`   Link: ${orderLink}`)
-        console.error(`   Service: ${item.service.name}`)
+        console.error(`❌ PLATFORM MISMATCH BLOCKED: ${linkPlatform} link vs ${servicePlatform} service`)
         await supabase.from('organic_run_schedule').update({
           status: 'failed',
           error_message: `BLOCKED: Platform mismatch - ${linkPlatform} link cannot use ${servicePlatform} service`,
           completed_at: new Date().toISOString(),
-          retry_count: 99, // Prevent auto-retry
+          retry_count: 99,
         }).eq('id', run.id)
         failed++
-        results.push({ 
-          run_id: run.id, 
-          type: item.engagement_type, 
-          run_number: run.run_number, 
-          success: false, 
-          error: `Platform mismatch: ${linkPlatform} ≠ ${servicePlatform}` 
-        })
         continue
       }
 
-      // Check if THIS run is overdue (5+ min) - if so, bypass normal wait logic
-      // Reduced from 30 min to 5 min for faster queue flow
-      const runScheduledAt = new Date(run.scheduled_at)
-      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
-      const isThisRunOverdue = runScheduledAt < fiveMinAgo
-
-      // SMART WAIT MODE: Prevent duplicate orders for SAME SERVICE ID on same panel.
-      // Different services (e.g., TikTok views vs Instagram views) CAN go to same panel simultaneously.
-      // Only the EXACT SAME service_id on the same link is blocked.
-      //
-      // Example: Panel A has TikTok views running → Instagram views CAN go to Panel A ✅
-      //          Panel A has TikTok views running → more TikTok views on same link CANNOT go to Panel A ❌
-      
+      // BUSY ACCOUNT DETECTION (using cached snapshots)
       const sameLink = orderLink.toLowerCase().replace(/\/$/, '')
-      const currentServiceId = item.service?.id // The actual service UUID
-      
-      // 1. Check STARTED runs for same link + same service_id
-      const { data: startedRuns } = await supabase
-        .from('organic_run_schedule')
-        .select(`
-          id, run_number, provider_status, started_at, provider_account_id, provider_order_id,
-          engagement_order_item:engagement_order_items(
-            engagement_type,
-            service_id,
-            engagement_order:engagement_orders(link)
-          )
-        `)
-        .eq('status', 'started')
-        .not('provider_account_id', 'is', null)
-      
-      // Filter to runs matching SAME link AND SAME service_id only
-      const startedRunsForLinkAndType = (startedRuns || []).filter(r => {
-        const runLink = (r.engagement_order_item?.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
-        const runServiceId = r.engagement_order_item?.service_id || ''
-        return runLink === sameLink && runServiceId === currentServiceId
-      })
-      
-      // 2. Check COMPLETED runs where provider_status is STILL ACTIVE (non-terminal)
-      // LIVE CHECK: For each such run, verify with provider API if still active
-      // If provider says terminal, update our DB and FREE the account
-      // IMPORTANT: Only consider runs completed within the last 3 hours — older ones are assumed done
-      const nonTerminalStatuses = ['Pending', 'In progress', 'Processing', 'Partial']
-      const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
-      const { data: providerActiveRuns } = await supabase
-        .from('organic_run_schedule')
-        .select(`
-          id, run_number, provider_account_id, provider_order_id, completed_at, provider_status,
-          engagement_order_item:engagement_order_items(
-            engagement_type,
-            service_id,
-            engagement_order:engagement_orders(link)
-          )
-        `)
-        .eq('status', 'completed')
-        .not('provider_account_id', 'is', null)
-        .not('provider_order_id', 'is', null)
-        .in('provider_status', nonTerminalStatuses)
-        .gte('completed_at', threeHoursAgo) // Only recent runs can block — old ones are assumed done
-      
-      // Filter to same link + same service_id
-      const providerActiveForLinkAndType = (providerActiveRuns || []).filter(r => {
+      const currentServiceId = item.service?.id
+      const busyAccountIds: string[] = []
+
+      // 1. Check cached started runs for this link + service
+      const startedRunsForLinkAndType = (allStartedRuns || []).filter(r => {
         const runLink = (r.engagement_order_item?.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
         const runServiceId = r.engagement_order_item?.service_id || ''
         return runLink === sameLink && runServiceId === currentServiceId
       })
 
-      // Track which provider accounts are busy for THIS service type on THIS link
-      const busyAccountIds: string[] = []
-      
-      // LIVE VERIFY: For each potentially blocking run, check provider API for fresh status
-      for (const activeRun of providerActiveForLinkAndType) {
-        if (!activeRun.provider_account_id || busyAccountIds.includes(activeRun.provider_account_id)) continue
-        
-        // Get provider account details for live check
-        const { data: provAccount } = await supabase
-          .from('provider_accounts')
-          .select('api_key, api_url, name')
-          .eq('id', activeRun.provider_account_id)
-          .single()
-        
-        if (provAccount && activeRun.provider_order_id) {
-          // LIVE CHECK provider status
-          const liveResult = await checkProviderOrderStatusWithRetries({
-            apiUrl: provAccount.api_url,
-            apiKey: provAccount.api_key,
-            providerOrderId: activeRun.provider_order_id,
-            maxAttempts: 1,
-            attemptDelayMs: 0,
-          })
-          
-          const terminalStatuses = ['Completed', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed']
-          
-          if (liveResult.ok) {
-            const liveStatus = liveResult.data?.status || ''
-            // Update our DB with fresh status
-            await supabase.from('organic_run_schedule').update({
-              provider_status: liveStatus,
-              last_status_check: new Date().toISOString(),
-            }).eq('id', activeRun.id)
-            
-            if (terminalStatuses.includes(liveStatus)) {
-              console.log(`✅ Live check: Run #${activeRun.run_number} on ${provAccount.name} is NOW ${liveStatus} — account FREED`)
-              continue // Don't block this account
-            } else {
-              console.log(`🔴 Live check: Run #${activeRun.run_number} on ${provAccount.name} still ${liveStatus} — blocking`)
-              busyAccountIds.push(activeRun.provider_account_id)
-            }
-          } else {
-            // Live check FAILED (API error / order not found) — assume it's done, DO NOT block
-            // This prevents stale DB entries from permanently blocking all providers
-            console.log(`⚠️ Live check failed for run #${activeRun.run_number} on ${provAccount.name}: ${liveResult.error} — assuming DONE, NOT blocking`)
-            // Mark as completed in DB so it stops being checked
-            await supabase.from('organic_run_schedule').update({
-              provider_status: 'Completed',
-              last_status_check: new Date().toISOString(),
-            }).eq('id', activeRun.id)
-          }
-        } else {
-          // No provider_order_id — can't verify, assume done (don't block)
-          console.log(`⚠️ Run #${activeRun.run_number} has no provider_order_id — assuming done, NOT blocking`)
+      // 2. Check cached provider active runs for this link + service
+      const providerActiveForLinkAndType = (allProviderActiveRuns || []).filter(r => {
+        const runLink = (r.engagement_order_item?.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
+        const runServiceId = r.engagement_order_item?.service_id || ''
+        return runLink === sameLink && runServiceId === currentServiceId
+      })
+
+      // Populate busyAccountIds
+      for (const r of startedRunsForLinkAndType) {
+        if (r.provider_account_id && !busyAccountIds.includes(r.provider_account_id)) {
+          busyAccountIds.push(r.provider_account_id)
         }
       }
+      for (const r of providerActiveForLinkAndType) {
+        if (r.provider_account_id && !busyAccountIds.includes(r.provider_account_id)) {
+          busyAccountIds.push(r.provider_account_id)
+        }
+      }
+
+      if (busyAccountIds.length > 0) {
+        console.log(`⚠️ ${busyAccountIds.length} accounts busy for this link/service — failover will happen`)
+      }
+
+
       
       if (startedRunsForLinkAndType && startedRunsForLinkAndType.length > 0) {
         for (const stuckRun of startedRunsForLinkAndType) {
@@ -1037,7 +940,8 @@ serve(async (req) => {
         // ATOMIC LOCKING: Only ONE invocation can claim this run.
         // Use strict status check — only 'pending' (or 'failed' for retries) can be claimed.
         // If another invocation already set it to 'started', this update will match 0 rows.
-        const currentStatus = isRetry ? 'failed' : 'pending'
+        // ATOMIC LOCKING: Use count: 'exact' to ensure only ONE instance claims this run
+        const currentStatusSnapshot = isRetry ? 'failed' : 'pending'
         const { error: updateError, count: lockCount } = await supabase
           .from('organic_run_schedule')
           .update({
@@ -1047,22 +951,19 @@ serve(async (req) => {
             retry_count: (run.retry_count || 0) + (isRetry ? 1 : 0),
             provider_order_id: null,
             provider_status: null,
-            provider_response: null,
             provider_account_id: selectedAccount.id,
             provider_account_name: selectedAccount.name,
-          })
+          }, { count: 'exact' }) // RE-ADDED: count: 'exact' for atomicity
           .eq('id', run.id)
-          .eq('status', currentStatus) // STRICT: only claim if still in expected status
+          .eq('status', currentStatusSnapshot)
 
-        if (updateError) {
+        if (updateError || lockCount === 0) {
+          if (lockCount === 0) {
+            console.log(`🔒 Run #${run.run_number} claimed by another worker, skipping`)
+            break // Exit account loop
+          }
           console.error(`Error updating run status:`, updateError)
           continue
-        }
-
-        // RACE CONDITION GUARD: If count is 0, another invocation already claimed this run
-        if (lockCount === 0) {
-          console.log(`🔒 Run #${run.run_number} already claimed by another invocation, skipping`)
-          break // Exit account loop — run is being handled elsewhere
         }
 
         // Update last_used_at for the account
