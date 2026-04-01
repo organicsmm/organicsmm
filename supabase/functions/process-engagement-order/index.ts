@@ -784,11 +784,11 @@ serve(async (req) => {
           let peakHoursEnabled: boolean
 
           if (aiOrganicEnabled && timeLimitHours === 0) {
-            const timeLimitOptions = [0, 0, 0, 2, 3, 4, 6, 8, 10, 12]
-            timeLimitHours = timeLimitOptions[Math.floor(Math.random() * timeLimitOptions.length)]
+            // If user didn't set a time limit, we still use organic logic but don't force a random limit anymore
+            // This allows the default natural trickle based on baseInterval
             const baseVariance = config.quantityVariancePercent
             variancePercent = Math.max(15, baseVariance - 15 + Math.floor(Math.random() * 31))
-            peakHoursEnabled = false // Peak hours OFF by default
+            peakHoursEnabled = false
           } else {
             variancePercent = engagement.variance_percent ?? config.quantityVariancePercent
             peakHoursEnabled = engagement.peak_hours_enabled ?? false
@@ -833,7 +833,7 @@ serve(async (req) => {
 
             targetRuns = Math.min(
               maxPossibleRuns,
-              Math.max(config.minRunsPerOrder, Math.min(config.maxRunsPerOrder, idealRuns))
+              Math.max(2, Math.min(config.maxRunsPerOrder, idealRuns))
             )
 
             const avgBatchNeeded = Math.ceil(engagement.quantity / targetRuns)
@@ -841,10 +841,11 @@ serve(async (req) => {
             maxBatchCap = Math.max(maxBatchCap, Math.min(avgBatchNeeded * 1.8, providerMin * 4))
             minIntervalCap = MIN_PROVIDER_INTERVAL
 
-            const availableMinutes = Math.max(1, totalMinutes - 5)
+            const availableMinutes = Math.max(1, totalMinutes - 10) // 10 min buffer
             const requiredIntervalMinutes = Math.max(MIN_PROVIDER_INTERVAL, availableMinutes / Math.max(targetRuns - 1, 1))
             baseInterval = requiredIntervalMinutes
-            intervalRange = Math.max(1, requiredIntervalMinutes * 0.15)
+            // In time-limit mode, keep variance low (5-10%) to ensure we don't finish way too early/late
+            intervalRange = Math.max(1, requiredIntervalMinutes * 0.08)
             timeLimitApplied = true
           } else {
             const minRunsForCap = Math.ceil(engagement.quantity / maxBatchCap)
@@ -935,7 +936,7 @@ serve(async (req) => {
             }
 
             const rawInterval = currentBaseInterval * intervalMultiplier
-            const effectiveMinInterval = timeLimitApplied ? Math.min(minIntervalCap, baseInterval * 0.7) : minIntervalCap
+            const effectiveMinInterval = timeLimitApplied ? Math.min(5, baseInterval * 0.8) : minIntervalCap
             const intervalMinutes = Math.max(effectiveMinInterval, rawInterval)
             const intervalMs = intervalMinutes * 60 * 1000
 
