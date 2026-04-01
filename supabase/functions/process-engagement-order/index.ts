@@ -838,13 +838,17 @@ serve(async (req) => {
             const MIN_PROVIDER_INTERVAL = engType === 'views' ? 5 : 15 // Views can be faster, likes/others slower
             const maxPossibleRuns = Math.floor(totalMinutes / MIN_PROVIDER_INTERVAL)
 
-            // Stretch non-view types HEAVILY to match view duration
-            // For 72h (4320 min), we want a run every 60-120 min even for small quantities
+            // Stretch non-view types HEAVILY while respecting providerMin
             let adjustedIdealRuns = idealRuns
             if (!isViewType && maxTimeLimitHours > 0) {
-              // Aim for a run every 90-120 minutes to ensure spread
-              const runsForSpread = Math.ceil(totalMinutes / 100) 
-              adjustedIdealRuns = Math.max(idealRuns, runsForSpread, 25) // Minimum 25 runs for time-limit mode
+              // Calculate how many runs we can actually afford with providerMin
+              const maxRunsByMin = Math.floor(engagement.quantity / providerMin)
+              // We want as many runs as possible to spread the time, but capped for sanity
+              adjustedIdealRuns = Math.min(maxRunsByMin, Math.min(config.maxRunsPerOrder, 100))
+              
+              // If we have very few runs (e.g. 50 likes total / 10 min = 5 runs), 
+              // we MUST have large gaps to fill 72h
+              console.log(`📊 ProviderMin aware stretch: ${adjustedIdealRuns} runs for ${engType}`)
             }
 
             targetRuns = Math.min(
@@ -853,16 +857,15 @@ serve(async (req) => {
             )
 
             const avgBatchNeeded = Math.ceil(engagement.quantity / targetRuns)
-            // CRITICAL: Clamp maxBatchCap strictly. If avg batch is 3, max should be 5-10, not 45.
-            const typeMaxCap = MAX_BATCH_CAPS[engType] || 250
-            maxBatchCap = Math.min(typeMaxCap, Math.max(providerMin + 3, Math.ceil(avgBatchNeeded * 1.6)))
+            // Quantity stays near providerMin or avg needed, never below min
+            maxBatchCap = Math.max(providerMin + 5, Math.ceil(avgBatchNeeded * 1.3))
             
             minIntervalCap = MIN_PROVIDER_INTERVAL
 
             const availableMinutes = Math.max(1, totalMinutes - 30) // 30 min end-buffer
             const requiredIntervalMinutes = availableMinutes / Math.max(targetRuns - 1, 1)
             baseInterval = Math.max(MIN_PROVIDER_INTERVAL, requiredIntervalMinutes)
-            intervalRange = Math.max(1, baseInterval * 0.05) // Strict 5% range for precision
+            intervalRange = Math.max(1, baseInterval * 0.05)
             timeLimitApplied = true
           } else {
             const minRunsForCap = Math.ceil(engagement.quantity / maxBatchCap)
