@@ -44,20 +44,20 @@ interface OrganicServiceConfig {
 // STRICT batch limits - realistic human-like quantities per run
 // These are HARD CAPS - no run should ever exceed these values
 const MAX_BATCH_CAPS: Record<string, number> = {
-  views: 350,           // Real viral gets ~100-300 views in bursts, max 350
-  likes: 80,            // Humans like slowly, max 80 at once  
-  comments: 5,          // Comments are RARE - max 5 per burst
-  saves: 40,            // Saves happen slowly
-  shares: 50,           // Shares are rare actions
-  followers: 15,        // Followers trickle in slowly
-  subscribers: 10,      // Subscribers are very slow
-  retweets: 60,         // Retweets in small waves
-  reposts: 55,          // Reposts similar to retweets
-  watch_hours: 1,       // Watch hours accumulate very slowly
-  story_views: 300,     // Story views can be slightly faster
-  impressions: 400,     // Impressions slightly higher
-  reach: 350,           // Reach similar to views
-  profile_visits: 25,   // Profile visits are rare
+  views: 300,           // Views slightly lower cap
+  likes: 85,            // LIKES HARD CAP: Max 85 per run for organic feel
+  comments: 4,          // Comments very small
+  saves: 35,
+  shares: 45,
+  followers: 12,
+  subscribers: 8,
+  retweets: 50,
+  reposts: 50,
+  watch_hours: 1,
+  story_views: 250,
+  impressions: 300,
+  reach: 300,
+  profile_visits: 20,
   mentions: 5,          // Mentions very rare
   quotes: 8,            // Quotes rare
   bookmarks: 40,        // Bookmarks slow
@@ -838,11 +838,12 @@ serve(async (req) => {
             const MIN_PROVIDER_INTERVAL = engType === 'views' ? 5 : 15 // Views can be faster, likes/others slower
             const maxPossibleRuns = Math.floor(totalMinutes / MIN_PROVIDER_INTERVAL)
 
-            // For non-view types, we want at least 40% of the runs views have to ensure spread
+            // Stretch non-view types heavily to match view duration
+            // This force more runs with smaller quantities (e.g., 2500 likes over 48h -> 20-30 runs)
             let adjustedIdealRuns = idealRuns
             if (!isViewType && maxTimeLimitHours > 0) {
-              // Stretch non-view types to cover more of the duration
-              adjustedIdealRuns = Math.max(idealRuns, Math.min(config.maxRunsPerOrder, 15))
+              const minBatchesToCoverTime = Math.ceil(totalMinutes / (engType === 'likes' ? 120 : 180)) 
+              adjustedIdealRuns = Math.max(idealRuns, minBatchesToCoverTime, 12)
             }
 
             targetRuns = Math.min(
@@ -851,7 +852,10 @@ serve(async (req) => {
             )
 
             const avgBatchNeeded = Math.ceil(engagement.quantity / targetRuns)
-            maxBatchCap = Math.max(maxBatchCap, Math.min(avgBatchNeeded * 1.8, providerMin * 4))
+            // CRITICAL: Clamp maxBatchCap for engagement types to prevent big bursts
+            const typeMaxCap = MAX_BATCH_CAPS[engType] || 250
+            maxBatchCap = Math.min(typeMaxCap, Math.max(providerMin + 5, avgBatchNeeded * 1.5))
+            
             minIntervalCap = MIN_PROVIDER_INTERVAL
 
             const availableMinutes = Math.max(1, totalMinutes - 15) // 15 min buffer
