@@ -753,9 +753,14 @@ serve(async (req) => {
 
         let viewsStartTime: Date | null = null
         let viewsFirstRunScheduled = false
+        
+        // Find the maximum time limit across all items in this order
+        const maxTimeLimitHours = Math.max(...createdItemIds.map(i => i.engagement.time_limit_hours || 0))
+        console.log(`⏱️ Max time limit for order: ${maxTimeLimitHours}h`)
 
         for (const { type: engType, itemId, engagement, finalServiceId } of sortedItems) {
           const config = getServiceConfig(engType)
+          const isViewType = ['views', 'impressions', 'reach', 'plays', 'watch_hours'].includes(engType)
 
           // Get provider minimum - check BOTH base service AND mapped provider services
           let providerMin = config.defaultMinQty
@@ -825,27 +830,34 @@ serve(async (req) => {
           let targetRuns: number
           let timeLimitApplied = false
 
-          if (timeLimitHours > 0) {
-            const totalMinutes = timeLimitHours * 60
-            const MIN_PROVIDER_INTERVAL = 5
+          // Use the order-level max time limit if any item has one
+          const effectiveTimeLimit = timeLimitHours > 0 ? timeLimitHours : (maxTimeLimitHours > 0 ? maxTimeLimitHours : 0)
+
+          if (effectiveTimeLimit > 0) {
+            const totalMinutes = effectiveTimeLimit * 60
+            const MIN_PROVIDER_INTERVAL = engType === 'views' ? 5 : 15 // Views can be faster, likes/others slower
             const maxPossibleRuns = Math.floor(totalMinutes / MIN_PROVIDER_INTERVAL)
-            const idealBatchForProvider = Math.ceil(engagement.quantity / maxPossibleRuns)
+
+            // For non-view types, we want at least 40% of the runs views have to ensure spread
+            let adjustedIdealRuns = idealRuns
+            if (!isViewType && maxTimeLimitHours > 0) {
+              // Stretch non-view types to cover more of the duration
+              adjustedIdealRuns = Math.max(idealRuns, Math.min(config.maxRunsPerOrder, 15))
+            }
 
             targetRuns = Math.min(
               maxPossibleRuns,
-              Math.max(2, Math.min(config.maxRunsPerOrder, idealRuns))
+              Math.max(2, Math.min(config.maxRunsPerOrder, adjustedIdealRuns))
             )
 
             const avgBatchNeeded = Math.ceil(engagement.quantity / targetRuns)
-            // Time-limit mode: allow slightly higher cap but still bounded
             maxBatchCap = Math.max(maxBatchCap, Math.min(avgBatchNeeded * 1.8, providerMin * 4))
             minIntervalCap = MIN_PROVIDER_INTERVAL
 
-            const availableMinutes = Math.max(1, totalMinutes - 10) // 10 min buffer
+            const availableMinutes = Math.max(1, totalMinutes - 15) // 15 min buffer
             const requiredIntervalMinutes = Math.max(MIN_PROVIDER_INTERVAL, availableMinutes / Math.max(targetRuns - 1, 1))
             baseInterval = requiredIntervalMinutes
-            // In time-limit mode, keep variance low (5-10%) to ensure we don't finish way too early/late
-            intervalRange = Math.max(1, requiredIntervalMinutes * 0.08)
+            intervalRange = Math.max(1, requiredIntervalMinutes * 0.10)
             timeLimitApplied = true
           } else {
             const minRunsForCap = Math.ceil(engagement.quantity / maxBatchCap)
@@ -884,7 +896,6 @@ serve(async (req) => {
           // PLATFORM-AWARE START DELAY LOGIC
           // Uses platform-specific stagger configuration
           // ============================================
-          const isViewType = ['views', 'impressions', 'reach', 'plays', 'watch_hours'].includes(engType)
           const staggerConfig = platformStagger[engType] || platformStagger['generic'] || { base: 30, variance: 30 }
 
           let initialDelayMinutes: number
