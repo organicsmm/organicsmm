@@ -753,7 +753,7 @@ serve(async (req) => {
 
         let viewsStartTime: Date | null = null
         let viewsFirstRunScheduled = false
-        
+
         // Find the maximum time limit across all items in this order
         const maxTimeLimitHours = Math.max(...createdItemIds.map(i => i.engagement.time_limit_hours || 0))
         console.log(`⏱️ Max time limit for order: ${maxTimeLimitHours}h`)
@@ -838,12 +838,13 @@ serve(async (req) => {
             const MIN_PROVIDER_INTERVAL = engType === 'views' ? 5 : 15 // Views can be faster, likes/others slower
             const maxPossibleRuns = Math.floor(totalMinutes / MIN_PROVIDER_INTERVAL)
 
-            // Stretch non-view types heavily to match view duration
-            // This force more runs with smaller quantities (e.g., 2500 likes over 48h -> 20-30 runs)
+            // Stretch non-view types HEAVILY to match view duration
+            // For 72h (4320 min), we want a run every 60-120 min even for small quantities
             let adjustedIdealRuns = idealRuns
             if (!isViewType && maxTimeLimitHours > 0) {
-              const minBatchesToCoverTime = Math.ceil(totalMinutes / (engType === 'likes' ? 120 : 180)) 
-              adjustedIdealRuns = Math.max(idealRuns, minBatchesToCoverTime, 12)
+              // Aim for a run every 90-120 minutes to ensure spread
+              const runsForSpread = Math.ceil(totalMinutes / 100) 
+              adjustedIdealRuns = Math.max(idealRuns, runsForSpread, 25) // Minimum 25 runs for time-limit mode
             }
 
             targetRuns = Math.min(
@@ -852,16 +853,16 @@ serve(async (req) => {
             )
 
             const avgBatchNeeded = Math.ceil(engagement.quantity / targetRuns)
-            // CRITICAL: Clamp maxBatchCap for engagement types to prevent big bursts
+            // CRITICAL: Clamp maxBatchCap strictly. If avg batch is 3, max should be 5-10, not 45.
             const typeMaxCap = MAX_BATCH_CAPS[engType] || 250
-            maxBatchCap = Math.min(typeMaxCap, Math.max(providerMin + 5, avgBatchNeeded * 1.5))
+            maxBatchCap = Math.min(typeMaxCap, Math.max(providerMin + 3, Math.ceil(avgBatchNeeded * 1.6)))
             
             minIntervalCap = MIN_PROVIDER_INTERVAL
 
-            const availableMinutes = Math.max(1, totalMinutes - 15) // 15 min buffer
-            const requiredIntervalMinutes = Math.max(MIN_PROVIDER_INTERVAL, availableMinutes / Math.max(targetRuns - 1, 1))
-            baseInterval = requiredIntervalMinutes
-            intervalRange = Math.max(1, requiredIntervalMinutes * 0.10)
+            const availableMinutes = Math.max(1, totalMinutes - 30) // 30 min end-buffer
+            const requiredIntervalMinutes = availableMinutes / Math.max(targetRuns - 1, 1)
+            baseInterval = Math.max(MIN_PROVIDER_INTERVAL, requiredIntervalMinutes)
+            intervalRange = Math.max(1, baseInterval * 0.05) // Strict 5% range for precision
             timeLimitApplied = true
           } else {
             const minRunsForCap = Math.ceil(engagement.quantity / maxBatchCap)
@@ -914,15 +915,15 @@ serve(async (req) => {
             // Stagger after views using PLATFORM-SPECIFIC delays
             const baseStagger = staggerConfig.base
             const varianceStagger = staggerConfig.variance
-            
+
             // DYNAMIC DELAY: If views are large, push engagements back even further
             // Scale: +15 min for every 1000 views in the base_quantity
             const viewVolumeDelay = Math.min(480, (base_quantity / 1000) * 15)
-            
+
             initialDelayMinutes = aiOrganicEnabled
               ? baseStagger + viewVolumeDelay + Math.random() * varianceStagger
               : baseStagger + viewVolumeDelay + Math.random() * (varianceStagger * 0.5)
-              
+
             currentTime = new Date(viewsStartTime.getTime() + initialDelayMinutes * 60 * 1000)
             console.log(`  📍 ${engType} starts at +${Math.round(initialDelayMinutes)}min after views (${platform} pattern, volume delay: ${Math.round(viewVolumeDelay)}min)`)
           } else {
@@ -1011,12 +1012,12 @@ serve(async (req) => {
               // CONTINUOUS random quantity centered around average
               // Ensures order is distributed across intended number of runs
               const range = maxBatchCap - providerMin
-              
+
               // Base qty is avgForRemaining with small variance (0.8x to 1.3x)
               // This prevents picking 56/56 in the first run!
               const varianceMultiplier = 0.8 + Math.random() * 0.5
               qty = Math.round(avgForRemaining * varianceMultiplier)
-              
+
               // Ensure we don't fall below providerMin
               qty = Math.max(providerMin, qty)
               baseQty = qty
@@ -1170,11 +1171,11 @@ serve(async (req) => {
                 const primeJitters = [1, 2, 3, 4, 5, 7, 11]
                 // We strongly prefer moving UP if we are at providerMin to avoid falling below it
                 if (finalQty <= providerMin + 1) {
-                   finalQty += primeJitters[uniqueAttempts % primeJitters.length]
+                  finalQty += primeJitters[uniqueAttempts % primeJitters.length]
                 } else {
-                   finalQty += (Math.random() > 0.5 ? 1 : -1) * primeJitters[uniqueAttempts % primeJitters.length]
+                  finalQty += (Math.random() > 0.5 ? 1 : -1) * primeJitters[uniqueAttempts % primeJitters.length]
                 }
-                
+
                 finalQty = Math.max(providerMin, Math.min(finalQty, remaining, maxBatchCap))
                 uniqueAttempts++
               }
@@ -1261,7 +1262,7 @@ serve(async (req) => {
               const numRuns = Math.max(2, Math.min(scheduleEntries.length, Math.floor(totalQty / providerMin)))
               const perRun = Math.floor(totalQty / numRuns)
               let leftover = totalQty - (perRun * numRuns)
-              
+
               for (let r = 0; r < numRuns; r++) {
                 const runQty = perRun + (r === numRuns - 1 ? leftover : 0)
                 // Use the schedule timing from original entries (preserve organic intervals)
