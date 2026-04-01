@@ -44,20 +44,20 @@ interface OrganicServiceConfig {
 // STRICT batch limits - realistic human-like quantities per run
 // These are HARD CAPS - no run should ever exceed these values
 const MAX_BATCH_CAPS: Record<string, number> = {
-  views: 300,           // Views slightly lower cap
-  likes: 85,            // LIKES HARD CAP: Max 85 per run for organic feel
-  comments: 4,          // Comments very small
-  saves: 35,
-  shares: 45,
-  followers: 12,
-  subscribers: 8,
-  retweets: 50,
-  reposts: 50,
+  views: 250,           // Views batches: 100-250 (102, 111, 213 etc.)
+  likes: 45,            // LIKES: Ultra-small 10-45 (12, 14, 27, 33 etc.)
+  comments: 3,          // Comments very small
+  saves: 25,
+  shares: 30,
+  followers: 10,
+  subscribers: 5,
+  retweets: 35,
+  reposts: 35,
   watch_hours: 1,
-  story_views: 250,
-  impressions: 300,
-  reach: 300,
-  profile_visits: 20,
+  story_views: 200,
+  impressions: 250,
+  reach: 250,
+  profile_visits: 15,
   mentions: 5,          // Mentions very rare
   quotes: 8,            // Quotes rare
   bookmarks: 40,        // Bookmarks slow
