@@ -938,8 +938,8 @@ serve(async (req) => {
             console.log(`  📍 ${engType} starts at +${Math.round(initialDelayMinutes)}min (no views, ${platform} pattern)`)
           }
 
-          // Generate runs
-          while (remaining > 0 && (!timeLimitApplied || runNumber <= targetRuns)) {
+          // Generate runs (keep generating until fully consumed, never dump a huge remainder)
+          while (remaining > 0 && runNumber <= 3000) {
             const currentBaseInterval = baseInterval + (Math.random() * 2 - 1) * intervalRange
             let intervalMultiplier = 1.0
             if (!timeLimitApplied) {
@@ -983,9 +983,10 @@ serve(async (req) => {
             // No two consecutive runs should have same quantity!
             // ============================================
             const runsLeft = Math.max(1, targetRuns - runNumber + 1)
-            const avgForRemaining = Math.ceil(remaining / runsLeft)
-            // FIXED: Only trigger last run if we reached targetRuns OR if remaining is too small to split
-            const isLastRun = runNumber === targetRuns || (remaining < providerMin * 1.8 && runNumber > 1);
+            const avgForRemaining = Math.max(providerMin, Math.ceil(remaining / runsLeft))
+            // Allow last run to be fully consumed only if remaining is small enough to fit the natural cap
+            // Never force dump simply because we reached targetRuns!
+            const isLastRun = remaining <= maxBatchCap && (runNumber >= targetRuns || remaining < providerMin * 1.8);
 
             // KEY INSIGHT: If providerMin >= 60% of avg batch, dips are impossible
             // All "dip" quantities get clamped to providerMin = identical runs = BOTTING
@@ -1227,11 +1228,6 @@ serve(async (req) => {
               }
               if (runNumber > 2500) break
             }
-          } else if (remaining > 0 && scheduleEntries.length > 0) {
-            const lastEntry = scheduleEntries[scheduleEntries.length - 1]
-            lastEntry.quantity_to_send += remaining
-            lastEntry.variance_applied += remaining
-            remaining = 0
           }
 
           // SMART INSERT v2: Merge runs below providerMin into adjacent runs
