@@ -438,7 +438,7 @@ serve(async (req) => {
       .not('engagement_order_item_id', 'is', null)
       .lte('scheduled_at', now)
       .order('scheduled_at', { ascending: true }) // CRITICAL: Process OLDEST runs first, not by run_number
-      .limit(1000) // Increased batch size drastically to prevent head-of-line blocking from stalled runs
+      .limit(1000)
 
     if (engagementRunsError) {
       console.error('Error fetching engagement runs:', engagementRunsError)
@@ -630,7 +630,13 @@ serve(async (req) => {
         }
         
         if (!item.service) {
-          console.log(`Run ${run.id} service not found, skipping`)
+          console.log(`Run ${run.id} service NOT FOUND even after fallback, marking as failed to prevent head-of-line blocking`)
+          await supabase.from('organic_run_schedule').update({
+            status: 'failed',
+            error_message: 'Configuration Error: Service mapping missing/deleted for this item',
+            completed_at: new Date().toISOString(),
+          }).eq('id', run.id)
+          failed++
           continue
         }
       }

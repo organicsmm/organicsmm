@@ -160,15 +160,27 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
     }
   };
 
-  // Refresh all started runs
+  // Refresh all started runs AND trigger execution for queued runs
   const refreshAllStatus = async () => {
     setIsGlobalRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('check-order-status');
+      // 1. Check status of already started runs
+      const { data: statusData, error: statusError } = await supabase.functions.invoke('check-order-status');
+      if (statusError) throw statusError;
 
-      if (error) throw error;
+      // 2. Trigger execution for pending/queued runs (unblocks the queue if cron is slow)
+      const { data: execData, error: execError } = await supabase.functions.invoke('execute-all-runs');
+      if (execError) console.error('Silent failure triggering execution:', execError);
 
-      toast.success(`Checked ${data?.completed + data?.stillProcessing || 0} runs from provider`);
+      const processed = execData?.processed || 0;
+      const checked = statusData?.completed + statusData?.stillProcessing || 0;
+
+      if (processed > 0) {
+        toast.success(`Started ${processed} new runs and synced ${checked} from provider`);
+      } else {
+        toast.success(`Checked ${checked} runs. No new runs were ready to start.`);
+      }
+      
       onRefresh?.();
     } catch (err: any) {
       toast.error(`Failed to refresh: ${err.message}`);
