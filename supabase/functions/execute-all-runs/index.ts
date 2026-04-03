@@ -438,7 +438,7 @@ serve(async (req) => {
       .not('engagement_order_item_id', 'is', null)
       .lte('scheduled_at', now)
       .order('scheduled_at', { ascending: true }) // CRITICAL: Process OLDEST runs first, not by run_number
-      .limit(1000)
+      .limit(2000)
 
     if (engagementRunsError) {
       console.error('Error fetching engagement runs:', engagementRunsError)
@@ -493,7 +493,7 @@ serve(async (req) => {
       .lt('retry_count', 99)  // Only skip permanently blocked runs (retry_count=99)
       .not('engagement_order_item_id', 'is', null)
       .order('completed_at', { ascending: true })
-      .limit(50)
+      .limit(200)
 
     // PRE-FILTER failed runs: Remove runs belonging to cancelled/paused orders
     const activeFailedRuns = (failedEngagementRuns || []).filter(run => {
@@ -1431,6 +1431,28 @@ serve(async (req) => {
         await supabase.from('orders').update({ status: 'processing' }).eq('id', order.id)
         processed++
       } else {
+        // REVERT ON ERROR (so it can be retried)
+        // NEW: For busy/already-active errors, push the scheduled_at forward by 10 minutes
+        // to prevent head-of-batch blocking and allow other items to process.
+        const errorText = lastError || 'Unknown error';
+        const isBusy = errorText.toLowerCase().includes('busy') || 
+                      errorText.toLowerCase().includes('active') || 
+                      errorText.toLowerCase().includes('rate') ||
+                      errorText.toLowerCase().includes('limit');
+        
+        const newScheduledAt = isBusy 
+          ? new Date(Date.now() + 10 * 60 * 1000).toISOString()
+          : run.scheduled_at;
+
+        console.log(`Reverting run ${run.id} to pending (Rescheduled: ${isBusy ? 'Yes (+10m)' : 'No'}) due to error.`)
+        
+        await supabase.from('organic_run_schedule').update({ 
+          status: 'pending',
+          started_at: null,
+          scheduled_at: newScheduledAt,
+          error_message: `Provider Busy/Error: ${errorText.substring(0, 500)}` 
+        }).eq('id', run.id)
+        
         // Check if temporary error
         const isTemporaryError = lastError?.startsWith('TEMP_ERROR:')
         
