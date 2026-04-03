@@ -657,112 +657,13 @@ serve(async (req) => {
         continue
       }
 
-      // BUSY ACCOUNT DETECTION (using cached snapshots)
+      // BUSY ACCOUNT DETECTION — REMOVED pre-emptive blocking
+      // Previous logic incorrectly blocked ALL providers even for different links.
+      // Now we let the API decide: if a provider rejects with 'active order',
+      // the per-account failover loop handles it gracefully.
       const sameLink = orderLink.toLowerCase().replace(/\/$/, '')
       const currentServiceId = item.service?.id
-      const busyAccountIds: string[] = []
-
-      // 1. Check cached started runs for this link + service
-      const startedRunsForLinkAndType = (allStartedRuns || []).filter(r => {
-        const runLink = (r.engagement_order_item?.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
-        const runServiceId = r.engagement_order_item?.service_id || ''
-        return runLink === sameLink && runServiceId === currentServiceId
-      })
-
-      // 2. Check cached provider active runs for this link + service
-      const providerActiveForLinkAndType = (allProviderActiveRuns || []).filter(r => {
-        const runLink = (r.engagement_order_item?.engagement_order?.link || '').toLowerCase().replace(/\/$/, '')
-        const runServiceId = r.engagement_order_item?.service_id || ''
-        return runLink === sameLink && runServiceId === currentServiceId
-      })
-
-      // Populate busyAccountIds
-      for (const r of startedRunsForLinkAndType) {
-        if (r.provider_account_id && !busyAccountIds.includes(r.provider_account_id)) {
-          busyAccountIds.push(r.provider_account_id)
-        }
-      }
-      for (const r of providerActiveForLinkAndType) {
-        if (r.provider_account_id && !busyAccountIds.includes(r.provider_account_id)) {
-          busyAccountIds.push(r.provider_account_id)
-        }
-      }
-
-      if (busyAccountIds.length > 0) {
-        console.log(`⚠️ ${busyAccountIds.length} accounts busy for this link/service — failover will happen`)
-      }
-
-
-      
-      if (startedRunsForLinkAndType && startedRunsForLinkAndType.length > 0) {
-        for (const stuckRun of startedRunsForLinkAndType) {
-          const terminalStatuses = ['Completed', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed']
-          const isTerminal = stuckRun.provider_status && terminalStatuses.includes(stuckRun.provider_status)
-          
-          const startedAt = new Date(stuckRun.started_at || 0)
-          const ageMinutes = Math.round((Date.now() - startedAt.getTime()) / 60000)
-          
-          // Auto-complete runs with terminal status from provider
-          if (isTerminal) {
-            console.log(`🔄 Auto-completing run #${stuckRun.run_number} (terminal status: ${stuckRun.provider_status}, age: ${ageMinutes}min)`)
-            await supabase.from('organic_run_schedule').update({
-              status: 'completed',
-              completed_at: new Date().toISOString(),
-              error_message: `Auto-completed (status: ${stuckRun.provider_status})`,
-            }).eq('id', stuckRun.id)
-            // Terminal status = provider is DONE with this order = account is FREE
-            // Do NOT add to busy list — the provider has no active order anymore
-            console.log(`✅ Account ${stuckRun.provider_account_id} freed — provider status is terminal (${stuckRun.provider_status})`)
-          } else if (stuckRun.provider_account_id) {
-            const runAge = Math.round((Date.now() - startedAt.getTime()) / 1000)
-            
-            // GHOST RUN CHECK: If "started" but NO provider_order_id for 60+ seconds,
-            // the order was never actually placed (API call failed silently)
-            if (!stuckRun.provider_order_id && runAge > 60) {
-              console.log(`👻 Ghost run #${stuckRun.run_number} (started ${runAge}s ago but no provider order) — reverting to pending`)
-              await supabase.from('organic_run_schedule').update({
-                status: 'pending',
-                started_at: null,
-                provider_account_id: null,
-                error_message: `Ghost run reverted (no provider order after ${runAge}s)`,
-              }).eq('id', stuckRun.id)
-              // Account is NOT busy - order was never placed
-              continue
-            }
-            
-            // If started recently (< 60s) without provider_order_id, API call is likely in progress
-            if (!stuckRun.provider_order_id && runAge <= 60) {
-              console.log(`⏳ Run #${stuckRun.run_number} started ${runAge}s ago, API call in progress — waiting...`)
-              if (!busyAccountIds.includes(stuckRun.provider_account_id)) {
-                busyAccountIds.push(stuckRun.provider_account_id)
-              }
-              continue
-            }
-            
-            // INSTANT SKIP: Account is busy with a real order — add to busy list
-            if (!busyAccountIds.includes(stuckRun.provider_account_id)) {
-              busyAccountIds.push(stuckRun.provider_account_id)
-            }
-            console.log(`⚡ Account ${stuckRun.provider_account_id} busy with run #${stuckRun.run_number} (${runAge}s) — instantly skipping to other providers`)
-            
-            // Auto-complete if stuck for 10+ minutes (safety net)
-            if (ageMinutes >= 10) {
-              console.log(`🔄 Auto-completing stuck run #${stuckRun.run_number} after ${ageMinutes}min`)
-              await supabase.from('organic_run_schedule').update({
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                error_message: `Auto-completed after ${ageMinutes}min (status: ${stuckRun.provider_status || 'unknown'})`,
-              }).eq('id', stuckRun.id)
-              // DON'T remove from busy — provider still has the order active!
-            }
-          }
-        }
-      }
-      
-      // Log busy accounts
-      if (busyAccountIds.length > 0) {
-        console.log(`⚠️ ${busyAccountIds.length} accounts busy for ${item.engagement_type} (service ${currentServiceId}) on this link — will EXCLUDE and try next priority provider`)
-      }
+      const busyAccountIds: string[] = [] // Empty — no pre-emptive blocking
 
       // ============================================
       // PRIORITY-BASED PROVIDER SELECTION WITH FAILOVER
@@ -784,27 +685,25 @@ serve(async (req) => {
       let defaultProvider: ProviderAccount | null = null
       const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
       
-      if (item.service.provider_id && isValidUUID(item.service.provider_id)) {
+      if (item.service.provider_id) {
+        // Try UUID match if valid, otherwise try Name match
+        const isUUID = isValidUUID(item.service.provider_id)
+        
         const { data: provider } = await supabase
-          .from('providers')
+          .from('provider_accounts')
           .select('*')
-          .eq('id', item.service.provider_id)
+          .filter(isUUID ? 'id' : 'name', 'eq', item.service.provider_id)
+          .eq('is_active', true)
+          .limit(1)
           .single()
         
-        if (provider && isValidUUID(provider.id)) {
-          defaultProvider = {
-            id: provider.id,
-            provider_id: provider.id,
-            name: provider.name,
-            api_key: provider.api_key,
-            api_url: provider.api_url,
-            priority: 999,
-            is_active: provider.is_active,
-            last_used_at: null
-          }
+        if (provider) {
+          console.log(`✅ Located default provider fallback: ${provider.name}`)
+          defaultProvider = provider as ProviderAccount
+          defaultProvider.priority = 999
+        } else {
+          console.log(`⚠️ Default provider fallback failed: Could not find active provider mapping for "${item.service.provider_id}"`)
         }
-      } else if (item.service.provider_id) {
-        console.log(`⚠️ Skipping default provider fallback: "${item.service.provider_id}" is not a valid UUID`)
       }
       
       // Build list - priority rotation, any available account
@@ -1220,10 +1119,15 @@ serve(async (req) => {
         // Everything else keeps retrying every cron cycle until a panel becomes free
         const retryCount = (run.retry_count || 0) + 1
         console.log(`🔄 All ${accountsToTry.length} accounts failed (attempt #${retryCount}), reverting to pending for auto-retry`)
+        // Calculate next try time (current time + 10 minutes)
+        const nextTryTime = new Date()
+        nextTryTime.setMinutes(nextTryTime.getMinutes() + 10)
+
         await supabase.from('organic_run_schedule').update({
           status: 'pending',
           started_at: null,
-          error_message: `[Auto-retry #${retryCount}] All ${accountsToTry.length} accounts busy: ${lastError}`,
+          scheduled_at: nextTryTime.toISOString(),
+          error_message: `[Auto-retry #${retryCount}] All ${accountsToTry.length} accounts returned error: ${lastError}`,
           provider_response: providerResult,
           provider_account_id: null,
           retry_count: retryCount,
