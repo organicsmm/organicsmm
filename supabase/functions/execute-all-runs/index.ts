@@ -1028,8 +1028,15 @@ serve(async (req) => {
         console.log(`Sending Run #${run.run_number}: ${quantityToSend} ${item.engagement_type} to ${selectedAccount.name}`)
 
         try {
+          const url = (selectedAccount as any).api_url || (selectedAccount as any).url || (selectedAccount as any).api_endpoint || (selectedAccount as any).apiUrl
+          
+          if (!url) {
+            console.error(`  ⚠️ No URL found for account ${selectedAccount.name || 'unknown'}`)
+            continue
+          }
+
           const formData = new URLSearchParams()
-          formData.append('key', selectedAccount.api_key)
+          formData.append('key', selectedAccount.api_key || (selectedAccount as any).key || '')
           formData.append('action', 'add')
           formData.append('service', providerServiceId)
           formData.append('link', item.engagement_order.link)
@@ -1038,7 +1045,7 @@ serve(async (req) => {
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 30000)
 
-          const url = selectedAccount.api_url || (selectedAccount as any).url || (selectedAccount as any).api_endpoint || (selectedAccount as any).apiUrl
+          console.log(`  🚀 [${run.run_number}] Sending request to ${url}...`)
           const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1048,7 +1055,7 @@ serve(async (req) => {
 
           clearTimeout(timeoutId)
           const responseText = await response.text()
-          console.log(`Provider response from ${selectedAccount.name}: ${responseText}`)
+          console.log(`  📥 [${run.run_number}] Provider response from ${selectedAccount.name || 'unknown'}: ${responseText}`)
 
           let result
           try {
