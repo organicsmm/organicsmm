@@ -828,6 +828,30 @@ serve(async (req) => {
         }
       }
       
+      // NEW: Last resort fallback — if no mappings and primary is busy, try ANY other active provider
+      if (availableAccounts.length === 0 && (!defaultProvider || busyAccountIds.includes(defaultProvider.id))) {
+        const { data: allOtherActive } = await supabase
+          .from('provider_accounts')
+          .select('*')
+          .eq('is_active', true)
+        
+        if (allOtherActive && allOtherActive.length > 0) {
+          // Filter out busy ones (manual filtering due to Supabase query limits on negation)
+          const filtered = allOtherActive.filter(acc => !busyAccountIds.includes(acc.id))
+          
+          if (filtered.length > 0) {
+            console.log(`[${executionId}] 🌎 [LAST RESORT] All preferred providers busy or missing. Trying ${filtered.map(f => f.name).join(', ')}...`)
+            for (const acc of filtered) {
+               availableAccounts.push({
+                 ...acc,
+                 providerServiceId: item.service.provider_service_id || item.service.id,
+                 priority: 9999
+               })
+            }
+          }
+        }
+      }
+      
       // Build list - priority rotation, any available account
       // NOTE: availableAccounts is already an array of ProviderAccount (with extra fields providerServiceId, priority)
       const accountsToTry: any[] = [...availableAccounts]
