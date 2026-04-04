@@ -450,7 +450,7 @@ serve(async (req) => {
       .not('provider_account_id', 'is', null)
       .not('provider_order_id', 'is', null)
       .in('provider_status', nonTerminalStatuses)
-      .gte('last_status_check', threeHoursAgoForSnapshot)
+      .gte('completed_at', threeHoursAgoForSnapshot)
 
     // ============================================
     // STEP 1: Process ENGAGEMENT ORDER runs (pending + retry failed)
