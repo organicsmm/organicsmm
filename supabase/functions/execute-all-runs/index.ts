@@ -755,7 +755,7 @@ serve(async (req) => {
       }
 
       // Get available provider accounts EXCLUDING busy ones, sorted by priority
-      const availableAccounts = await getAllAvailableProviderAccounts(
+      let availableAccounts = await getAllAvailableProviderAccounts(
         supabase,
         item.service.id,
         orderLink,
@@ -764,6 +764,43 @@ serve(async (req) => {
         allStartedRuns || [],
         allProviderActiveRuns || []
       )
+
+      // BUNDLE-WIDE FAILOVER: If no providers found for initial service,
+      // search other services in the same bundle for the same engagement_type.
+      if (availableAccounts.length === 0) {
+        console.log(`[${executionId}] Initial service ${item.service.name} has no available providers, checking bundle...`)
+        const bundleId = item.engagement_order?.bundle_id
+        if (bundleId) {
+          const { data: altBundleItems } = await supabase
+            .from('bundle_items')
+            .select('service_id, service:services(*)')
+            .eq('bundle_id', bundleId)
+            .eq('engagement_type', item.engagement_type)
+            .not('service_id', 'eq', item.service.id) // Skip initial service
+
+          if (altBundleItems && altBundleItems.length > 0) {
+            console.log(`[${executionId}] Found ${altBundleItems.length} alternative services in bundle`)
+            for (const alt of altBundleItems) {
+              if (!alt.service_id) continue
+              const altProviders = await getAllAvailableProviderAccounts(
+                supabase,
+                alt.service_id,
+                orderLink,
+                executionId,
+                busyAccountIds,
+                allStartedRuns || [],
+                allProviderActiveRuns || []
+              )
+              if (altProviders.length > 0) {
+                console.log(`✅ [${executionId}] Found ${altProviders.length} available providers via alternative service ${alt.service?.name}`)
+                availableAccounts = altProviders
+                item.service = alt.service // Temporarily swap service for THIS run logic
+                break
+              }
+            }
+          }
+        }
+      }
       
       // Also get default provider as final fallback
       // BUT ONLY if it has a valid UUID id (text provider IDs like "yoyomedia.in" crash on UUID columns)
