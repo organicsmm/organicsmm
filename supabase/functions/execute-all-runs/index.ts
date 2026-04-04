@@ -1298,8 +1298,8 @@ serve(async (req) => {
           run_id: run.id, 
           type: item.engagement_type, 
           run_number: run.run_number, 
-          success: false, 
-          error: lastError + ` (URL: ${selectedAccount?.api_url || 'missing'}, Available Keys: ${Object.keys(selectedAccount || {}).join(', ')})`,
+          success: false,
+          error: lastError, 
           will_retry: true,
           retry_attempt: retryCount,
           accounts_tried: accountsToTry.length
