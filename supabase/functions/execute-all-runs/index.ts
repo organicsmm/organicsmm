@@ -150,7 +150,9 @@ async function getAllAvailableProviderAccounts(
   serviceId: string,
   link: string,
   executionId: string,
-  excludeAccountIds: string[] = []
+  excludeAccountIds: string[] = [],
+  allStartedRuns: any[] = [],
+  allProviderActiveRuns: any[] = []
 ): Promise<{ account: ProviderAccount; providerServiceId: string }[]> {
   console.log(`[${executionId}] Finding ALL available provider accounts for service ${serviceId}`)
   if (excludeAccountIds.length > 0) {
@@ -207,14 +209,50 @@ async function getAllAvailableProviderAccounts(
     const account = mapping.provider_account as ProviderAccount
     
     if (!account || !account.is_active) {
+      console.log(`[${executionId}] Skipping inactive/null account: ${account?.name || 'Unknown'}`)
       continue
     }
 
-    // Skip explicitly excluded accounts (already tried and failed in THIS execution)
+    // 1. Skip explicitly excluded accounts (already tried and failed in THIS execution)
     if (excludeAccountIds.includes(account.id)) {
-      console.log(`[${executionId}] Skipping excluded account: ${account.name}`)
+      console.log(`[${executionId}] Skipping excluded account: ${account.name} (failed in current loop)`)
       continue
     }
+
+    // 2. Skip accounts busy with the SAME link (Snapshot-based)
+    // This prevents "active order" conflicts BEFORE calling the API
+    let isBusyWithLink = false
+    const normalizedLink = link.toLowerCase().trim().replace(/\/$/, '')
+
+    // Check started runs
+    if (allStartedRuns) {
+      for (const r of allStartedRuns) {
+        if (r.provider_account_id === account.id) {
+          const runLink = (r.engagement_order_item as any)?.engagement_order?.link || ''
+          if (runLink.toLowerCase().trim().replace(/\/$/, '') === normalizedLink) {
+            console.log(`[${executionId}] Skipping ${account.name} (busy with same link in 'started' run)`)
+            isBusyWithLink = true
+            break
+          }
+        }
+      }
+    }
+
+    // Check provider-active runs
+    if (!isBusyWithLink && allProviderActiveRuns) {
+      for (const r of allProviderActiveRuns) {
+        if (r.provider_account_id === account.id) {
+          const runLink = (r.engagement_order_item as any)?.engagement_order?.link || ''
+          if (runLink.toLowerCase().trim().replace(/\/$/, '') === normalizedLink) {
+            console.log(`[${executionId}] Skipping ${account.name} (busy with same link in provider-active run)`)
+            isBusyWithLink = true
+            break
+          }
+        }
+      }
+    }
+
+    if (isBusyWithLink) continue
 
     // Add to available accounts - let the API call determine actual availability
     availableAccounts.push({
@@ -697,7 +735,9 @@ serve(async (req) => {
         item.service.id,
         orderLink,
         executionId,
-        busyAccountIds
+        busyAccountIds,
+        allStartedRuns || [],
+        allProviderActiveRuns || []
       )
       
       // Also get default provider as final fallback
