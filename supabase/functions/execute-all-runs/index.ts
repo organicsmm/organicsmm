@@ -153,7 +153,7 @@ async function getAllAvailableProviderAccounts(
   excludeAccountIds: string[] = [],
   allStartedRuns: any[] = [],
   allProviderActiveRuns: any[] = []
-): Promise<{ account: ProviderAccount; providerServiceId: string }[]> {
+): Promise<(ProviderAccount & { providerServiceId: string })[]> {
   console.log(`[${executionId}] Finding ALL available provider accounts for service ${serviceId}`)
   if (excludeAccountIds.length > 0) {
     console.log(`[${executionId}] Excluding accounts: ${excludeAccountIds.join(', ')}`)
@@ -197,7 +197,7 @@ async function getAllAvailableProviderAccounts(
     return aTime - bTime
   })
 
-  const availableAccounts: { account: ProviderAccount; providerServiceId: string }[] = []
+  const availableAccounts: (ProviderAccount & { providerServiceId: string })[] = []
 
   // 2. Build list of available accounts
   // NOTE: We NO LONGER pre-filter based on internal "started" runs!
@@ -256,7 +256,7 @@ async function getAllAvailableProviderAccounts(
 
     // Add to available accounts - let the API call determine actual availability
     availableAccounts.push({
-      account,
+      ...account,
       providerServiceId: mapping.provider_service_id
     })
   }
@@ -271,7 +271,7 @@ async function getAvailableProviderAccount(
   serviceId: string,
   link: string,
   executionId: string
-): Promise<{ account: ProviderAccount; providerServiceId: string } | null> {
+): Promise<(ProviderAccount & { providerServiceId: string }) | null> {
   const accounts = await getAllAvailableProviderAccounts(supabase, serviceId, link, executionId)
   return accounts.length > 0 ? accounts[0] : null
 }
