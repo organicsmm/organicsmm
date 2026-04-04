@@ -430,16 +430,37 @@ serve(async (req) => {
     // This prevents provider accounts from being permanently blocked
     // ============================================
     console.log(`\n--- Global Stuck Run Cleanup ---`)
-    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    // Cleanup stalled runs (stuck in 'started' state for > 3 hours)
+    console.log(`\n--- Cleaning Up Stalled Runs ---`)
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
     const { data: globalStuckRuns } = await supabase
+      .from('organic_run_schedule')
+      .update({
+        status: 'pending',
+        started_at: null,
+        error_message: 'Cleaned up after 3 hour stall: Status was stuck in started state',
+      })
+      .eq('status', 'started')
+      .lte('started_at', threeHoursAgo)
+      .select()
+
+    if (globalStuckRuns && globalStuckRuns.length > 0) {
+      console.log(`✅ Cleaned up ${globalStuckRuns.length} stuck runs`)
+    } else {
+      console.log(`✅ No stuck runs found`)
+    }
+
+    console.log(`Current server time (now): ${now}`)
+    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    const { data: globalStuckRuns10Min } = await supabase
       .from('organic_run_schedule')
       .select('id, run_number, started_at, provider_account_id, provider_status')
       .eq('status', 'started')
       .lt('started_at', tenMinAgo)
     
-    if (globalStuckRuns && globalStuckRuns.length > 0) {
-      console.log(`🧹 Found ${globalStuckRuns.length} globally stuck runs (started > 10min ago), auto-completing...`)
-      for (const stuck of globalStuckRuns) {
+    if (globalStuckRuns10Min && globalStuckRuns10Min.length > 0) {
+      console.log(`🧹 Found ${globalStuckRuns10Min.length} globally stuck runs (started > 10min ago), auto-completing...`)
+      for (const stuck of globalStuckRuns10Min) {
         const ageMin = Math.round((Date.now() - new Date(stuck.started_at).getTime()) / 60000)
         console.log(`  🔄 Auto-completing run #${stuck.run_number} (age: ${ageMin}min, status: ${stuck.provider_status || 'unknown'})`)
         await supabase.from('organic_run_schedule').update({
@@ -448,7 +469,7 @@ serve(async (req) => {
           error_message: `Auto-completed after ${ageMin}min (global cleanup, status: ${stuck.provider_status || 'unknown'})`,
         }).eq('id', stuck.id)
       }
-      console.log(`✅ Cleaned up ${globalStuckRuns.length} stuck runs`)
+      console.log(`✅ Cleaned up ${globalStuckRuns10Min.length} stuck runs`)
     } else {
       console.log(`✅ No stuck runs found`)
     }
@@ -526,7 +547,11 @@ serve(async (req) => {
       return true
     })
 
-    console.log(`Fetched ${pendingEngagementRuns?.length || 0} pending runs, ${activeEngagementRuns.length} active (excluded ${(pendingEngagementRuns?.length || 0) - activeEngagementRuns.length} paused/cancelled)`)
+    console.log(`Fetched ${pendingEngagementRuns?.length || 0} pending runs (lte now), ${activeEngagementRuns.length} active (excluded ${(pendingEngagementRuns?.length || 0) - activeEngagementRuns.length} paused/cancelled)`)
+    
+    if (activeEngagementRuns.length > 0) {
+      console.log(`Sample of pending schedules: ${activeEngagementRuns.slice(0, 3).map(r => `${r.id} scheduled at ${r.scheduled_at}`).join(', ')}`)
+    }
 
     // SEQUENTIAL EXECUTION PER ITEM:
     // Only process ONE run per item at a time to ensure strict priority-based delivery
@@ -552,7 +577,7 @@ serve(async (req) => {
         itemRunCount.set(itemId, count + 1)
         return true
       }
-      
+      console.log(`[DEDUPLICATION] Skipping Run #${run.run_number} (${run.id}) because item ${itemId} already has ${count} concurrently active runs (Limit: ${MAX_CONCURRENT_PER_ITEM})`)
       return false
     })
 
