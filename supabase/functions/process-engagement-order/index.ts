@@ -224,14 +224,26 @@ serve(async (req) => {
     const supabase = supabaseModule
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token)
-    if (claimsError || !claimsData?.claims?.sub) {
-      console.error('Auth failed:', claimsError?.message || 'No sub claim')
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    
+    // System calls: anon key or service key
+    const isSystemCall = !!(token && (token === anonKey || token === serviceKey))
+    let user: { id: string }
+
+    if (isSystemCall) {
+      user = { id: 'system' }
+    } else {
+      // User JWT - verify it properly
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !authUser) {
+        console.error('Auth failed:', authError?.message || 'No user found')
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      user = { id: authUser.id }
     }
-    const user = { id: claimsData.claims.sub as string }
 
     const body = await req.json()
     const {

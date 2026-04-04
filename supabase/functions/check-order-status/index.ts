@@ -33,11 +33,10 @@ Deno.serve(async (req) => {
     const isSystemCall = !!(token && (token === anonKey || token === serviceKey))
     
     if (!isSystemCall && token) {
-      // User JWT - verify it
-      const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token)
-      if (claimsError || !claimsData?.claims?.sub) {
-        console.log('JWT verification failed, checking if valid system token...')
-        // Still allow if it looks like a valid JWT (cron might send different format)
+      // User JWT - verify it properly
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !authUser) {
+        console.error('JWT verification failed:', authError?.message || 'No user found')
       }
     }
     

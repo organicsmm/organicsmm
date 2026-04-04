@@ -27,20 +27,29 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: claimsData } = await supabase.auth.getClaims(token)
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    
+    // System calls: anon key or service key
+    const isServiceRole = !!(token && token === serviceKey)
+    const isAnonRole = !!(token && token === anonKey)
+    let user: { id: string }
+    let isUserJwt = false
 
-    // Allow user JWT (has sub) OR service_role JWT (internal call from public-api)
-    const isUserJwt = !!claimsData?.claims?.sub
-    const isServiceRole = claimsData?.claims?.role === 'service_role'
-
-    if (!isUserJwt && !isServiceRole) {
-      console.error('Auth failed: not a user JWT or service_role JWT')
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+    if (isServiceRole || isAnonRole) {
+      user = { id: 'system' }
+    } else {
+      // User JWT - verify it properly
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !authUser) {
+        console.error('Auth failed: not a valid user JWT or system key')
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      user = { id: authUser.id }
+      isUserJwt = true
     }
-
-    const user = { id: claimsData?.claims?.sub as string ?? 'system' }
 
     // Validate active subscription (Required for new orders)
     // First, check if user is admin (admins bypass subscription check)
