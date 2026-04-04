@@ -150,13 +150,13 @@ async function getAllAvailableProviderAccounts(
   serviceId: string,
   link: string,
   executionId: string,
-  excludeAccountIds: string[] = [],
+  excludeAccountIds: Set<string> = new Set(),
   allStartedRuns: any[] = [],
   allProviderActiveRuns: any[] = []
 ): Promise<(ProviderAccount & { providerServiceId: string })[]> {
   console.log(`[${executionId}] Finding ALL available provider accounts for service ${serviceId}`)
-  if (excludeAccountIds.length > 0) {
-    console.log(`[${executionId}] Excluding accounts: ${excludeAccountIds.join(', ')}`)
+  if (excludeAccountIds.size > 0) {
+    console.log(`[${executionId}] Excluding accounts: ${Array.from(excludeAccountIds).join(', ')}`)
   }
   
   // 1. Get all active service-provider mappings ordered by sort_order and last_used_at
@@ -214,23 +214,25 @@ async function getAllAvailableProviderAccounts(
     }
 
     // 1. Skip explicitly excluded accounts (already tried and failed in THIS execution)
-    if (excludeAccountIds.includes(account.id)) {
+    if (excludeAccountIds.has(account.id)) {
       console.log(`[${executionId}] Skipping excluded account: ${account.name} (failed in current loop)`)
       continue
     }
 
-    // 2. Skip accounts busy with the SAME link (Snapshot-based)
-    // This prevents "active order" conflicts BEFORE calling the API
+    // 2. Skip accounts busy with the SAME link (Snapshot-based) on THIS PROVIDER
+    // This prevents "active order" conflicts across accounts of the same provider
     let isBusyWithLink = false
     const normalizedLink = link.toLowerCase().trim().replace(/\/$/, '')
+    const currentProviderId = account.provider_id
 
     // Check started runs
     if (allStartedRuns) {
       for (const r of allStartedRuns) {
-        if (r.provider_account_id === account.id) {
+        const rProviderId = (r as any).provider_account?.provider_id
+        if (rProviderId === currentProviderId) {
           const runLink = (r.engagement_order_item as any)?.engagement_order?.link || ''
           if (runLink.toLowerCase().trim().replace(/\/$/, '') === normalizedLink) {
-            console.log(`[${executionId}] Skipping ${account.name} (busy with same link in 'started' run)`)
+            console.log(`[${executionId}] Skipping ${account.name} (Provider ${currentProviderId} busy with same link in 'started' run)`)
             isBusyWithLink = true
             break
           }
@@ -241,10 +243,11 @@ async function getAllAvailableProviderAccounts(
     // Check provider-active runs
     if (!isBusyWithLink && allProviderActiveRuns) {
       for (const r of allProviderActiveRuns) {
-        if (r.provider_account_id === account.id) {
+        const rProviderId = (r as any).provider_account?.provider_id
+        if (rProviderId === currentProviderId) {
           const runLink = (r.engagement_order_item as any)?.engagement_order?.link || ''
           if (runLink.toLowerCase().trim().replace(/\/$/, '') === normalizedLink) {
-            console.log(`[${executionId}] Skipping ${account.name} (busy with same link in provider-active run)`)
+            console.log(`[${executionId}] Skipping ${account.name} (Provider ${currentProviderId} busy with same link in provider-active run)`)
             isBusyWithLink = true
             break
           }
@@ -477,9 +480,59 @@ serve(async (req) => {
     // ============================================
     // STEP 0.5: Pre-fetch busy status snapshots
     // This dramatically reduces DB queries from 2N to 2
-    // Fetch all currently active runs across the entire system.
     // ============================================
-    console.log(`\n--- Pre-fetching Busy Account Snapshots ---`)
+    // AUTO-CLEANSING: Restore Sequentiality
+    // Deep clean any parallel "Processing" or "Started" clutter that accumulated before the fix.
+    // If multiple runs for the same link are currently 'started', only keep the OLDEST one active
+    // and move the others to 'completed' with an 'auto-cleansed' note.
+    // ============================================
+    console.log(`\n--- Auto-Cleansing Parallel Clutter ---`)
+    const { data: allActiveRuns } = await supabase
+      .from('organic_run_schedule')
+      .select(`
+        id, run_number, started_at, 
+        engagement_order_item:engagement_order_items(id, engagement_order:engagement_orders(link)),
+        provider_account:provider_accounts(provider_id)
+      `)
+      .eq('status', 'started')
+      .order('started_at', { ascending: true })
+
+    if (allActiveRuns && allActiveRuns.length > 0) {
+      const linkProviderSeen = new Set<string>()
+      const runsToClean: string[] = []
+      
+      for (const run of allActiveRuns) {
+        const link = run.engagement_order_item?.engagement_order?.link?.toLowerCase().trim().replace(/\/$/, '')
+        const providerId = (run as any).provider_account?.provider_id
+        
+        if (link && providerId) {
+          const key = `${link}_${providerId}`
+          if (linkProviderSeen.has(key)) {
+            // Already have an older run for SAME LINK on SAME PROVIDER!
+            runsToClean.push(run.id)
+          } else {
+            linkProviderSeen.add(key)
+          }
+        }
+      }
+
+      if (runsToClean.length > 0) {
+        console.log(`🧹 Auto-cleansing ${runsToClean.length} redundant parallel runs to restore sequentiality...`)
+        await supabase
+          .from('organic_run_schedule')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            error_message: 'Auto-cleansed: Parallel run found (restoring sequentiality)'
+          })
+          .in('id', runsToClean)
+      } else {
+        console.log(`✨ No parallel clutter found. Sequentiality is already maintained.`)
+      }
+    }
+
+    // ============================================
+    // Pre-fetching Busy Account Snapshots
     
     // 1. Fetch ALL started runs (actively in progress)
     const { data: allStartedRuns } = await supabase
@@ -489,12 +542,13 @@ serve(async (req) => {
         engagement_order_item:engagement_order_items(
           id, engagement_type, service_id,
           engagement_order:engagement_orders(link)
-        )
+        ),
+        provider_account:provider_accounts(provider_id)
       `)
       .eq('status', 'started')
     
     // 2. Fetch ALL recent completed runs that are still active at provider
-    const nonTerminalStatuses = ['Pending', 'In progress', 'Processing', 'Partial']
+    const nonTerminalStatuses = ['Pending', 'In progress', 'Processing', 'Partial', 'Unverified']
     const threeHoursAgoForSnapshot = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
     const { data: allProviderActiveRuns } = await supabase
       .from('organic_run_schedule')
@@ -503,12 +557,13 @@ serve(async (req) => {
         engagement_order_item:engagement_order_items(
           id, engagement_type, service_id,
           engagement_order:engagement_orders(link)
-        )
+        ),
+        provider_account:provider_accounts(provider_id)
       `)
       .in('status', ['completed', 'started'])
       .not('provider_account_id', 'is', null)
       .not('provider_order_id', 'is', null)
-      .in('provider_status', nonTerminalStatuses)
+      .or(`provider_status.in.(${nonTerminalStatuses.join(',')}),provider_status.is.null`)
       .gte('completed_at', threeHoursAgoForSnapshot)
 
     // ============================================
@@ -553,35 +608,46 @@ serve(async (req) => {
       console.log(`Sample of pending schedules: ${activeEngagementRuns.slice(0, 3).map(r => `${r.id} scheduled at ${r.scheduled_at}`).join(', ')}`)
     }
 
-    // SEQUENTIAL EXECUTION PER ITEM:
-    // Only process ONE run per item at a time to ensure strict priority-based delivery
-    // and avoid "active order" conflicts on the same link across different providers.
-    const MAX_CONCURRENT_PER_ITEM = 5
-    const itemRunCount = new Map<string, number>()
+    // SEQUENTIAL EXECUTION:
+    // Only process ONE run per item and ONE run per link at a time to ensure strict sequential delivery.
+    // This prevents "active order" conflicts and stops provider dashboards from being flooded with pending orders.
+    const normalizeLink = (l: string) => l?.toLowerCase().trim().replace(/\/$/, '') || ''
+    const busyAccountIds = new Set<string>()
+    const linkProviderRunCount = new Map<string, number>()
     
-    // Seed the map with ALREADY started runs so we don't exceed the limit
-    if (allStartedRuns) {
-      for (const run of allStartedRuns) {
-        if (run.engagement_order_item_id) {
-          const count = itemRunCount.get(run.engagement_order_item_id) || 0
-          itemRunCount.set(run.engagement_order_item_id, count + 1)
-        }
+    // Seed counters from all active runs
+    const allRecentRuns = [...(allStartedRuns || []), ...(allProviderActiveRuns || [])]
+    for (const run of allRecentRuns) {
+      if (run.provider_account_id) busyAccountIds.add(run.provider_account_id)
+      
+      const link = normalizeLink(run.engagement_order_item?.engagement_order?.link || '')
+      const providerId = (run as any)?.provider_account?.provider_id
+      
+      if (link && providerId) {
+        const key = `${link}_${providerId}`
+        linkProviderRunCount.set(key, (linkProviderRunCount.get(key) || 0) + 1)
       }
     }
-    
+
+    // NEW: We no longer pre-filter by global link count.
+    // Instead, we allow multiple runs per link to enter the provider loop,
+    // where they will be deduplicated on a per-provider basis.
     const deduplicatedRuns = activeEngagementRuns.filter(run => {
       const itemId = run.engagement_order_item_id
-      const count = itemRunCount.get(itemId) || 0
       
-      if (count < MAX_CONCURRENT_PER_ITEM) {
-        itemRunCount.set(itemId, count + 1)
-        return true
+      // Global ITEM limit still applies (1 run per item type)
+      const MAX_CONCURRENT_PER_ITEM = 1
+      const itemRunCount = allRecentRuns.filter(r => r.engagement_order_item_id === itemId).length
+      
+      if (itemRunCount >= MAX_CONCURRENT_PER_ITEM) {
+        console.log(`[DEDUPLICATION] Skipping Run #${run.run_number} (${run.id}): Item ${itemId} already busy`)
+        return false
       }
-      console.log(`[DEDUPLICATION] Skipping Run #${run.run_number} (${run.id}) because item ${itemId} already has ${count} concurrently active runs (Limit: ${MAX_CONCURRENT_PER_ITEM})`)
-      return false
+      
+      return true
     })
 
-    console.log(`Found ${pendingEngagementRuns?.length || 0} pending runs, selected ${deduplicatedRuns.length} for processing`)
+    console.log(`Found ${pendingEngagementRuns?.length || 0} pending runs, selected ${deduplicatedRuns.length} for sequential processing`)
 
     // Also get failed runs that should be retried
     // UNLIMITED RETRY: Failed runs keep retrying every cron cycle until they succeed
@@ -728,31 +794,7 @@ serve(async (req) => {
       }
 
       // BUSY ACCOUNT DETECTION
-      // We use the snapshot calculated at the start of the function (lines 535-573)
-      // to avoid placing multiple orders on the same link/account simultaneously.
-      const sameLink = orderLink.toLowerCase().replace(/\/$/, '')
-      const currentServiceId = item.service?.id
-      const busyAccountIds: string[] = []
-
-      // 1. Accounts busy with ANY run currently in 'started' state
-      if (allStartedRuns) {
-        for (const r of allStartedRuns) {
-          if (r.provider_account_id) busyAccountIds.push(r.provider_account_id)
-        }
-      }
-
-      // 2. Accounts busy with THIS link at the provider level
-      if (allProviderActiveRuns) {
-        for (const r of allProviderActiveRuns) {
-          const runLink = (r.engagement_order_item as any)?.engagement_order?.link || ''
-          const normalizedRunLink = runLink.toLowerCase().replace(/\/$/, '')
-          
-          if (normalizedRunLink === sameLink && r.provider_account_id) {
-            console.log(`📍 Account ${r.provider_account_id} is busy with this link at provider (Run #${r.run_number})`)
-            busyAccountIds.push(r.provider_account_id)
-          }
-        }
-      }
+      const runLink = normalizeLink(orderLink)
 
       // Get available provider accounts EXCLUDING busy ones, sorted by priority
       let availableAccounts = await getAllAvailableProviderAccounts(
@@ -829,15 +871,30 @@ serve(async (req) => {
       }
       
       // NEW: Last resort fallback — if no mappings and primary is busy, try ANY other active provider
-      if (availableAccounts.length === 0 && (!defaultProvider || busyAccountIds.includes(defaultProvider.id))) {
+      if (availableAccounts.length === 0 && (!defaultProvider || busyAccountIds.has(defaultProvider.id))) {
         const { data: allOtherActive } = await supabase
           .from('provider_accounts')
-          .select('*')
+          .select('*, providers(*)')
           .eq('is_active', true)
         
         if (allOtherActive && allOtherActive.length > 0) {
           // Filter out busy ones (manual filtering due to Supabase query limits on negation)
-          const filtered = allOtherActive.filter(acc => !busyAccountIds.includes(acc.id))
+          const filtered = allOtherActive.filter(acc => {
+            // 1. Check if account itself is busy
+            if (busyAccountIds.has(acc.id)) return false
+            
+            // 2. NEW: Check if this PROVIDER is already busy with this LINK
+            const providerId = acc.provider_id
+            if (runLink && providerId) {
+              const key = `${runLink}_${providerId}`
+              if ((linkProviderRunCount.get(key) || 0) > 0) {
+                console.log(`⏩ Account ${acc.name} skipped: Provider ${acc.providers?.name || 'unknown'} already processing ${runLink}`)
+                return false
+              }
+            }
+            
+            return true
+          })
           
           if (filtered.length > 0) {
             console.log(`[${executionId}] 🌎 [LAST RESORT] All preferred providers busy or missing. Trying ${filtered.map(f => f.name).join(', ')}...`)
@@ -860,7 +917,7 @@ serve(async (req) => {
       if (
         defaultProvider && 
         !accountsToTry.some(a => a.id === defaultProvider!.id) &&
-        !busyAccountIds.includes(defaultProvider.id)
+        !busyAccountIds.has(defaultProvider.id)
       ) {
         accountsToTry.push({
           ...defaultProvider,
@@ -1385,15 +1442,11 @@ serve(async (req) => {
             error_message: `Auto-completed after ${ageMinutes}min (status: ${stuckRun.provider_status || 'unknown'})`,
           }).eq('id', stuckRun.id)
         } else {
-          // Only wait if started run is less than 60 seconds old
+          // STRICT SEQUENTIAL: Wait until run is terminal or 15 minutes have passed
           const runAge = Math.round((Date.now() - startedAt.getTime()) / 1000)
-          if (runAge < 60) {
-            console.log(`Legacy order ${order.id} has run #${stuckRun.run_number} in progress (${runAge}s old), waiting...`)
-            skipped++
-            continue
-          } else {
-            console.log(`⚡ Legacy run #${stuckRun.run_number} is ${runAge}s old, proceeding with next run`)
-          }
+          console.log(`Legacy order ${order.id} has run #${stuckRun.run_number} in progress (${runAge}s old), waiting for completion...`)
+          skipped++
+          continue
         }
       }
 
