@@ -112,7 +112,7 @@ async function checkProviderBalance(account: ProviderAccount): Promise<{ hasBala
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-    const response = await fetch(account.api_url, {
+    const response = await fetch(account.api_url || (account as any).url || (account as any).api_endpoint || (account as any).apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formData.toString(),
@@ -1038,7 +1038,8 @@ serve(async (req) => {
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 30000)
 
-          const response = await fetch(selectedAccount.api_url, {
+          const url = selectedAccount.api_url || (selectedAccount as any).url || (selectedAccount as any).api_endpoint || (selectedAccount as any).apiUrl
+          const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: formData.toString(),
@@ -1291,7 +1292,7 @@ serve(async (req) => {
           type: item.engagement_type, 
           run_number: run.run_number, 
           success: false, 
-          error: lastError, 
+          error: lastError + ` (URL: ${selectedAccount?.api_url || 'missing'}, Available Keys: ${Object.keys(selectedAccount || {}).join(', ')})`,
           will_retry: true,
           retry_attempt: retryCount,
           accounts_tried: accountsToTry.length
