@@ -531,7 +531,7 @@ serve(async (req) => {
     // SEQUENTIAL EXECUTION PER ITEM:
     // Only process ONE run per item at a time to ensure strict priority-based delivery
     // and avoid "active order" conflicts on the same link across different providers.
-    const MAX_CONCURRENT_PER_ITEM = 1
+    const MAX_CONCURRENT_PER_ITEM = 5
     const itemRunCount = new Map<string, number>()
     
     // Seed the map with ALREADY started runs so we don't exceed the limit
