@@ -829,17 +829,18 @@ serve(async (req) => {
       }
       
       // Build list - priority rotation, any available account
-      const accountsToTry: { account: ProviderAccount; providerServiceId: string }[] = [...availableAccounts]
+      // NOTE: availableAccounts is already an array of ProviderAccount (with extra fields providerServiceId, priority)
+      const accountsToTry: any[] = [...availableAccounts]
       
       // Add default provider if not already in the list AND not busy
       if (
         defaultProvider && 
-        !accountsToTry.some(a => a.account.id === defaultProvider!.id) &&
+        !accountsToTry.some(a => a.id === defaultProvider!.id) &&
         !busyAccountIds.includes(defaultProvider.id)
       ) {
         accountsToTry.push({
-          account: defaultProvider,
-          providerServiceId: item.service.provider_service_id
+          ...defaultProvider,
+          providerServiceId: item.service.provider_service_id || item.service.id
         })
       }
       
@@ -850,8 +851,7 @@ serve(async (req) => {
           .select('id')
           .eq('service_id', item.service.id)
           .eq('is_active', true)
-          .limit(1)
-        
+
         if (totalMappings && totalMappings.length > 0) {
           // Accounts exist but all busy — revert to pending for retry next cycle
           console.log(`⏳ All provider accounts busy for ${item.engagement_type} — keeping as pending for retry`)
@@ -868,7 +868,7 @@ serve(async (req) => {
         continue
       }
       
-      console.log(`🔄 PRIORITY FAILOVER: Will try ${accountsToTry.length} accounts in order: ${accountsToTry.map((a, i) => `${i+1}. ${a.account.name}`).join(' → ')}`)
+      console.log(`🔄 PRIORITY FAILOVER: Will try ${accountsToTry.length} accounts in order: ${accountsToTry.map((a, i) => `${i+1}. ${a.name}`).join(' → ')}`)
 
       // ============================================
       // SMART MINIMUM QUANTITY HANDLING
@@ -920,7 +920,8 @@ serve(async (req) => {
       let verifiedCharge: number | null = null
       let verifiedLastStatusCheck: string | null = null
       
-      for (const { account: selectedAccount, providerServiceId } of accountsToTry) {
+      for (const selectedAccount of accountsToTry) {
+        const providerServiceId = selectedAccount.providerServiceId
         console.log(`\n📤 Trying account: ${selectedAccount.name} (service ID: ${providerServiceId})`)
         
         // PRE-CHECK 0: Re-verify order/item is NOT cancelled before sending to provider
